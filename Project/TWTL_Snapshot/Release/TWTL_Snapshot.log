@@ -1,0 +1,10 @@
+﻿  stdafx.cpp
+  dllmain.cpp
+  Misc.cpp
+  MonitorFunc.cpp
+     Creating library C:\Project\Github\Engine\Release\TWTL_Snapshot.lib and object C:\Project\Github\Engine\Release\TWTL_Snapshot.exp
+  Generating code
+  All 16 functions were compiled because no usable IPDB/IOBJ from previous compilation was found.
+  Finished generating code
+  TWTL_Snapshot.vcxproj -> C:\Project\Github\Engine\Release\TWTL_Snapshot.dll
+  TWTL_Snapshot.vcxproj -> C:\Project\Github\Engine\Release\TWTL_Snapshot.pdb (Full PDB)
