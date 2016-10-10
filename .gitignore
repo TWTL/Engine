@@ -1,0 +1,17 @@
+*.obj
+*.log
+*.pch
+*.pdb
+
+*.iobj
+*.ipdb
+*.exp
+*.lib
+
+*.dll
+*.exe
+
+*.tlog
+*.lastbuildstate
+
+*.db

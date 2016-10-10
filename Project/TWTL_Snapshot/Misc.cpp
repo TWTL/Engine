@@ -52,15 +52,27 @@ BOOL __stdcall setSystemPrivilege(HANDLE *hProcess) {
 
 	Parameters : 
 		( out ) PREGINFO reg = initialized by this function.
+		( in )  DWORD32 regType
+			1 -> regName
+			2 -> regValue
+			else -> Error
 	Return value :
 		0 = Error
 		1 = Success
 */
-BOOL __stdcall initRegSize(CONST PREGINFO reg) {
-	reg->bufSize = REG_MAX - 1;
+BOOL __stdcall initRegSize(CONST PREGINFO reg, CONST DWORD32 regType) {
+	if (regType == 1) {
+		reg->bufSize = REGNAME_MAX - 1;
+	}
+	else if (regType == 2) {
+		reg->bufSize = REGVALUE_MAX - 1;
+	}
+	else {
+		return NULL;
+	}
 	reg->dataType = REG_SZ;
-	
-	if (reg->bufSize != REG_MAX - 1 || reg->dataType != REG_SZ) {
+
+	if ((reg->bufSize != REGVALUE_MAX - 1 && reg->bufSize != REGNAME_MAX - 1) || reg->dataType != REG_SZ) {
 		return NULL;
 	}
 	return TRUE;
@@ -154,12 +166,23 @@ BOOL __stdcall makeFileName(CHAR fileName[]) {
 }
 
 /*
+	Description : Print written string. ( for debugging )
+
+	Parameters :	Nope
+	Return value :	Nope
+*/
+VOID __stdcall printCUI(CONST TCHAR* msg) {
+	_tprintf_s(L"Written : %s\n", msg);
+	return;
+}
+
+/*
 	Description : Instead of use sleep(), use this function.
 
 	Parameters :	Nope
 	Return value :  Nope
 */
-VOID __stdcall delayWait(CONST DWORD dwMillisecond) {
+TWTL_SNAPSHOT_API VOID __stdcall delayWait(DWORD CONST dwMillisecond) {
 	MSG msg;
 	DWORD dwStart;
 	dwStart = GetTickCount();
@@ -172,17 +195,6 @@ VOID __stdcall delayWait(CONST DWORD dwMillisecond) {
 			DispatchMessage(&msg);
 		}
 	}
-	return;
-}
-
-/*
-	Description : Print written string. ( for debugging )
-
-	Parameters :	Nope
-	Return value :	Nope
-*/
-VOID __stdcall printCUI(CONST TCHAR* msg) {
-	_tprintf_s(L"Written : %s\n", msg);
 	return;
 }
 
