@@ -29,7 +29,7 @@ setSystemPrivilege(
 BOOL
 __stdcall
 initRegSize(
-	CONST PREGINFO reg,
+	PREGINFO CONST reg,
 	CONST DWORD32  regType
 );
 
@@ -42,7 +42,7 @@ makeFileName(
 VOID
 __stdcall
 printCUI(
-	CONST TCHAR* msg
+	TCHAR* CONST msg
 );
 
 TWTL_SNAPSHOT_API

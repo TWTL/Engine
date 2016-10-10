@@ -60,7 +60,7 @@ BOOL __stdcall setSystemPrivilege(HANDLE *hProcess) {
 		0 = Error
 		1 = Success
 */
-BOOL __stdcall initRegSize(CONST PREGINFO reg, CONST DWORD32 regType) {
+BOOL __stdcall initRegSize(PREGINFO CONST reg, CONST DWORD32 regType) {
 	if (regType == 1) {
 		reg->bufSize = REGNAME_MAX - 1;
 	}
@@ -171,7 +171,7 @@ BOOL __stdcall makeFileName(CHAR fileName[]) {
 	Parameters :	Nope
 	Return value :	Nope
 */
-VOID __stdcall printCUI(CONST TCHAR* msg) {
+VOID __stdcall printCUI(TCHAR* CONST msg) {
 	_tprintf_s(L"Written : %s\n", msg);
 	return;
 }
@@ -182,7 +182,7 @@ VOID __stdcall printCUI(CONST TCHAR* msg) {
 	Parameters :	Nope
 	Return value :  Nope
 */
-TWTL_SNAPSHOT_API VOID __stdcall delayWait(DWORD CONST dwMillisecond) {
+TWTL_SNAPSHOT_API VOID __stdcall delayWait(CONST DWORD dwMillisecond) {
 	MSG msg;
 	DWORD dwStart;
 	dwStart = GetTickCount();
