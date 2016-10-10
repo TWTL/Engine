@@ -4,7 +4,8 @@
 #include "Misc.h"
 
 TWTL_SNAPSHOT_API
-BOOL 
+BOOL
 __stdcall
 snapCurrentStatus(
+	CONST DWORD32 mode
 );

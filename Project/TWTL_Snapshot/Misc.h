@@ -8,13 +8,14 @@
 #define TWTL_SNAPSHOT_API __declspec(dllimport) 
 #endif
 
-#define REG_MAX 255
+#define REGNAME_MAX	 255
+#define REGVALUE_MAX 16383
 
 typedef struct REG_INFORMATION
 {
-	HKEY key;
-	TCHAR keyName[REG_MAX];
-	TCHAR keyValue[REG_MAX];
+	HKEY  key;
+	TCHAR keyName[REGNAME_MAX];
+	TCHAR keyValue[REGVALUE_MAX];
 	DWORD bufSize;
 	DWORD dataType;
 }REGINFO, *PREGINFO;
@@ -28,7 +29,8 @@ setSystemPrivilege(
 BOOL
 __stdcall
 initRegSize(
-	CONST PREGINFO reg
+	CONST PREGINFO reg,
+	CONST DWORD32  regType
 );
 
 BOOL
@@ -39,14 +41,15 @@ makeFileName(
 
 VOID
 __stdcall
-delayWait(
-	CONST DWORD dwMillisecond
-);
-
-VOID
-__stdcall
 printCUI(
 	CONST TCHAR* msg
+);
+
+TWTL_SNAPSHOT_API
+VOID
+__stdcall
+delayWait(
+	CONST DWORD dwMillisecond
 );
 
 TWTL_SNAPSHOT_API
