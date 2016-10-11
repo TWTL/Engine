@@ -168,7 +168,8 @@ BOOL __stdcall makeFileName(CHAR fileName[]) {
 /*
 	Description : Print written string. ( for debugging )
 
-	Parameters :	Nope
+	Parameters :
+		( in )	TCHAR* msg : printed string
 	Return value :	Nope
 */
 VOID __stdcall printCUI(TCHAR* CONST msg) {
@@ -179,7 +180,8 @@ VOID __stdcall printCUI(TCHAR* CONST msg) {
 /*
 	Description : Instead of use sleep(), use this function.
 
-	Parameters :	Nope
+	Parameters :
+		( in )	DWORD dwMillisecond : wait time (ms)
 	Return value :  Nope
 */
 TWTL_SNAPSHOT_API VOID __stdcall delayWait(CONST DWORD dwMillisecond) {

@@ -3,7 +3,8 @@
 #include "stdafx.h"
 #include "MonitorFunc.h"
 
-BOOL __stdcall setTargetRegistryEntry(FILE* storage, PREGINFO CONST pReg, CONST DWORD target, CONST DWORD32 mode);
+DWORD __stdcall openRegisteryKey(PREGINFO CONST pReg, CONST DWORD32 target);
+BOOL __stdcall setTargetRegistryEntry(FILE* storage, PREGINFO CONST pReg, CONST DWORD32 target, CONST DWORD32 mode);
 BOOL __stdcall writeRegToTxt(FILE* storage, PREGINFO CONST pReg, CONST DWORD32 mode);
 
 /*
@@ -113,6 +114,91 @@ TWTL_SNAPSHOT_API BOOL __stdcall snapCurrentStatus(CONST DWORD32 mode) {
 }
 
 /*
+	Description : delete target registry value
+
+	Parameter :
+		( in )	TCHAR keyName[REGNAME_MAX] : deleted value's name
+		( in )	DWORD32 targetKey  : 
+			1 -> HKEY_CURRENT_USER/Microsoft/Windows/CurrentVersion/Run
+			2 -> HKEY_LOCAL_MACHINE/Microsoft/Windows/CurrentVersion/Run
+			3 -> HKEY_CURRENT_USER/Microsoft/Windows/CurrentVersion/RunOnce
+			4 -> HKEY_LOCAL_MACHINE/Microsoft/Windows/CurrentVersion/RunOnce
+			else -> Error
+	Return value :
+		0 = Error
+		1 = Success
+*/
+TWTL_SNAPSHOT_API BOOL __stdcall deleteRunKey(TCHAR CONST keyName[REGNAME_MAX], CONST DWORD32 targetKey) {
+	REGINFO reg;
+	PREGINFO pReg = &reg;
+	
+	wcscpy_s(pReg->keyName, sizeof(pReg->keyName), keyName);
+	
+	DWORD32 target = targetKey;
+	
+	if (!openRegisteryKey(pReg, target)) {		
+		if (!RegDeleteValue(pReg->key, pReg->keyName)) {
+			_tprintf_s(L"Delete Value Name : %s\n", pReg->keyName);
+		}
+		else {
+			_tprintf_s(L"Can't find value :(\n");
+		}
+	}
+	else {
+		return NULL;
+	}
+	_tprintf_s(L"\n");
+	return TRUE;
+}
+
+/*
+	Description : open register key
+
+	Parameter :
+		( in )	PREGINFO pReg : information of target entry
+		( in )	DWORD target  :
+			1 -> HKEY_CURRENT_USER/Microsoft/Windows/CurrentVersion/Run
+			2 -> HKEY_LOCAL_MACHINE/Microsoft/Windows/CurrentVersion/Run
+			3 -> HKEY_CURRENT_USER/Microsoft/Windows/CurrentVersion/RunOnce
+			4 -> HKEY_LOCAL_MACHINE/Microsoft/Windows/CurrentVersion/RunOnce
+			else -> Error
+	return value :
+		0 = Success
+		else = Error
+*/
+DWORD __stdcall openRegisteryKey(PREGINFO CONST pReg, CONST DWORD32 target) {
+	HKEY mainEntry;
+
+	if (target == 1 || target == 3) {
+		mainEntry = HKEY_CURRENT_USER;
+	}
+	else if (target == 2 || target == 4) {
+		mainEntry = HKEY_LOCAL_MACHINE;
+	}
+	else {
+		return 1;
+	}
+
+	if (target == 1 || target == 2) {
+		return	RegOpenKeyEx(mainEntry,
+				L"Software\\Microsoft\\Windows\\CurrentVersion\\Run",
+				NULL,
+				KEY_ALL_ACCESS,
+				&pReg->key);
+	}
+	else if (target == 3 || target == 4) {
+		return	RegOpenKeyEx(mainEntry,
+				L"Software\\Microsoft\\Windows\\CurrentVersion\\RunOnce",
+				NULL,
+				KEY_ALL_ACCESS,
+				&pReg->key);
+	}
+	else {
+		return 1;
+	}
+}
+
+/*
 	Description : set target registry entry
 
 	Parameter :
@@ -133,39 +219,8 @@ TWTL_SNAPSHOT_API BOOL __stdcall snapCurrentStatus(CONST DWORD32 mode) {
 		0 = Error
 		1 = Success
 */
-BOOL __stdcall setTargetRegistryEntry(FILE* storage, PREGINFO CONST pReg, CONST DWORD target, CONST DWORD32 mode) {
-	HKEY mainEntry;
-	DWORD32 result=NULL;
-
-	if (target == 1 || target == 3) {
-		mainEntry = HKEY_CURRENT_USER;
-	}
-	else if (target == 2 || target == 4) {
-		mainEntry = HKEY_LOCAL_MACHINE;
-	}
-	else {
-		return NULL;
-	}
-
-	if (target == 1 || target == 2) {
-		result = (RegOpenKeyEx(mainEntry,
-				  L"Software\\Microsoft\\Windows\\CurrentVersion\\Run",
-				  NULL,
-				  KEY_ALL_ACCESS,
-				  &pReg->key));
-	}
-	else if (target == 3 || target == 4) {
-		result = (RegOpenKeyEx(mainEntry,
-				  L"Software\\Microsoft\\Windows\\CurrentVersion\\RunOnce",
-				  NULL,
-				  KEY_ALL_ACCESS,
-				  &pReg->key));
-	}
-	else {
-		return NULL;
-	}
-
-	if (result == 0)
+BOOL __stdcall setTargetRegistryEntry(FILE* storage, PREGINFO CONST pReg, CONST DWORD32 target, CONST DWORD32 mode) {
+	if (!openRegisteryKey(pReg, target))
 	{
 		if (mode == 0) {
 			if (!writeRegToTxt(storage, pReg, mode)) {

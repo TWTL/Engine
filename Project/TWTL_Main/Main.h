@@ -13,6 +13,14 @@ snapCurrentStatus(
 );
 
 __declspec(dllimport)
+BOOL
+__stdcall
+deleteRunKey(
+	TCHAR CONST keyName[REGNAME_MAX],
+	CONST DWORD32 targetKey
+);
+
+__declspec(dllimport)
 VOID
 __stdcall
 delayWait(
