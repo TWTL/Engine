@@ -19,23 +19,23 @@ int main()
 
 		scanf_s("%d", &select);
 		if (select == 1) {
-			if (!snapCurrentStatus(0)) {
-				errMsg();
-				delayWait(5000);
+			if (!SnapCurrentStatus(0)) {
+				ErrMsg();
+				DelayWait(5000);
 			}
 		}
 		else if (select == 2) {
-			if (!snapCurrentStatus(1)) {
-				errMsg();
-				delayWait(5000);
+			if (!SnapCurrentStatus(1)) {
+				ErrMsg();
+				DelayWait(5000);
 			}
 		}
 		else if (select == 3) {
 			_tprintf_s(L"Type (keyName) (target): ");
 			wscanf_s(L"%s%d", &keyName, REGNAME_MAX-1, &targetKey);
-			if (!deleteRunKey(keyName, targetKey)) {
-				errMsg();
-				delayWait(5000);
+			if (!DeleteRunKey(keyName, targetKey)) {
+				ErrMsg();
+				DelayWait(5000);
 			}
 		}
 		else {
@@ -45,7 +45,7 @@ int main()
 	}
 	
 	_tprintf_s(L"\nBye!\n");
-	delayWait(5000);
+	DelayWait(5000);
 	
 	return 0;
 }

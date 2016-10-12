@@ -8,14 +8,14 @@
 __declspec(dllimport)
 BOOL
 __stdcall
-snapCurrentStatus(
+SnapCurrentStatus(
 	CONST DWORD32 mode
 );
 
 __declspec(dllimport)
 BOOL
 __stdcall
-deleteRunKey(
+DeleteRunKey(
 	TCHAR CONST keyName[REGNAME_MAX],
 	CONST DWORD32 targetKey
 );
@@ -23,12 +23,12 @@ deleteRunKey(
 __declspec(dllimport)
 VOID
 __stdcall
-delayWait(
+DelayWait(
 	CONST DWORD dwMillisecond
 );
 
 __declspec(dllimport)
 VOID
 __stdcall
-errMsg(
+ErrMsg(
 );
