@@ -8,12 +8,22 @@
 #define TWTL_SNAPSHOT_API __declspec(dllimport) 
 #endif
 
+#define PROPID_MAX	 6
 #define REGNAME_MAX	 255
 #define REGVALUE_MAX 16383
 
-typedef struct REG_INFORMATION
+typedef struct CURRENTPROCESS_INFORMATION
+{
+	HANDLE	hSnap;
+	HANDLE	curHandle;
+	PROCESSENTRY32 proc32;
+	PPROCESSENTRY32 pProc32;
+}CPROINFO, *PCPROINFO;
+
+typedef struct RUNREGISTER_INFORMATION
 {
 	HKEY  key;
+
 	TCHAR keyName[REGNAME_MAX];
 	TCHAR keyValue[REGVALUE_MAX];
 	DWORD bufSize;
@@ -22,38 +32,38 @@ typedef struct REG_INFORMATION
 
 BOOL 
 __stdcall
-setSystemPrivilege(
+SetSystemPrivilege(
 	HANDLE *hProcess
 );
 
 BOOL
 __stdcall
-initRegSize(
-	CONST PREGINFO reg,
+InitRegSize(
+	PREGINFO CONST reg,
 	CONST DWORD32  regType
 );
 
 BOOL
 __stdcall
-makeFileName(
+MakeFileName(
 	CHAR fileName[]
 );
 
 VOID
 __stdcall
-printCUI(
-	CONST TCHAR* msg
+PrintCUI(
+	TCHAR* CONST msg
 );
 
 TWTL_SNAPSHOT_API
 VOID
 __stdcall
-delayWait(
+DelayWait(
 	CONST DWORD dwMillisecond
 );
 
 TWTL_SNAPSHOT_API
 VOID
 __stdcall
-errMsg(
+ErrMsg(
 );
