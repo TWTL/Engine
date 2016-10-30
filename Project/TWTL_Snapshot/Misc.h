@@ -51,6 +51,13 @@ MakeFileName(
 
 VOID
 __stdcall
+ExceptionFileClose(
+	FILE* CONST storage,
+	CONST DWORD32 mode
+);
+
+VOID
+__stdcall
 PrintCUI(
 	TCHAR* CONST msg
 );

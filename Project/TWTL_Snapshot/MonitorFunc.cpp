@@ -54,67 +54,115 @@ TWTL_SNAPSHOT_API BOOL __stdcall SnapCurrentStatus(CONST DWORD32 mode) {
 		return NULL;
 	}
 
-	if ((pCurrentProcessInfo->hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0))
+	if ((currentProcessInfo.hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0))
 		== INVALID_HANDLE_VALUE) {
-		if (mode == 1) {
-			fclose(storage);
-		}
+		ExceptionFileClose(storage, mode);
 		return NULL;
 	}
 
-	else {
-		pCurrentProcessInfo->pProc32->dwSize = sizeof(PROCESSENTRY32);
-		DWORD32 PID = 0;
-		if (Process32First(pCurrentProcessInfo->hSnap, pCurrentProcessInfo->pProc32)) {
-			if (mode == 1) {
-				fwprintf_s(storage, L"<Process List>\n");
-			}
-			// First Process' ID'll be 0, 
-			// so if calling Process32Next before writing, it'll be valid process.
-			//
+	currentProcessInfo.proc32.dwSize = sizeof(PROCESSENTRY32);
+	DWORD32 PID = 0;
+	if (Process32First(currentProcessInfo.hSnap, &currentProcessInfo.proc32)) {
+		if (mode == 1) {
+			fwprintf_s(storage, L"<Process List>\n");
+		}
+		// First Process' ID'll be 0, 
+		// so if calling Process32Next before writing, it'll be valid process.
+		//
 
-			while ((Process32Next(pCurrentProcessInfo->hSnap, pCurrentProcessInfo->pProc32)))
-			{
-				if (mode == 0) {
-					_tprintf_s(L"Process name : %s, PID : %d\n", pCurrentProcessInfo->pProc32->szExeFile, pCurrentProcessInfo->pProc32->th32ProcessID);
-				}
-				else if (mode == 1) {
-					PrintCUI(pCurrentProcessInfo->pProc32->szExeFile);
-					_itow_s(pCurrentProcessInfo->pProc32->th32ProcessID, curPID, 5, 10);
-					PrintCUI(curPID);
-					fwprintf_s(storage, L"%s\t", &curPID);
-					fwprintf_s(storage, L"%s\n", pCurrentProcessInfo->pProc32->szExeFile);
-				}
-				else if (mode == 2) {
-
-				}
+		while ((Process32Next(currentProcessInfo.hSnap, &currentProcessInfo.proc32)))
+		{
+			if (mode == 0) {
+				_tprintf_s(L"Process name : %s, PID : %d\n",
+						   currentProcessInfo.proc32.szExeFile, 
+						   currentProcessInfo.proc32.th32ProcessID);
 			}
-			if (mode == 1) {
-				fwprintf_s(storage, L"</Process List>\n\n");
+			else if (mode == 1) {
+				PrintCUI(currentProcessInfo.proc32.szExeFile);
+				if (_itow_s(currentProcessInfo.proc32.th32ProcessID, curPID, 5, 10)){
+					ExceptionFileClose(storage, mode);
+					return NULL;
+				}
+				PrintCUI(curPID);
+				fwprintf_s(storage, L"%s\t", &curPID);
+				fwprintf_s(storage, L"%s\n", &currentProcessInfo.proc32.szExeFile);
+			}
+			else if (mode == 2) {
+
 			}
 		}
-		CloseHandle(currentProcessInfo.hSnap);
+		if (mode == 1) {
+			fwprintf_s(storage, L"</Process List>\n\n");
+		}
 	}
+	CloseHandle(currentProcessInfo.hSnap);
+	
 
 	// Write value of register key value ( Run of current user )
 	//
 
-	if (!SetTargetRegistryEntry(storage, pReg, 1, mode)) {
-		return NULL;
-	}
-	if (!SetTargetRegistryEntry(storage, pReg, 2, mode)) {
-		return NULL;
-	}
-	if (!SetTargetRegistryEntry(storage, pReg, 3, mode)) {
-		return NULL;
-	}
-	if (!SetTargetRegistryEntry(storage, pReg, 4, mode)) {
+	if (!SetTargetRegistryEntry(storage, pReg, 1, mode)||
+		!SetTargetRegistryEntry(storage, pReg, 2, mode)||
+		!SetTargetRegistryEntry(storage, pReg, 3, mode)||
+		!SetTargetRegistryEntry(storage, pReg, 4, mode)) 
+	{
+		ExceptionFileClose(storage, mode);
 		return NULL;
 	}
 	if (mode == 1) {
 		fclose(storage);
 	}
 	return TRUE;
+}
+
+/*
+	Description : terminate process found by PID.
+
+	Parameter :
+		( in )	DWORD32 targetPID : target terminated process' ID
+				else -> Error
+	Return value :
+		0 = Error
+		1 = Success
+*/
+BOOL __stdcall TerminateCurrentProcess(CONST DWORD32 targetPID) {
+	CPROINFO targetProcess;
+	PCPROINFO pTargetProcess = &targetProcess;
+
+	if ((targetProcess.hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0))
+		== INVALID_HANDLE_VALUE) {
+		return NULL;
+	}
+	targetProcess.proc32.dwSize = sizeof(PROCESSENTRY32);
+	if (Process32First(targetProcess.hSnap, &targetProcess.proc32)) {
+		while (Process32Next(targetProcess.hSnap, &targetProcess.proc32)) 
+		{
+			if (targetProcess.proc32.th32ProcessID == targetPID) {
+				DWORD exitCode = NULL;
+				DWORD dwDesiredAccess = PROCESS_TERMINATE;
+				BOOL bInheritHandle = FALSE;
+				targetProcess.curHandle = OpenProcess(dwDesiredAccess, bInheritHandle, targetPID);
+				if (targetProcess.curHandle == NULL) {
+					return NULL;
+				}
+				_tprintf_s(L"Terminated Process, PID : %s, %d", 
+						   targetProcess.proc32.szExeFile, 
+						   targetProcess.proc32.th32ProcessID);
+				if (TerminateProcess(targetProcess.curHandle, 0)) {
+					_tprintf_s(L" -> Success\n");
+					GetExitCodeProcess(targetProcess.curHandle, &exitCode);
+				}
+				else {
+					_tprintf_s(L" -> Failed\n");
+					CloseHandle(targetProcess.curHandle);
+					return NULL;
+				}
+				CloseHandle(targetProcess.curHandle);
+				return TRUE;
+			}
+		}
+	}
+	return NULL;
 }
 
 /*
