@@ -1,0 +1,220 @@
+<Process List>
+System
+smss.exe
+csrss.exe
+csrss.exe
+wininit.exe
+winlogon.exe
+services.exe
+lsass.exe
+svchost.exe
+svchost.exe
+dwm.exe
+svchost.exe
+svchost.exe
+svchost.exe
+svchost.exe
+svchost.exe
+svchost.exe
+svchost.exe
+WUDFHost.exe
+dasHost.exe
+WUDFHost.exe
+igfxCUIService.exe
+ibmpmsvc.exe
+LPlatSvc.exe
+WUDFHost.exe
+svchost.exe
+svchost.exe
+svchost.exe
+I3GMainSvc.exe
+armsvc.exe
+DolbyDAX2API.exe
+svchost.exe
+CxAudMsg64.exe
+ibtsiva.exe
+HPSIsvc.exe
+HidMonitorSvc.exe
+PresentationFontCache.exe
+OfficeClickToRun.exe
+Lenovo.Modern.ImController.exe
+CxUtilSvc.exe
+InstantOnSrv.exe
+svchost.exe
+micmute.exe
+svchost.exe
+valWbioSyncSvc.exe
+wpmsvc.exe
+vmware-usbarbitrator64.exe
+ThinkPadKBSvc.exe
+valWBFPolicyService.exe
+vmware-authd.exe
+tphkload.exe
+vmnetdhcp.exe
+ASDSvc.exe
+svchost.exe
+vmnat.exe
+mlpatch.exe
+SASrv.exe
+Memory Compression
+logonsetsvc.exe
+nossvc.exe
+SearchIndexer.exe
+svchost.exe
+WmiPrvSE.exe
+vmware-hostd.exe
+WmiPrvSE.exe
+logonset.exe
+unsecapp.exe
+Apoint.exe
+SensorDBSynch.exe
+conhost.exe
+sihost.exe
+svchost.exe
+tpnumlkd.exe
+tposd.exe
+shtctky.exe
+taskhostw.exe
+GoogleUpdate.exe
+CAudioFilterAgent64.exe
+igfxEM.exe
+igfxHK.exe
+igfxTray.exe
+RuntimeBroker.exe
+explorer.exe
+ApMsgFwd.exe
+ApntEx.exe
+conhost.exe
+delfino.exe
+veraport.exe
+nosstarter.npe
+rundll32.exe
+ShellExperienceHost.exe
+SettingSyncHost.exe
+I3GProc.exe
+GoogleCrashHandler.exe
+GoogleCrashHandler64.exe
+Monitor.exe
+V3Lite.exe
+MainCpl.exe
+osd.exe
+HScrollFun.exe
+SetSpeed.exe
+DisplayLinkUI.exe
+OneDrive.exe
+BatteryLine64.exe
+CrossEXService.exe
+jusched.exe
+firefox.exe
+SmartAudio.exe
+LSCNotify.exe
+spoolsv.exe
+PWMDBSVC.exe
+Lenovo.Modern.ImController.PluginHost.exe
+dllhost.exe
+audiodg.exe
+fontdrvhost.exe
+explorer.exe
+LPlatSvc.exe
+LPlatSvc.exe
+SUService.exe
+ApplicationFrameHost.exe
+Lenovo.Modern.ImController.PluginHost.exe
+Lenovo.Modern.ImController.PluginHost.exe
+Lenovo.Modern.ImController.PluginHost.exe
+Lenovo.Modern.ImController.PluginHost.exe
+Lenovo.Modern.ImController.PluginHost.exe
+Lenovo.Modern.ImController.PluginHost.exe
+Lenovo.Modern.ImController.PluginHost.exe
+Lenovo.Modern.ImController.PluginHost.exe
+Lenovo.Modern.ImController.PluginHost.exe
+Lenovo.Modern.ImController.PluginHost.exe
+Lenovo.Modern.ImController.PluginHost.exe
+Lenovo.Modern.ImController.PluginHost.exe
+Lenovo.Modern.ImController.PluginHost.exe
+Lenovo.Modern.ImController.PluginHost.exe
+Lenovo.Modern.ImController.PluginHost.exe
+Lenovo.Modern.ImController.PluginHost.exe
+Lenovo.Modern.ImController.PluginHost.exe
+Lenovo.Modern.ImController.PluginHost.exe
+Lenovo.Modern.ImController.PluginHost.exe
+Lenovo.Modern.ImController.PluginHost.exe
+Lenovo.Modern.ImController.PluginHost.exe
+Lenovo.Modern.ImController.PluginHost.exe
+Lenovo.Modern.ImController.PluginHost.exe
+Lenovo.Modern.ImController.PluginHost.exe
+Lenovo.Modern.ImController.PluginHost.exe
+Lenovo.Modern.ImController.PluginHost.exe
+Lenovo.Modern.ImController.PluginHost.exe
+Lenovo.Modern.ImController.PluginHost.exe
+Lenovo.Modern.ImController.PluginHost.exe
+specialkeyhelper.exe
+Lenovo.Modern.ImController.PluginHost.exe
+Lenovo.Modern.ImController.PluginHost.exe
+HxCalendarAppImm.exe
+HxTsr.exe
+Calculator.exe
+KakaoTalk.exe
+WUDFHost.exe
+BuilderSE.exe
+BuilderSE.exe
+mintty.exe
+conhost.exe
+bash.exe
+SearchUI.exe
+taskhostw.exe
+devenv.exe
+VsHub.exe
+Microsoft.VsHub.Server.HttpHost.exe
+conhost.exe
+dllhost.exe
+devenv.exe
+MSBuild.exe
+conhost.exe
+wimserv.exe
+MSBuild.exe
+conhost.exe
+wimserv.exe
+PotPlayer64.exe
+dotnet.exe
+conhost.exe
+mspdbsrv.exe
+vcpkgsrv.exe
+MSBuild.exe
+conhost.exe
+cmd.exe
+conhost.exe
+cmd.exe
+conhost.exe
+dllhost.exe
+dllhost.exe
+TWTL_Main.exe
+conhost.exe
+</Process List>
+
+<Register Run List ( for current users )>
+OneDrive, "C:\Users\Joveler\AppData\Local\Microsoft\OneDrive\OneDrive.exe" /background
+BatteryLine, C:\Users\Joveler\AppData\Local\BatteryLine\BatteryLine64.exe -q
+ShowBatteryBar, "C:\Program Files\BatteryBar\ShowBatteryBar.exe" show
+CrossEXService, C:\Program Files (x86)\iniLINE\CrossEX\crossex\CrossEXService.exe
+</Register Run List ( for current users )>
+
+<Register Run List ( for all users )>
+aHScrollutility, C:\Program Files (x86)\LENOVO\ThinkPad Compact Keyboard with TrackPoint driver\HScrollFun.exe
+aOSD, C:\Program Files (x86)\LENOVO\ThinkPad Compact Keyboard with TrackPoint driver\osd.exe
+aSetSpeed, C:\Program Files (x86)\LENOVO\ThinkPad Compact Keyboard with TrackPoint driver\SetSpeed.exe
+ipinside-lws, C:\Program Files (x86)\IPinside_LWS\I3GProc.exe
+vmware-tray.exe, "C:\Program Files (x86)\VMware\VMware Workstation\vmware-tray.exe"
+HncUpdate96, C:\Program Files (x86)\HNC\Office NEO\HncUtils\Update\HncCheck96.exe
+SunJavaUpdateSched, "C:\Program Files (x86)\Common Files\Java\Java Update\jusched.exe"
+wizvera-veraport, "C:\Program Files (x86)\Wizvera\Veraport20\veraport.exe" wizvera-veraport://exec/x86/16105/
+wizvera-delfino-pc, "C:\Program Files (x86)\Wizvera\Delfino-G3\delfino.exe" wizvera-delfino-pc://exec/x86/16107/
+</Register Run List ( for all users )>
+
+<Register RunOnce List ( for current users )>
+Uninstall C:\Users\Joveler\AppData\Local\Microsoft\OneDrive\17.3.6390.0509\amd64, C:\WINDOWS\system32\cmd.exe /q /c rmdir /s /q "C:\Users\Joveler\AppData\Local\Microsoft\OneDrive\17.3.6390.0509\amd64"
+</Register RunOnce List ( for current users )>
+
+<Register RunOnce List ( for all users )>
+</Register RunOnce List ( for all users )>
+

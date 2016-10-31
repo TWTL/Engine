@@ -62,9 +62,76 @@ TWTL_DATABASE_API BOOL __stdcall DB_Close(sqlite3 *db)
 	}
 }
 
-TWTL_DATABASE_API BOOL __stdcall DB_CreateOrOpenTable(sqlite3 *db, LPCWSTR table)
+TWTL_DATABASE_API BOOL __stdcall DB_CreateTable(sqlite3 *db, DB_TABLE_TYPE type)
 {
-	// Create table 
+	WCHAR* sql = NULL;
+
+	// Create table
+	switch (type)
+	{
+	case DB_PROCESS:
+		sql = L"CREATE TABLE IF NOT EXISTS snapshot_process("
+			L"idx INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL"
+			L"time TEXT NOT NULL"
+			L"process_name TEXT NOT NULL"
+			L"process_path TEXT NOT NULL);";
+		break;
+	case DB_HKLM_RUN:
+		sql = L"CREATE TABLE IF NOT EXISTS snapshot_hklm_run("
+			L"idx INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL"
+			L"time TEXT NOT NULL"
+			L"value TEXT NOT NULL"
+			L"type INTEGER NOT NULL"
+			L"data TEXT NOT NULL);";
+		break;
+	case DB_HKLM_RUNONCE:
+		sql = L"CREATE TABLE IF NOT EXISTS snapshot_hklm_runonce("
+			L"idx INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL"
+			L"time TEXT NOT NULL"
+			L"value TEXT NOT NULL"
+			L"type INTEGER NOT NULL"
+			L"data TEXT NOT NULL);";
+		break;
+	case DB_HKCU_RUN:
+		sql = L"CREATE TABLE IF NOT EXISTS snapshot_hkcu_run("
+			L"idx INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL"
+			L"time TEXT NOT NULL"
+			L"value TEXT NOT NULL"
+			L"type INTEGER NOT NULL"
+			L"data TEXT NOT NULL);";
+		break;
+	case DB_HKCU_RUNONCE:
+		sql = L"CREATE TABLE IF NOT EXISTS snapshot_hkcu_runonce("
+			L"idx INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL"
+			L"time TEXT NOT NULL"
+			L"value TEXT NOT NULL"
+			L"type INTEGER NOT NULL"
+			L"data TEXT NOT NULL);";
+		break;
+	case DB_NETWORK:
+		sql = L"CREATE TABLE IF NOT EXISTS snapshot_network("
+			L"idx INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL"
+			L"time TEXT NOT NULL"
+			L"ip TEXT NOT NULL"
+			L"port INTEGER NOT NULL);";
+		break;
+	default:
+#ifdef _DEBUG
+		fprintf(stderr, "[DB_CreateTable] Invalid type %d\n", type);
+#endif
+		return FALSE;
+		break;
+	}
+
+	if (!DB_RunSQL(db, sql))
+	{ // Failure
+#ifdef _DEBUG
+		fprintf(stderr, "[DB_CreateTable] DB_RunSQL failure\n");
+#endif
+		return FALSE;
+	}
+
+	return TRUE;
 }
 
 /*
@@ -85,17 +152,21 @@ BOOL __stdcall DB_RunSQL(sqlite3 *db, LPCWSTR sql)
 	// Prepare statement
 	ret = sqlite3_prepare16_v2(db, sql, -1, &stmt, NULL);
 	if (ret != SQLITE_OK) {
-		fprintf(stderr, "Failed to fetch data: %s\n", sqlite3_errmsg(db));
+#ifdef _DEBUG
+		fprintf(stderr, "[DB_RunSQL] Failed to fetch data: %s\n", sqlite3_errmsg(db));
+#endif
 		sqlite3_close(db);
 		return FALSE;
 	}
 
 	// Run SQL
 	ret = sqlite3_step(stmt);
+#ifdef _DEBUG
 	if (ret == SQLITE_ROW) {
 		printf("%s\n", sqlite3_column_text(stmt, 0));
 		return FALSE;
 	}
+#endif
 
 	sqlite3_finalize(stmt);
 	return TRUE;
