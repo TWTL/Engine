@@ -9,6 +9,7 @@ Description : Open SQLite3 database
 Parameters :
 ( in )	LPCWSTR dbFilePath :
   Path of .db file to open, in UTF-16
+
 Return value :
   Pointer to sqlite3 context (sqlite3*)
 */
@@ -33,10 +34,12 @@ TWTL_DATABASE_API sqlite3* __stdcall DB_Connect(LPCWSTR dbFilePath) {
 Description : Close sqlite3 context
 
 Parameters :
-( in )	char dbFilePath :
-Path of .db file to open
+( in )	sqlite3* db :
+  SQLite3 context
+
 Return value :
-Pointer to sqlite3 context (sqlite3*)
+  FALSE (0) : Failure
+  TRUE  (1) : Sucess
 */
 TWTL_DATABASE_API BOOL __stdcall DB_Close(sqlite3 *db) {
 	if (db == NULL) {
@@ -61,10 +64,22 @@ TWTL_DATABASE_API BOOL __stdcall DB_Close(sqlite3 *db) {
 	}
 }
 
+/*
+Description : Create table if not exists
+
+Parameters :
+( in )	sqlite3* db :
+  SQLite3 context
+( in )  DB_TABLE_TYPE type :
+  Create which database table?
+
+Return value :
+  FALSE (0) : Failure
+  TRUE  (1) : Sucess
+*/
 TWTL_DATABASE_API BOOL __stdcall DB_CreateTable(sqlite3 *db, DB_TABLE_TYPE type) {
 	WCHAR* sql = NULL;
-	// Main Port 15259
-	// Sub Port 15260
+	// Main Port 5259
 	// Create table
 	switch (type) {
 	case DB_PROCESS:
@@ -129,31 +144,9 @@ TWTL_DATABASE_API BOOL __stdcall DB_CreateTable(sqlite3 *db, DB_TABLE_TYPE type)
 		break;
 	}
 
-	if (!DB_RunSQL(db, sql)) { // Failure
-#ifdef _DEBUG
-		fprintf(stderr, "[DB_CreateTable] DB_RunSQL failure\n");
-#endif
-		return FALSE;
-	}
-
-	return TRUE;
-}
-
-/*
-Description : Internal function to run one sql statement
-
-Parameters :
-( in )	sqlite3 *db :
-  Pointer to sqlite3 context
-Return value :
-  FALSE (0) : Failure
-  TRUE  (1) : Sucess
-*/
-BOOL __stdcall DB_RunSQL(sqlite3 *db, LPCWSTR sql)
-{
 	sqlite3_stmt *stmt;
 	int ret = 0;
-	
+
 	// Prepare statement
 	ret = sqlite3_prepare16_v2(db, sql, -1, &stmt, NULL);
 	if (ret != SQLITE_OK) {
@@ -172,22 +165,32 @@ BOOL __stdcall DB_RunSQL(sqlite3 *db, LPCWSTR sql)
 	}
 #endif
 
+	// Finalize Query
+	ret = sqlite3_finalize(stmt);
+	if (ret != SQLITE_OK) {
+#ifdef _DEBUG
+		fprintf(stderr, "[DB_Insert] Failed to fetch data: %s\n", sqlite3_errmsg(db));
+#endif
+		return FALSE;
+	}
+
 	return TRUE;
 }
 
 /*
-Description : Exposed function to insert data
+Description : Insert data into DB
 
 Parameters :
 ( in )	sqlite3 *db :
-Pointer to sqlite3 context
+  Pointer to sqlite3 context
 ( in )  DB_TABLE_TYPE type:
-data's type
+  data's type
 ( in )  viod* data:
-Pointer to data structure, casted as void*
+  Pointer to data structure, casted as void*
+
 Return value :
-FALSE (0) : Failure
-TRUE  (1) : Sucess
+  FALSE (0) : Failure
+  TRUE  (1) : Sucess
 */
 TWTL_DATABASE_API BOOL __stdcall DB_Insert(sqlite3 *db, DB_TABLE_TYPE type, void* data)
 {
@@ -250,11 +253,20 @@ TWTL_DATABASE_API BOOL __stdcall DB_Insert(sqlite3 *db, DB_TABLE_TYPE type, void
 #endif
 
 	return TRUE;
+
+	// Finalize Query
+	ret = sqlite3_finalize(stmt);
+	if (ret != SQLITE_OK) {
+#ifdef _DEBUG
+		fprintf(stderr, "[DB_Insert] Failed to fetch data: %s\n", sqlite3_errmsg(db));
+#endif
+		return FALSE;
+	}
 }
 
 
 /*
-Description : Obtain data from database
+Description : Obtain data from DB
 
 Parameters :
 ( in )	sqlite3 *db :
@@ -263,6 +275,9 @@ Pointer to sqlite3 context
 data's type
 ( out )  viod* data:
 Pointer to data structure, casted as void*
+( in )  WCHAR* sql_where:
+SQL where statement
+
 Return value :
 FALSE (0) : Failure
 TRUE  (1) : Sucess
@@ -338,15 +353,6 @@ TWTL_DATABASE_API BOOL __stdcall DB_Select(sqlite3 *db, DB_TABLE_TYPE type, void
 		return FALSE;
 #endif
 
-	ret = sqlite3_finalize(stmt);
-	if (ret != SQLITE_OK)
-	{
-#ifdef _DEBUG
-		fprintf(stderr, "[DB_Insert] Failed to fetch data: %s\n", sqlite3_errmsg(db));
-#endif
-		return FALSE;
-	}
-
 	switch (type) {
 	case DB_PROCESS:
 		TWTL_DB_PROCESS* proc = (TWTL_DB_PROCESS*) data;
@@ -386,11 +392,10 @@ TWTL_DATABASE_API BOOL __stdcall DB_Select(sqlite3 *db, DB_TABLE_TYPE type, void
 		return FALSE;
 	}
 
-	int ret = sqlite3_finalize(stmt);
-	if (ret != SQLITE_OK)
-	{
+	ret = sqlite3_finalize(stmt);
+	if (ret != SQLITE_OK) {
 #ifdef _DEBUG
-		fprintf(stderr, "[DB_Insert] Failed to finalize statement: %s\n", sqlite3_errmsg(db));
+		fprintf(stderr, "[DB_Insert] Failed to fetch data: %s\n", sqlite3_errmsg(db));
 #endif
 		return FALSE;
 	}
