@@ -6,6 +6,14 @@
 TWTL_SNAPSHOT_API
 BOOL
 __stdcall
-snapCurrentStatus(
+SnapCurrentStatus(
 	CONST DWORD32 mode
+);
+
+TWTL_SNAPSHOT_API
+BOOL
+__stdcall 
+DeleteRunKey(
+	TCHAR CONST keyName[REGNAME_MAX],
+	CONST DWORD32 targetKey
 );

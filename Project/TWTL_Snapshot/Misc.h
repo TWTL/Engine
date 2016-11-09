@@ -22,38 +22,38 @@ typedef struct REG_INFORMATION
 
 BOOL 
 __stdcall
-setSystemPrivilege(
+SetSystemPrivilege(
 	HANDLE *hProcess
 );
 
 BOOL
 __stdcall
-initRegSize(
+InitRegSize(
 	PREGINFO CONST reg,
 	CONST DWORD32  regType
 );
 
 BOOL
 __stdcall
-makeFileName(
+MakeFileName(
 	CHAR fileName[]
 );
 
 VOID
 __stdcall
-printCUI(
+PrintCUI(
 	TCHAR* CONST msg
 );
 
 TWTL_SNAPSHOT_API
 VOID
 __stdcall
-delayWait(
+DelayWait(
 	CONST DWORD dwMillisecond
 );
 
 TWTL_SNAPSHOT_API
 VOID
 __stdcall
-errMsg(
+ErrMsg(
 );

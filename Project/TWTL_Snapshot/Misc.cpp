@@ -13,7 +13,7 @@
 		0 = Error
 		1 = Success
 */
-BOOL __stdcall setSystemPrivilege(HANDLE *hProcess) {
+BOOL __stdcall SetSystemPrivilege(HANDLE *hProcess) {
 	LUID setDebug;
 	TOKEN_PRIVILEGES tokenPri;
 
@@ -60,7 +60,7 @@ BOOL __stdcall setSystemPrivilege(HANDLE *hProcess) {
 		0 = Error
 		1 = Success
 */
-BOOL __stdcall initRegSize(PREGINFO CONST reg, CONST DWORD32 regType) {
+BOOL __stdcall InitRegSize(PREGINFO CONST reg, CONST DWORD32 regType) {
 	if (regType == 1) {
 		reg->bufSize = REGNAME_MAX - 1;
 	}
@@ -89,7 +89,7 @@ BOOL __stdcall initRegSize(PREGINFO CONST reg, CONST DWORD32 regType) {
 		0 = Error
 		1 = Success
 */
-BOOL __stdcall makeFileName(CHAR fileName[]) {
+BOOL __stdcall MakeFileName(CHAR fileName[]) {
 	time_t timer;
 	tm t;
 	CHAR fileNameBuf[5] = { 0 };
@@ -168,10 +168,11 @@ BOOL __stdcall makeFileName(CHAR fileName[]) {
 /*
 	Description : Print written string. ( for debugging )
 
-	Parameters :	Nope
+	Parameters :
+		( in )	TCHAR* msg : printed string
 	Return value :	Nope
 */
-VOID __stdcall printCUI(TCHAR* CONST msg) {
+VOID __stdcall PrintCUI(TCHAR* CONST msg) {
 	_tprintf_s(L"Written : %s\n", msg);
 	return;
 }
@@ -179,10 +180,11 @@ VOID __stdcall printCUI(TCHAR* CONST msg) {
 /*
 	Description : Instead of use sleep(), use this function.
 
-	Parameters :	Nope
+	Parameters :
+		( in )	DWORD dwMillisecond : wait time (ms)
 	Return value :  Nope
 */
-TWTL_SNAPSHOT_API VOID __stdcall delayWait(CONST DWORD dwMillisecond) {
+TWTL_SNAPSHOT_API VOID __stdcall DelayWait(CONST DWORD dwMillisecond) {
 	MSG msg;
 	DWORD dwStart;
 	dwStart = GetTickCount();
@@ -204,7 +206,7 @@ TWTL_SNAPSHOT_API VOID __stdcall delayWait(CONST DWORD dwMillisecond) {
 	Parameters :	Nope
 	Return value :	Nope
 */
-TWTL_SNAPSHOT_API VOID __stdcall errMsg() {
+TWTL_SNAPSHOT_API VOID __stdcall ErrMsg() {
 
 	WCHAR errMsg[40] = { 0 };
 	DWORD const Errno = GetLastError();
