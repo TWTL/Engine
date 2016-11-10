@@ -192,40 +192,46 @@ Return value :
   FALSE (0) : Failure
   TRUE  (1) : Sucess
 */
+
 TWTL_DATABASE_API BOOL __stdcall DB_Insert(sqlite3 *db, DB_TABLE_TYPE type, void* data)
 {
 	int ret = 0;
 	WCHAR sql[MAX_SQL_BUF] = { 0 };
-
-	TWTL_DB_PROCESS* proc = (TWTL_DB_PROCESS*)data;
-	TWTL_DB_REGISTRY* reg = (TWTL_DB_REGISTRY*)data;
-	TWTL_DB_SERVICE* srv = (TWTL_DB_SERVICE*)data;
-	TWTL_DB_NETWORK* net = (TWTL_DB_NETWORK*)data;
-
+	TWTL_DB_PROCESS* proc = NULL;
+	TWTL_DB_REGISTRY* reg = NULL;
+	TWTL_DB_SERVICE* srv = NULL;
+	TWTL_DB_NETWORK* net = NULL;
 
 	switch (type) {
 	case DB_PROCESS:
+		proc = (TWTL_DB_PROCESS*)data;
 		if (proc->pid && proc->ppid) // PID and PPID is valid
 			StringCchPrintfW(sql, MAX_SQL_BUF, L"INSERT INTO snapshot_process(time, pid, ppid, process_name, process_path) VALUES(%lld, %ld, %ld, '%s', '%s'); ", proc->time, proc->pid, proc->ppid, proc->process_name, proc->process_path);
 		else // No PID and PPID
 			StringCchPrintfW(sql, MAX_SQL_BUF, L"INSERT INTO snapshot_process(time, process_name, process_path) VALUES(%lld, '%s', '%s'); ", proc->time, proc->process_name, proc->process_path);
 		break;
 	case DB_REG_HKLM_RUN:
+		reg = (TWTL_DB_REGISTRY*)data;
 		StringCchPrintfW(sql, MAX_SQL_BUF, L"INSERT INTO snapshot_reg_hklm_run(time, path, value, type, data) VALUES(%lld, '%s', '%s', %ld, '%s'); ", reg->time, reg->path, reg->value, reg->type, reg->data);
 		break;
 	case DB_REG_HKLM_RUNONCE:
+		reg = (TWTL_DB_REGISTRY*)data;
 		StringCchPrintfW(sql, MAX_SQL_BUF, L"INSERT INTO snapshot_reg_hklm_runonce(time, path, value, type, data) VALUES(%lld, '%s', '%s', %ld, '%s'); ", reg->time, reg->path, reg->value, reg->type, reg->data);
 		break;
 	case DB_REG_HKCU_RUN:
+		reg = (TWTL_DB_REGISTRY*)data;
 		StringCchPrintfW(sql, MAX_SQL_BUF, L"INSERT INTO snapshot_reg_hkcu_run(time, path, value, type, data) VALUES(%lld, '%s', '%s', %ld, '%s'); ", reg->time, reg->path, reg->value, reg->type, reg->data);
 		break;
 	case DB_REG_HKCU_RUNONCE:
+		reg = (TWTL_DB_REGISTRY*)data;
 		StringCchPrintfW(sql, MAX_SQL_BUF, L"INSERT INTO snapshot_reg_hkcu_runonce(time, path, value, type, data) VALUES(%lld, '%s', '%s', %ld, '%s'); ", reg->time, reg->path, reg->value, reg->type, reg->data);
 		break;
 	case DB_SERVICE:
+		srv = (TWTL_DB_SERVICE*)data;
 		StringCchPrintfW(sql, MAX_SQL_BUF, L"INSERT INTO snapshot_service(time, key) VALUES(%lld, '%s'); ", srv->time, srv->key);
 		break;
 	case DB_NETWORK:
+		net = (TWTL_DB_NETWORK*)data;
 		StringCchPrintfW(sql, MAX_SQL_BUF, L"INSERT INTO snapshot_network VALUES(%lld, %ld, %ld); ", net->time, net->ipv4, net->port);
 		break;
 	default:
@@ -262,10 +268,8 @@ TWTL_DATABASE_API BOOL __stdcall DB_Insert(sqlite3 *db, DB_TABLE_TYPE type, void
 	}
 }
 
-
 /*
 Description : Obtain data from DB
-
 Parameters :
 ( in )	sqlite3 *db :
 Pointer to sqlite3 context
@@ -275,7 +279,6 @@ data's type
 Pointer to data structure, casted as void*
 ( in )  WCHAR* sql_where:
 SQL where statement
-
 Return value :
 FALSE (0) : Failure
 TRUE  (1) : Sucess
@@ -284,6 +287,10 @@ TWTL_DATABASE_API BOOL __stdcall DB_Select(sqlite3 *db, DB_TABLE_TYPE type, void
 {
 	int ret = 0;
 	WCHAR sql[MAX_SQL_BUF] = { 0 };
+	TWTL_DB_PROCESS* proc = NULL;
+	TWTL_DB_REGISTRY* reg = NULL;
+	TWTL_DB_SERVICE* srv = NULL;
+	TWTL_DB_NETWORK* net = NULL;
 
 	switch (type) {
 	case DB_PROCESS:
@@ -308,7 +315,7 @@ TWTL_DATABASE_API BOOL __stdcall DB_Select(sqlite3 *db, DB_TABLE_TYPE type, void
 		if (sql_where)
 			StringCchPrintfW(sql, MAX_SQL_BUF, L"SELECT * from snapshot_reg_khcu_run WHERE %s;", sql_where);
 		else
-			StringCchCopyW(sql, MAX_SQL_BUF, L"SELECT * from snapshot_reg_khcu_run;"); 
+			StringCchCopyW(sql, MAX_SQL_BUF, L"SELECT * from snapshot_reg_khcu_run;");
 		break;
 	case DB_REG_HKCU_RUNONCE:
 		if (sql_where)
@@ -350,17 +357,13 @@ TWTL_DATABASE_API BOOL __stdcall DB_Select(sqlite3 *db, DB_TABLE_TYPE type, void
 		return FALSE;
 #endif
 
-	TWTL_DB_PROCESS* proc = (TWTL_DB_PROCESS*)data;
-	TWTL_DB_REGISTRY* reg = (TWTL_DB_REGISTRY*)data;
-	TWTL_DB_SERVICE* srv = (TWTL_DB_SERVICE*)data;
-	TWTL_DB_NETWORK* net = (TWTL_DB_NETWORK*)data;
-
 	switch (type) {
 	case DB_PROCESS:
+		proc = (TWTL_DB_PROCESS*)data;
 		// sqlite3_column_int64(stmt, 0); is idx, nothing meaningless
 		proc->time = sqlite3_column_int64(stmt, 1);
-		proc->pid = sqlite3_column_int(stmt, 2);
-		proc->ppid = sqlite3_column_int(stmt, 3);
+		proc->pid = sqlite3_column_int64(stmt, 2);
+		proc->ppid = sqlite3_column_int64(stmt, 3);
 		StringCchCopyW(proc->process_name, DB_MAX_PROC_NAME, (const WCHAR*)sqlite3_column_text16(stmt, 4));
 		StringCchCopyW(proc->process_path, MAX_PATH, (const WCHAR*)sqlite3_column_text16(stmt, 5));
 		break;
@@ -368,6 +371,7 @@ TWTL_DATABASE_API BOOL __stdcall DB_Select(sqlite3 *db, DB_TABLE_TYPE type, void
 	case DB_REG_HKLM_RUNONCE:
 	case DB_REG_HKCU_RUN:
 	case DB_REG_HKCU_RUNONCE:
+		reg = (TWTL_DB_REGISTRY*)data;
 		// sqlite3_column_int64(stmt, 0); is idx, nothing meaningless
 		reg->time = sqlite3_column_int64(stmt, 1);
 		StringCchCopyW(reg->path, DB_MAX_REG_PATH, (const WCHAR*)sqlite3_column_text16(stmt, 2));
@@ -376,15 +380,17 @@ TWTL_DATABASE_API BOOL __stdcall DB_Select(sqlite3 *db, DB_TABLE_TYPE type, void
 		StringCchCopyW(reg->data, DB_MAX_REG_DATA, (const WCHAR*)sqlite3_column_text16(stmt, 5));
 		break;
 	case DB_SERVICE:
+		srv = (TWTL_DB_SERVICE*)data;
 		// sqlite3_column_int64(stmt, 0); is idx, nothing meaningless
 		srv->time = sqlite3_column_int64(stmt, 1);
 		StringCchCopyW(srv->key, DB_MAX_REG_PATH, (const WCHAR*)sqlite3_column_text16(stmt, 2));
 		break;
 	case DB_NETWORK:
+		net = (TWTL_DB_NETWORK*)data;
 		// sqlite3_column_int64(stmt, 0); is idx, nothing meaningless
 		net->time = sqlite3_column_int64(stmt, 1);
 		net->ipv4 = sqlite3_column_int(stmt, 2);
-		net->port = (uint16_t) sqlite3_column_int(stmt, 3);
+		net->port = (uint16_t)sqlite3_column_int(stmt, 3);
 		break;
 	default:
 		return FALSE;
@@ -399,4 +405,4 @@ TWTL_DATABASE_API BOOL __stdcall DB_Select(sqlite3 *db, DB_TABLE_TYPE type, void
 	}
 
 	return TRUE;
-}
+}}
