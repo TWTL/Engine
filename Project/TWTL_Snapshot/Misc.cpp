@@ -164,7 +164,12 @@ BOOL __stdcall MakeFileName(CHAR fileName[]) {
 	}
 	return TRUE;
 }
-
+VOID __stdcall ExceptionFileClose(FILE* CONST storage, CONST DWORD32 mode) {
+	if (mode == 1) {
+		fclose(storage);
+	}
+	return;
+}
 /*
 	Description : Print written string. ( for debugging )
 

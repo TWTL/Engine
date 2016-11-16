@@ -12,6 +12,13 @@ SnapCurrentStatus(
 
 TWTL_SNAPSHOT_API
 BOOL
+__stdcall
+TerminateCurrentProcess(
+	CONST DWORD32 targetPID
+);
+
+TWTL_SNAPSHOT_API
+BOOL
 __stdcall 
 DeleteRunKey(
 	TCHAR CONST keyName[REGNAME_MAX],

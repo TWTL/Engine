@@ -15,6 +15,13 @@ SnapCurrentStatus(
 __declspec(dllimport)
 BOOL
 __stdcall
+TerminateCurrentProcess(
+	CONST DWORD32 targetPID
+);
+
+__declspec(dllimport)
+BOOL
+__stdcall
 DeleteRunKey(
 	TCHAR CONST keyName[REGNAME_MAX],
 	CONST DWORD32 targetKey
