@@ -405,4 +405,4 @@ TWTL_DATABASE_API BOOL __stdcall DB_Select(sqlite3 *db, DB_TABLE_TYPE type, void
 	}
 
 	return TRUE;
-}}
+}
