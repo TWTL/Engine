@@ -272,16 +272,16 @@ TWTL_DATABASE_API BOOL __stdcall DB_Insert(sqlite3 *db, DB_TABLE_TYPE type, void
 Description : Obtain data from DB
 Parameters :
 ( in )	sqlite3 *db :
-Pointer to sqlite3 context
+  Pointer to sqlite3 context
 ( in )  DB_TABLE_TYPE type:
-data's type
+  data's type
 ( out )  viod* data:
-Pointer to data structure, casted as void*
+  Pointer to data structure, casted as void*
 ( in )  WCHAR* sql_where:
-SQL where statement
+  SQL where statement
 Return value :
-FALSE (0) : Failure
-TRUE  (1) : Sucess
+  FALSE (0) : Failure
+  TRUE  (1) : Sucess
 */
 TWTL_DATABASE_API BOOL __stdcall DB_Select(sqlite3 *db, DB_TABLE_TYPE type, void* data, WCHAR* sql_where)
 {
@@ -362,8 +362,8 @@ TWTL_DATABASE_API BOOL __stdcall DB_Select(sqlite3 *db, DB_TABLE_TYPE type, void
 		proc = (TWTL_DB_PROCESS*)data;
 		// sqlite3_column_int64(stmt, 0); is idx, nothing meaningless
 		proc->time = sqlite3_column_int64(stmt, 1);
-		proc->pid = sqlite3_column_int64(stmt, 2);
-		proc->ppid = sqlite3_column_int64(stmt, 3);
+		proc->pid = sqlite3_column_int(stmt, 2);
+		proc->ppid = sqlite3_column_int(stmt, 3);
 		StringCchCopyW(proc->process_name, DB_MAX_PROC_NAME, (const WCHAR*)sqlite3_column_text16(stmt, 4));
 		StringCchCopyW(proc->process_path, MAX_PATH, (const WCHAR*)sqlite3_column_text16(stmt, 5));
 		break;
