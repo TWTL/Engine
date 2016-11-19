@@ -20,6 +20,7 @@
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include <strsafe.h>
+#include <shlwapi.h>
 
 
 #include <jansson.h>

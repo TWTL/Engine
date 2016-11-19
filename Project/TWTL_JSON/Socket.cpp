@@ -105,7 +105,7 @@ TWTL_JSON_API DWORD __stdcall JSON_ProcServerSocket(SOCKET* clientSocket)
 			// iResult == recieved packet size
 
 			printf("[Recv]\n%s\n", recvbuf);
-			ParseJSON(recvbuf);
+			ParseJSON(recvbuf, iResult);
 			/*
 			// Echo the buffer back to the sender
 			iSendResult = send(*clientSocket, recvbuf, iResult, 0);
@@ -215,7 +215,7 @@ TWTL_JSON_API DWORD __stdcall JSON_ProcClientSocket(SOCKET* connectSocket)
 {
 	char sendbuf[TWTL_JSON_MAX_BUF];
 
-	StringCchCopyA(sendbuf, TWTL_JSON_MAX_BUF, "{\n    \"glossary\": {\n        \"title\": \"example glossary\",\n		\"GlossDiv\": {\n            \"title\": \"S\",\n			\"GlossList\": {\n                \"GlossEntry\": {\n                    \"ID\": \"SGML\",\n					\"SortAs\": \"SGML\",\n					\"GlossTerm\": \"Standard Generalized Markup Language\",\n					\"Acronym\": \"SGML\",\n					\"Abbrev\": \"ISO 8879:1986\",\n					\"GlossDef\": {\n                        \"para\": \"A meta-markup language, used to create markup languages such as DocBook.\",\n						\"GlossSeeAlso\": [\"GML\", \"XML\"]\n                    },\n					\"GlossSee\": \"markup\"\n                }\n            }\n        }\n    }\n}");
+	StringCchCopyA(sendbuf, TWTL_JSON_MAX_BUF, "{\n    \"glossary\": {\n        \"title\": \"example glossary\",\n		\"GlossDiv\": {\n            \"title\": \"S\",\n			\"GlossList\": {\n                \"GlossEntry\": {\n                    \"ID\": \"SGML\",\n					\"SortAs\": \"SGML\",\n					\"GlossTerm\": \"Standard Generalized Markup Language\",\n					\"Acronym\": \"SGML\",\n					\"Abbrev\": \"ISO 8879:1986\",\n					\"GlossDef\": {\n                        \"para\": \"A meta-markup language, used to create markup languages such as DocBook.\",\n						\"GlossSeeAlso\": [\"GML\", \"XML\"]\n                    },\n					\"GlossSee\": 123\n                }\n            }\n        }\n    }\n}\n");
 	printf("[Recv]\n%s\n", sendbuf);
 
 	// Send an initial buffer
