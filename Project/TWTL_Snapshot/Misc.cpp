@@ -8,39 +8,56 @@
 	Description : Get privilege for using windows APIs.
 
 	Parameters :
-		( out ) void hProcess = Get Privileged Handle
+		( in ) LPCTSTR lpszPrivilege = Privilege Mode
+		( in ) BOOL bEnablePrivilege = Enable/Disable Privilege
 	Return value :
 		0 = Error
 		1 = Success
 */
-BOOL __stdcall SetSystemPrivilege(HANDLE *hProcess) {
-	LUID setDebug;
-	TOKEN_PRIVILEGES tokenPri;
+
+TWTL_SNAPSHOT_API BOOL __stdcall SetPrivilege(LPCTSTR lpszPrivilege, BOOL bEnablePrivilege)
+{
+	TOKEN_PRIVILEGES tp;
+	HANDLE hToken;
+	LUID luid;
 
 	if (!OpenProcessToken(GetCurrentProcess(),
-		TOKEN_ADJUST_PRIVILEGES | TOKEN_ALL_ACCESS,
-		hProcess))
+		TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY,
+		&hToken))
 	{
+		printf("OpenProcessToken error: %u\n", GetLastError());
 		return NULL;
 	}
 
 	if (!LookupPrivilegeValue(NULL,
-		SE_DEBUG_NAME,
-		&setDebug))
+		lpszPrivilege,
+		&luid))
 	{
+		printf("LookupPrivilegeValue error: %u\n", GetLastError());
 		return NULL;
 	}
-	tokenPri.PrivilegeCount = 1;
-	tokenPri.Privileges[0].Luid = setDebug;
-	tokenPri.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
 
-	if (!AdjustTokenPrivileges(*hProcess,
+	tp.PrivilegeCount = 1;
+	tp.Privileges[0].Luid = luid;
+	if (bEnablePrivilege)
+		tp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
+	else
+		tp.Privileges[0].Attributes = 0;
+
+	if (!AdjustTokenPrivileges(hToken,
 		FALSE,
-		&tokenPri,
-		sizeof(tokenPri),
-		NULL,
-		NULL))
+		&tp,
+		sizeof(TOKEN_PRIVILEGES),
+		(PTOKEN_PRIVILEGES)NULL,
+		(PDWORD)NULL))
 	{
+		printf("AdjustTokenPrivileges error: %u\n", GetLastError());
+		return NULL;
+	}
+
+	if (GetLastError() == ERROR_NOT_ALL_ASSIGNED)
+	{
+		printf("The token does not have the specified privilege. \n");
 		return NULL;
 	}
 

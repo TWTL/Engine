@@ -2,6 +2,7 @@
 
 #include "stdafx.h"
 #include "Misc.h"
+#include "NetMonitor.h"
 
 TWTL_SNAPSHOT_API
 BOOL

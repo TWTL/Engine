@@ -33,10 +33,12 @@ typedef struct RUNREGISTER_INFORMATION
 	TCHAR sKeyInfo[REGNAME_MAX];
 }REGINFO, *PREGINFO;
 
+TWTL_SNAPSHOT_API
 BOOL 
 __stdcall
-SetSystemPrivilege(
-	HANDLE *hProcess
+SetPrivilege(
+	LPCTSTR lpszPrivilege,
+	BOOL bEnablePrivilege
 );
 
 BOOL

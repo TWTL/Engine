@@ -1,5 +1,6 @@
 #pragma once
 #pragma comment(lib, "TWTL_Snapshot.lib")
+#include "Hooking.h"
 
 #define PRONAME_MAX	 260
 #define REGNAME_MAX	 255
@@ -25,6 +26,14 @@ __stdcall
 DeleteRunKey(
 	TCHAR CONST keyName[REGNAME_MAX],
 	CONST DWORD32 targetKey
+);
+
+__declspec(dllimport)
+BOOL
+__stdcall
+SetPrivilege(
+	LPCTSTR lpszPrivilege,
+	BOOL bEnablePrivilege
 );
 
 __declspec(dllimport)

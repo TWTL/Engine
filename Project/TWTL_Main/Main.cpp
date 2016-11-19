@@ -11,6 +11,8 @@ int main()
 	TCHAR keyName[REGNAME_MAX] = { 0, };
 	TCHAR keyValue[REGVALUE_MAX] = { 0, };
 
+	SetPrivilege(SE_DEBUG_NAME, TRUE);
+
 	while (TRUE) {
 		_tprintf_s(L"1. current snapshot\n");
 		_tprintf_s(L"2. current snapshot ( txt export )\n");
@@ -18,6 +20,8 @@ int main()
 		_tprintf_s(L"4. terminate process by PID\n");
 		_tprintf_s(L"5. delete register key\n");
 		_tprintf_s(L"6. \n");
+		_tprintf_s(L"7. Inject DLL - Global\n");
+		_tprintf_s(L"8. Eject DLL - Global\n");
 		_tprintf_s(L"\n");
 		_tprintf_s(L"Type Number : ");
 
@@ -52,6 +56,15 @@ int main()
 		}
 		else if (select == 6) {
 
+		}
+		else if (select == 7){
+			int nMode = INJECTION_MODE;
+			InjectAllProcess(nMode, L"C:\\Windows\\System32\\TWTL_Snapshot.dll");
+
+		}
+		else if (select == 8) {
+			int nMode = EJECTION_MODE;
+			InjectAllProcess(nMode, L"C:\\Windows\\System32\\TWTL_Snapshot.dll");
 		}
 		else {
 			break;

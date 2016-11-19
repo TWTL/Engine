@@ -78,12 +78,10 @@ TWTL_SNAPSHOT_API BOOL __stdcall SnapCurrentStatus(CONST DWORD32 mode) {
 						   currentProcessInfo.proc32.th32ProcessID);
 			}
 			else if (mode == 1) {
-				PrintCUI(currentProcessInfo.proc32.szExeFile);
 				if (_itow_s(currentProcessInfo.proc32.th32ProcessID, curPID, 5, 10)){
 					ExceptionFileClose(storage, mode);
 					return NULL;
 				}
-				PrintCUI(curPID);
 				fwprintf_s(storage, L"%s\t", &curPID);
 				fwprintf_s(storage, L"%s\n", &currentProcessInfo.proc32.szExeFile);
 			}
@@ -113,6 +111,8 @@ TWTL_SNAPSHOT_API BOOL __stdcall SnapCurrentStatus(CONST DWORD32 mode) {
 	if (mode == 1) {
 		fclose(storage);
 	}
+
+	ParseNetstat();
 	return TRUE;
 }
 
