@@ -5,7 +5,7 @@
 
 DWORD __stdcall OpenRegisteryKey(PREGINFO CONST pReg, CONST DWORD32 target);
 BOOL __stdcall SetTargetRegistryEntry(FILE* storage, PREGINFO CONST pReg, CONST DWORD32 target, CONST DWORD32 mode);
-BOOL __stdcall WriteRegToTxt(FILE* storage, PREGINFO CONST pReg, CONST DWORD32 mode);
+BOOL __stdcall WriteRegToTxt(FILE* storage, PREGINFO CONST pReg, CONST DWORD32 mode, CONST DWORD32 target);
 
 /*
 	Description : Write current process entry and register ( Run ) 
@@ -24,11 +24,12 @@ BOOL __stdcall WriteRegToTxt(FILE* storage, PREGINFO CONST pReg, CONST DWORD32 m
 TWTL_SNAPSHOT_API BOOL __stdcall SnapCurrentStatus(CONST DWORD32 mode) {
 	FILE* storage = NULL;
 
-	HANDLE hSnap;
-	PROCESSENTRY32 proc32;
+	CPROINFO currentProcessInfo;
+	PCPROINFO pCurrentProcessInfo = &currentProcessInfo;
+	currentProcessInfo.pProc32 = &currentProcessInfo.proc32;
 
-	LPWSTR Pname = { 0, };
 	CHAR fileName[MAX_PATH] = "Snapshot";
+	TCHAR curPID[PROPID_MAX] = { 0, };
 
 	REGINFO reg;
 	PREGINFO pReg = &reg;
@@ -53,64 +54,116 @@ TWTL_SNAPSHOT_API BOOL __stdcall SnapCurrentStatus(CONST DWORD32 mode) {
 		return NULL;
 	}
 
-	if ((hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0))
+	if ((currentProcessInfo.hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0))
 		== INVALID_HANDLE_VALUE) {
-		if (mode == 1) {
-			fclose(storage);
-		}
+		ExceptionFileClose(storage, mode);
 		return NULL;
 	}
 
-	else {
-		proc32.dwSize = sizeof(PROCESSENTRY32);
-		DWORD32 PID = 0;
-		if (Process32First(hSnap, &proc32)) {
-			if (mode == 1) {
-				fwprintf_s(storage, L"<Process List>\n");
-			}
-			// First Process' ID'll be 0, 
-			// so if calling Process32Next before writing, it'll be valid process.
-			//
+	currentProcessInfo.proc32.dwSize = sizeof(PROCESSENTRY32);
+	DWORD32 PID = 0;
+	if (Process32First(currentProcessInfo.hSnap, &currentProcessInfo.proc32)) {
+		if (mode == 1) {
+			fwprintf_s(storage, L"<Process List>\n");
+		}
+		// First Process' ID'll be 0, 
+		// so if calling Process32Next before writing, it'll be valid process.
+		//
 
-			while ((Process32Next(hSnap, &proc32)))
-			{
-				if (mode == 0) {
-					_tprintf_s(L"Process name : %s, PID : %d\n", proc32.szExeFile, proc32.th32ProcessID);
-				}
-				else if (mode == 1) {
-					PrintCUI(proc32.szExeFile);
-					fwprintf_s(storage, L"%s\n", &proc32.szExeFile);
-				}
-				else if (mode == 2) {
-
-				}
+		while ((Process32Next(currentProcessInfo.hSnap, &currentProcessInfo.proc32)))
+		{
+			if (mode == 0) {
+				_tprintf_s(L"Process name : %s, PID : %d\n",
+						   currentProcessInfo.proc32.szExeFile, 
+						   currentProcessInfo.proc32.th32ProcessID);
 			}
-			if (mode == 1) {
-				fwprintf_s(storage, L"</Process List>\n\n");
+			else if (mode == 1) {
+				if (_itow_s(currentProcessInfo.proc32.th32ProcessID, curPID, 5, 10)){
+					ExceptionFileClose(storage, mode);
+					return NULL;
+				}
+				fwprintf_s(storage, L"%s\t", &curPID);
+				fwprintf_s(storage, L"%s\n", &currentProcessInfo.proc32.szExeFile);
+			}
+			else if (mode == 2) {
+
 			}
 		}
-		CloseHandle(hSnap);
+		if (mode == 1) {
+			fwprintf_s(storage, L"</Process List>\n\n");
+		}
 	}
+	CloseHandle(currentProcessInfo.hSnap);
+	
 
 	// Write value of register key value ( Run of current user )
 	//
 
-	if (!SetTargetRegistryEntry(storage, pReg, 1, mode)) {
-		return NULL;
-	}
-	if (!SetTargetRegistryEntry(storage, pReg, 2, mode)) {
-		return NULL;
-	}
-	if (!SetTargetRegistryEntry(storage, pReg, 3, mode)) {
-		return NULL;
-	}
-	if (!SetTargetRegistryEntry(storage, pReg, 4, mode)) {
+	if (!SetTargetRegistryEntry(storage, pReg, 1, mode)||
+		!SetTargetRegistryEntry(storage, pReg, 2, mode)||
+		!SetTargetRegistryEntry(storage, pReg, 3, mode)||
+		!SetTargetRegistryEntry(storage, pReg, 4, mode)||
+		!SetTargetRegistryEntry(storage, pReg, 5, mode)) 
+	{
+		ExceptionFileClose(storage, mode);
 		return NULL;
 	}
 	if (mode == 1) {
 		fclose(storage);
 	}
+
+	ParseNetstat();
 	return TRUE;
+}
+
+/*
+	Description : terminate process found by PID.
+
+	Parameter :
+		( in )	DWORD32 targetPID : target terminated process' ID
+				else -> Error
+	Return value :
+		0 = Error
+		1 = Success
+*/
+BOOL __stdcall TerminateCurrentProcess(CONST DWORD32 targetPID) {
+	CPROINFO targetProcess;
+	PCPROINFO pTargetProcess = &targetProcess;
+
+	if ((targetProcess.hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0))
+		== INVALID_HANDLE_VALUE) {
+		return NULL;
+	}
+	targetProcess.proc32.dwSize = sizeof(PROCESSENTRY32);
+	if (Process32First(targetProcess.hSnap, &targetProcess.proc32)) {
+		while (Process32Next(targetProcess.hSnap, &targetProcess.proc32)) 
+		{
+			if (targetProcess.proc32.th32ProcessID == targetPID) {
+				DWORD exitCode = NULL;
+				DWORD dwDesiredAccess = PROCESS_TERMINATE;
+				BOOL bInheritHandle = FALSE;
+				targetProcess.curHandle = OpenProcess(dwDesiredAccess, bInheritHandle, targetPID);
+				if (targetProcess.curHandle == NULL) {
+					return NULL;
+				}
+				_tprintf_s(L"Terminated Process, PID : %s, %d", 
+						   targetProcess.proc32.szExeFile, 
+						   targetProcess.proc32.th32ProcessID);
+				if (TerminateProcess(targetProcess.curHandle, 0)) {
+					_tprintf_s(L" -> Success\n");
+					GetExitCodeProcess(targetProcess.curHandle, &exitCode);
+				}
+				else {
+					_tprintf_s(L" -> Failed\n");
+					CloseHandle(targetProcess.curHandle);
+					return NULL;
+				}
+				CloseHandle(targetProcess.curHandle);
+				return TRUE;
+			}
+		}
+	}
+	return NULL;
 }
 
 /*
@@ -123,6 +176,7 @@ TWTL_SNAPSHOT_API BOOL __stdcall SnapCurrentStatus(CONST DWORD32 mode) {
 			2 -> HKEY_LOCAL_MACHINE/Microsoft/Windows/CurrentVersion/Run
 			3 -> HKEY_CURRENT_USER/Microsoft/Windows/CurrentVersion/RunOnce
 			4 -> HKEY_LOCAL_MACHINE/Microsoft/Windows/CurrentVersion/RunOnce
+			5 -> HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Services
 			else -> Error
 	Return value :
 		0 = Error
@@ -172,7 +226,7 @@ DWORD __stdcall OpenRegisteryKey(PREGINFO CONST pReg, CONST DWORD32 target) {
 	if (target == 1 || target == 3) {
 		mainEntry = HKEY_CURRENT_USER;
 	}
-	else if (target == 2 || target == 4) {
+	else if (target == 2 || target == 4 || target == 5) {
 		mainEntry = HKEY_LOCAL_MACHINE;
 	}
 	else {
@@ -193,6 +247,13 @@ DWORD __stdcall OpenRegisteryKey(PREGINFO CONST pReg, CONST DWORD32 target) {
 				KEY_ALL_ACCESS,
 				&pReg->key);
 	}
+	else if (target == 5) {
+		return  RegOpenKeyEx(mainEntry,
+				L"SYSTEM\\CurrentControlSet\\Services",
+				NULL,
+				KEY_ALL_ACCESS,
+				&pReg->key);
+	}
 	else {
 		return 1;
 	}
@@ -209,11 +270,11 @@ DWORD __stdcall OpenRegisteryKey(PREGINFO CONST pReg, CONST DWORD32 target) {
 			2 -> HKEY_LOCAL_MACHINE/Microsoft/Windows/CurrentVersion/Run
 			3 -> HKEY_CURRENT_USER/Microsoft/Windows/CurrentVersion/RunOnce
 			4 -> HKEY_LOCAL_MACHINE/Microsoft/Windows/CurrentVersion/RunOnce
+			5 -> HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Services
 			else -> Error
 		( in )	DWORD32 mode :
 			0 -> just print
 			1 -> txt export
-			2 -> push data to database
 			else -> error
 	Return value :
 		0 = Error
@@ -223,7 +284,7 @@ BOOL __stdcall SetTargetRegistryEntry(FILE* storage, PREGINFO CONST pReg, CONST 
 	if (!OpenRegisteryKey(pReg, target))
 	{
 		if (mode == 0) {
-			if (!WriteRegToTxt(storage, pReg, mode)) {
+			if (!WriteRegToTxt(storage, pReg, mode, target)) {
 				return NULL;
 			}
 		}
@@ -240,13 +301,16 @@ BOOL __stdcall SetTargetRegistryEntry(FILE* storage, PREGINFO CONST pReg, CONST 
 			else if (target == 4) {
 				fwprintf_s(storage, L"<Register RunOnce List ( for all users )>\n");
 			}
+			else if (target == 5) {
+				fwprintf_s(storage, L"<Service List>");
+			}
 			else {
 				return NULL;
 			}
 
 			// call writing entry of target
 			//
-			if (!WriteRegToTxt(storage, pReg, mode)) {
+			if (!WriteRegToTxt(storage, pReg, mode, target)) {
 				return NULL;
 			}
 
@@ -262,12 +326,12 @@ BOOL __stdcall SetTargetRegistryEntry(FILE* storage, PREGINFO CONST pReg, CONST 
 			else if (target == 4) {
 				fwprintf_s(storage, L"</Register RunOnce List ( for all users )>\n\n");
 			}
+			else if (target == 5) {
+				fwprintf_s(storage, L"</Service List>");
+			}
 			else {
 				return NULL;
 			}
-		}
-		else if (mode == 2) {
-
 		}
 		else {
 			return NULL;
@@ -295,55 +359,59 @@ BOOL __stdcall SetTargetRegistryEntry(FILE* storage, PREGINFO CONST pReg, CONST 
 		( in )	DWORD32 mode :
 			0 -> just print
 			1 -> txt export
-			2 -> push data to database
 			else -> error
 	Return value :
 		0 = Error
 		1 = Success
 */
-BOOL __stdcall WriteRegToTxt(FILE* storage, PREGINFO CONST pReg, CONST DWORD32 mode) {
+BOOL __stdcall WriteRegToTxt(FILE* storage, PREGINFO CONST pReg, CONST DWORD32 mode, CONST DWORD32 target) {
 	DWORD result = 0;
 
 	for (int i = 0; result == ERROR_SUCCESS; i++)
 	{
 		result = RegEnumValue(pReg->key, i, pReg->keyName, &pReg->bufSize, NULL, NULL, NULL, NULL);
-
+		
 		if (result == ERROR_SUCCESS)
-		{
-			// must initialize reg.bufsize
-			//
-			if (!InitRegSize(pReg, 2)) {
-				return NULL;
-			}
+		{	
+			if (1 <= target && target <= 4) {
+				// must initialize reg.bufsize
+				//
+				if (!InitRegSize(pReg, 2)) {
+					return NULL;
+				}
 
-			if (RegQueryValueEx(pReg->key,
-				pReg->keyName,
-				NULL,
-				&pReg->dataType,
-				(LPBYTE)pReg->keyValue,
-				&pReg->bufSize)
-				!= 0)
-			{
-				return NULL;
+				if (RegQueryValueEx(pReg->key,
+					pReg->keyName,
+					NULL,
+					&pReg->dataType,
+					(LPBYTE)pReg->keyValue,
+					&pReg->bufSize)
+					!= 0)
+				{
+					return NULL;
+				}
+				// must initialize reg.bufsize
+				//
+				if (!InitRegSize(pReg, 1)) {
+					return NULL;
+				}
+				if (mode == 0) {
+					_tprintf_s(L"Register Name : %s, Value : %s\n", pReg->keyName, pReg->keyValue);
+				}
+				else if (mode == 1) {
+					PrintCUI(pReg->keyName);
+					PrintCUI(pReg->keyValue);
+					fwprintf_s(storage, L"%s\t", pReg->keyName);
+					fwprintf_s(storage, L"%s\n", pReg->keyValue);
+				}
+				else {
+					return NULL;
+				}
 			}
-			// must initialize reg.bufsize
-			//
-			if (!InitRegSize(pReg, 1)) {
-				return NULL;
-			}
-			if (mode == 0) {
-				_tprintf_s(L"Register Name : %s, Value : %s\n", pReg->keyName, pReg->keyValue);
-			}
-			else if (mode == 1) {
-				PrintCUI(pReg->keyName);
-				PrintCUI(pReg->keyValue);
-				fwprintf_s(storage, L"%s, ", pReg->keyName);
-				fwprintf_s(storage, L"%s\n", pReg->keyValue);
-			}
-			else if (mode == 2) {
+			else if (target == 5) {
 
 			}
-			else{
+			else {
 				return NULL;
 			}
 		}
