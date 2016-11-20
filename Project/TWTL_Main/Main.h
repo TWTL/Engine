@@ -1,5 +1,13 @@
 #pragma once
-#pragma comment(lib, "TWTL_Snapshot.lib")
+
+#ifdef _DEBUG
+#pragma comment(lib, "..\\Debug\\TWTL_Snapshot.lib")
+#pragma comment(lib, "..\\Debug\\TWTL_JSON.lib")
+#elif
+#pragma comment(lib, "..\\Release\\TWTL_Snapshot.lib")
+#pragma comment(lib, "..\\Release\\TWTL_JSON.lib")
+#endif
+
 #include "Hooking.h"
 
 #define PRONAME_MAX	 260

@@ -3,8 +3,15 @@
 
 #include "stdafx.h"
 
+#include "JsonThread.h"
+
+BOOL g_runJsonMainThread = FALSE;
+BOOL g_runJsonTrapThread = FALSE;
+
 int main()
 {	
+	HANDLE hJsonThread[2] = { INVALID_HANDLE_VALUE, INVALID_HANDLE_VALUE };
+
 	DWORD select=NULL;
 	DWORD32 targetKey = NULL;
 	DWORD32 targetPID = NULL;
@@ -12,6 +19,12 @@ int main()
 	TCHAR keyValue[REGVALUE_MAX] = { 0, };
 
 	SetPrivilege(SE_DEBUG_NAME, TRUE);
+
+	hJsonThread[0] = (HANDLE)_beginthreadex(NULL, 0, &JsonMainThreadProc, (LPVOID)NULL, 0, NULL);
+	hJsonThread[1] = (HANDLE)_beginthreadex(NULL, 0, &JsonTrapThreadProc, (LPVOID)NULL, 0, NULL);
+	g_runJsonMainThread = TRUE;
+	g_runJsonTrapThread = TRUE;
+	wprintf_s(L"Json Threads running\n\n");
 
 	while (TRUE) {
 		_tprintf_s(L"1. current snapshot\n");
@@ -72,7 +85,14 @@ int main()
 		_tprintf_s(L"\n");
 	}
 	
-	_tprintf_s(L"\nBye!\n");
+	wprintf_s(L"\nTerminating Json Threads...\n");
+	g_runJsonMainThread = FALSE;
+	g_runJsonTrapThread = FALSE;
+	WaitForMultipleObjects(2, hJsonThread, TRUE, INFINITE);
+	CloseHandle(hJsonThread[0]);
+	CloseHandle(hJsonThread[1]);
+
+	wprintf_s(L"\nBye!\n");
 	DelayWait(5000);
 	
 	return 0;
