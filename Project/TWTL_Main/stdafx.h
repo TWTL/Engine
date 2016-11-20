@@ -9,8 +9,11 @@
 
 #include <stdio.h>
 #include <tchar.h>
-#include <Windows.h>
+
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
 #include <tlhelp32.h>
+#include <process.h>
 
 // TODO: reference additional headers your program requires here
 

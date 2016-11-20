@@ -13,11 +13,11 @@
 
 int main()
 {
-	SOCKET connectSocket;
+	BOOL temp = true;
 
-	JSON_InitClientSocket(L"127.0.0.1", L"5259", &connectSocket);
-	JSON_ProcClientSocket(&connectSocket);
-	JSON_CloseClientSocket(&connectSocket);
+	JSON_InitTrapSocket("127.0.0.1", "5259");
+	JSON_ProcTrapSocket(&temp);
+	JSON_CloseTrapSocket();
 
     return 0;
 }

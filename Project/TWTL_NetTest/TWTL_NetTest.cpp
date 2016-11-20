@@ -13,12 +13,14 @@
 
 int main()
 {
+	/*
 	WSADATA wsaData;
 	SOCKET clientSocket;
 
 	JSON_InitServerSocket(&wsaData, &clientSocket);
 	JSON_ProcServerSocket(&clientSocket);
 	JSON_CloseServerSocket(&clientSocket);
+	*/
 
     return 0;
 }

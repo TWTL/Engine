@@ -27,6 +27,9 @@
     <ClInclude Include="Hooking.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="JsonThread.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -36,6 +39,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Hooking.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="JsonThread.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

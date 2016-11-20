@@ -1,9 +1,9 @@
 #pragma once
 
 #ifdef TWTL_JSON_EXPORTS
-#define TWTL_JSON_API __declspec(dllexport) 
+#define TWTL_JSON_API extern "C" __declspec(dllexport) 
 #else
-#define TWTL_JSON_API __declspec(dllimport) 
+#define TWTL_JSON_API extern "C" __declspec(dllimport) 
 #endif
 
 

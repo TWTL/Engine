@@ -2,10 +2,12 @@
 
 #include "stdafx.h"
 
-TWTL_JSON_API DWORD __stdcall JSON_InitServerSocket(WSADATA* wsaData, SOCKET* clientSocket);
-TWTL_JSON_API DWORD __stdcall JSON_ProcServerSocket(SOCKET* clientSocket);
-TWTL_JSON_API DWORD __stdcall JSON_CloseServerSocket(SOCKET* clientSocket);
+typedef unsigned int (WINAPI *LPTHREADPROC)(LPVOID lpParam);
 
-TWTL_JSON_API DWORD __stdcall JSON_InitClientSocket(LPCWSTR address, LPCWSTR port, SOCKET* connectSocket);
-TWTL_JSON_API DWORD __stdcall JSON_ProcClientSocket(SOCKET* connectSocket);
-TWTL_JSON_API DWORD __stdcall JSON_CloseClientSocket(SOCKET* connectSocket);
+TWTL_JSON_API DWORD __stdcall JSON_InitMainSocket();
+TWTL_JSON_API DWORD __stdcall JSON_ProcMainSocket(BOOL* quitSignal);
+TWTL_JSON_API DWORD __stdcall JSON_CloseMainSocket();
+
+TWTL_JSON_API DWORD __stdcall JSON_InitTrapSocket(LPCSTR address, LPCSTR port);
+TWTL_JSON_API DWORD __stdcall JSON_ProcTrapSocket(BOOL* quitSignal);
+TWTL_JSON_API DWORD __stdcall JSON_CloseTrapSocket();
