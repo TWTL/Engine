@@ -45,7 +45,7 @@ DWORD JSON_Parse(const char buf[], size_t buflen, TWTL_PROTO_BUF* req);
 TWTL_PROTO_NODE* JSON_ProtoAddNode(TWTL_PROTO_BUF* proto);
 void JSON_ProtoClearNode(TWTL_PROTO_BUF* proto);
 
-void JSON_ProtoParse(json_t *element, const char *key, TWTL_PROTO_BUF* req, int depth);
+void JSON_ProtoParse(json_t *element, const char *key, TWTL_PROTO_BUF* req, TWTL_PROTO_NODE* node, int depth);
 void JSON_ProtoMakeResponse(TWTL_PROTO_BUF* req, TWTL_PROTO_BUF* res);
 json_t* JSON_ProtoBufToJson(TWTL_PROTO_BUF* res);
 

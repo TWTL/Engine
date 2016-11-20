@@ -108,13 +108,12 @@ TWTL_JSON_API DWORD __stdcall JSON_ProcMainSocket(BOOL* quitSignal)
 {
 	char recvbuf[TWTL_JSON_MAX_BUF];
 	int iResult = 0;
+	TWTL_PROTO_BUF* req = (TWTL_PROTO_BUF*)malloc(sizeof(TWTL_PROTO_BUF));
 
 	// Receive until the peer shuts down the connection
 	do {
 		iResult = recv(mainSocket, recvbuf, TWTL_JSON_MAX_BUF, 0);
 		if (iResult > 0) {
-			TWTL_PROTO_BUF* req = (TWTL_PROTO_BUF*)malloc(sizeof(TWTL_PROTO_BUF));
-
 			fprintf(stderr, "Bytes received: %d\n", iResult);
 			// iResult == recieved packet size
 
@@ -131,7 +130,6 @@ TWTL_JSON_API DWORD __stdcall JSON_ProcMainSocket(BOOL* quitSignal)
 				// Clear ProtoBuf
 				JSON_ProtoClearNode(req);
 			}
-			free(req);
 		}
 		else if (iResult == 0)
 			fprintf(stderr, "Connection closing...\n");
@@ -142,10 +140,15 @@ TWTL_JSON_API DWORD __stdcall JSON_ProcMainSocket(BOOL* quitSignal)
 			fprintf(stderr, "recv failed with error: %d\n", WSAGetLastError());
 			closesocket(mainSocket);
 			WSACleanup();
+			JSON_ProtoClearNode(req);
+			free(req);
 			return TRUE;
 		}
 	}
 	while (iResult > 0 && *quitSignal);
+
+	JSON_ProtoClearNode(req);
+	free(req);
 
 	return FALSE;
 }
@@ -154,13 +157,18 @@ static DWORD __stdcall JSON_ResponseMainSocket(TWTL_PROTO_BUF *req)
 {
 	TWTL_PROTO_BUF* res = (TWTL_PROTO_BUF*)malloc(sizeof(TWTL_PROTO_BUF));
 
-	memset(&res, 0, sizeof(TWTL_PROTO_BUF));
+	memset(res, 0, sizeof(TWTL_PROTO_BUF));
 
 	JSON_ProtoMakeResponse(req, res);
 
 	json_t* json_res = JSON_ProtoBufToJson(res);
-	free(res);
 	char* sendbuf = json_dumps(json_res, 0);
+	JSON_ProtoClearNode(req);
+	free(res);
+	json_decref(json_res);
+
+	printf("[Send]\n%s\n", sendbuf);
+
 	int iResult = send(mainSocket, sendbuf, strlen(sendbuf) + 1, 0);
 	free(sendbuf);
 	if (iResult == SOCKET_ERROR) {
@@ -265,7 +273,7 @@ TWTL_JSON_API DWORD __stdcall JSON_ProcTrapSocket(BOOL* quitSignal)
 	char sendbuf[TWTL_JSON_MAX_BUF];
 	char recvbuf[TWTL_JSON_MAX_BUF];
 
-	StringCchCopyA(sendbuf, TWTL_JSON_MAX_BUF, "{\n    \"glossary\": {\n        \"title\": \"example glossary\",\n		\"GlossDiv\": {\n            \"title\": \"S\",\n			\"GlossList\": {\n                \"GlossEntry\": {\n                    \"ID\": \"SGML\",\n					\"SortAs\": \"SGML\",\n					\"GlossTerm\": \"Standard Generalized Markup Language\",\n					\"Acronym\": \"SGML\",\n					\"Abbrev\": \"ISO 8879:1986\",\n					\"GlossDef\": {\n                        \"para\": \"A meta-markup language, used to create markup languages such as DocBook.\",\n						\"GlossSeeAlso\": [\"GML\", \"XML\"]\n                    },\n					\"GlossSee\": 123\n                }\n            }\n        }\n    }\n}\n");
+	StringCchCopyA(sendbuf, TWTL_JSON_MAX_BUF, "{\n    \"name\": \"TWTL\",\n    \"app\": \"TWTL-GUI\",\n    \"version\": \"1\",\n    \"contents\": [\n        {\n            \"type\": \"request.get\",\n            \"path\": \"/Engine/Name/\"\n        },\n        {\n            \"type\": \"request.get\",\n            \"path\": \"/Engine/Version/\"\n        },\n        {\n            \"type\": \"request.get\",\n            \"path\": \"/Engine/RequestPort/\"\n        },\n        {\n            \"type\": \"request.set\",\n            \"path\": \"/Engine/TrapPort/\",\n            \"value\": 48207\n        }\n    ]\n}");
 	printf("[Recv]\n%s\n", sendbuf);
 
 	// Send an initial buffer

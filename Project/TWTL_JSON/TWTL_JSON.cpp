@@ -21,15 +21,15 @@ DWORD JSON_Parse(const char buf[], size_t buflen, TWTL_PROTO_BUF* req)
 	json_error_t error;
 	memset(req, 0, sizeof(TWTL_PROTO_BUF));
 
-	// root = json_loads(buf, 0, &error);
-	root = json_loadb(buf, buflen, 0, &error);
+	root = json_loads(buf, 0, &error);
+	// root = json_loadb(buf, buflen, 0, &error);
 
 	if (!root) { // Not valid JSON text
 		fprintf(stderr, "json error on line %d: %s\n", error.line, error.text);
 		return TRUE;
 	}
 
-	JSON_ProtoParse(root, "root", req, 0);
+	JSON_ProtoParse(root, "root", req, NULL, 0);
 	json_decref(root);
 
 	return FALSE;
@@ -98,16 +98,17 @@ Connection closing...
 
 TWTL_PROTO_NODE* JSON_ProtoAddNode(TWTL_PROTO_BUF* req)
 {
-	TWTL_PROTO_NODE* now = req->contents;
-	while (now)
+	TWTL_PROTO_NODE** now = &req->contents;
+	while (*now)
 	{
-		now = now->next;
+		now = (&(*now)->next);
 	}
 
-	now = (TWTL_PROTO_NODE*) malloc(sizeof(TWTL_PROTO_NODE));
-	memset(now, 0, sizeof(TWTL_PROTO_NODE));
+	(*now) = (TWTL_PROTO_NODE*) malloc(sizeof(TWTL_PROTO_NODE));
 
-	return now;
+	memset((*now), 0, sizeof(TWTL_PROTO_NODE));
+
+	return (*now);
 }
 
 void JSON_ProtoClearNode(TWTL_PROTO_BUF* req)
@@ -116,61 +117,90 @@ void JSON_ProtoClearNode(TWTL_PROTO_BUF* req)
 	while (now)
 	{
 		TWTL_PROTO_NODE* next = now->next;
-		free(next);
+		if (now != NULL)
+			free(now);
 		now = next;
 	}
-	free(req);
+	req->contents = NULL;
 
 	return;
 }
 
-void JSON_ProtoParse(json_t *element, const char *key, TWTL_PROTO_BUF* req, int depth)
+void JSON_ProtoParse(json_t *element, const char *key, TWTL_PROTO_BUF* req, TWTL_PROTO_NODE* node, int depth)
 {
 	size_t i;
 	size_t size;
 	const char *foundKey;
 	json_t *value;
 
-	switch (json_typeof(element)) {
-	case JSON_OBJECT:
-		size = json_object_size(element);
-
-		printf("JSON Object of %ld pair\n", size);
-		json_object_foreach(element, foundKey, value) {
-			if (StrCmpIA(key, "content") == 0)
-			{
-				JSON_ProtoAddNode(req);
+	if (depth < 2)
+	{
+		switch (json_typeof(element)) {
+		case JSON_OBJECT:
+			size = json_object_size(element);
+			json_object_foreach(element, foundKey, value) {
+				JSON_ProtoParse(value, foundKey, req, node, depth + 1);
 			}
-			JSON_ProtoParse(value, foundKey, req, depth + 1);
-		}
-		break;
-	case JSON_ARRAY:
-		size = json_array_size(element);
-
-		printf("JSON Array of %ld element\n", size);
-		for (i = 0; i < size; i++) {
-			value = json_array_get(element, i);
-			JSON_ProtoParse(value, "array", req, depth + 1);
-		}
-		break;
-	case JSON_STRING:
-		if (depth == 1)
-		{
+			break;
+		case JSON_ARRAY:
+			size = json_array_size(element);
+			json_array_foreach(element, i, value) {
+				value = json_array_get(element, i);
+				if (StrCmpIA(key, "contents") == 0)
+				{
+					TWTL_PROTO_NODE* new_node = JSON_ProtoAddNode(req);
+					JSON_ProtoParse(value, "array", req, new_node, depth + 1);
+				}
+				else
+				{
+					JSON_ProtoParse(value, "array", req, node, depth + 1);
+				}
+			}
+			break;
+		case JSON_STRING:
 			if (StrCmpIA(key, "name") == 0)
 				StringCchCopyA(req->name, TWTL_PROTO_MAX_BUF, json_string_value(element));
 			else if (StrCmpIA(key, "app") == 0)
 				StringCchCopyA(req->app, TWTL_PROTO_MAX_BUF, json_string_value(element));
 			else if (StrCmpIA(key, "version") == 0)
 				StringCchCopyA(req->version, TWTL_PROTO_MAX_BUF, json_string_value(element));
+			break;
+		case JSON_INTEGER:
+		case JSON_REAL:
+		case JSON_TRUE:
+		case JSON_FALSE:
+		case JSON_NULL:
+			break;
+		default:
+			fprintf(stderr, "unrecognized JSON type %d\n", json_typeof(element));
 		}
-		else if (depth == 2)
-		{
-			TWTL_PROTO_NODE* node = JSON_ProtoAddNode(req);
+	}
+	else if (2 <= depth)
+	{
+		switch (json_typeof(element)) {
+		case JSON_OBJECT:
+			size = json_object_size(element);
+			json_object_foreach(element, foundKey, value) {
+				// TWTL_PROTO_NODE* new_node = JSON_ProtoAddNode(req);
+				// JSON_ProtoParse(value, foundKey, req, new_node, depth + 1);
+				JSON_ProtoParse(value, foundKey, req, node, depth + 1);
+			}
+			break;
+		case JSON_ARRAY:
+			size = json_array_size(element);
+
+			printf("JSON Array of %ld element\n", size);
+			for (i = 0; i < size; i++) {
+				value = json_array_get(element, i);
+				JSON_ProtoParse(value, "array", req, node, depth + 1);
+			}
+			break;
+		case JSON_STRING:
 			if (StrCmpIA(key, "type") == 0)
 			{
-				if (StrCmpIA(json_string_value(element), "requset.get") == 0)
+				if (StrCmpIA(json_string_value(element), "request.get") == 0)
 					node->type = PROTO_REQ_GET;
-				else if (StrCmpIA(json_string_value(element), "requset.set") == 0)
+				else if (StrCmpIA(json_string_value(element), "request.set") == 0)
 					node->type = PROTO_REQ_SET;
 				else if (StrCmpIA(json_string_value(element), "response.status") == 0)
 					node->type = PROTO_RES_STATUS;
@@ -184,50 +214,47 @@ void JSON_ProtoParse(json_t *element, const char *key, TWTL_PROTO_BUF* req, int 
 				node->value_type = PROTO_VALUE_STR;
 				StringCchCopyA(node->value_str, TWTL_PROTO_MAX_BUF, json_string_value(element));
 			}
+			break;
+		case JSON_INTEGER:
+			if (StrCmpIA(key, "value") == 0)
+			{
+				node->value_type = PROTO_VALUE_INT;
+				node->value_int = json_integer_value(element);
+			}
+			break;
+		case JSON_REAL:
+			if (StrCmpIA(key, "value") == 0)
+			{
+				node->value_type = PROTO_VALUE_REAL;
+				node->value_real = json_real_value(element);
+			}
+			break;
+		case JSON_TRUE:
+			if (StrCmpIA(key, "value") == 0)
+			{
+				node->value_type = PROTO_VALUE_BOOL;
+				node->value_bool = TRUE;
+			}
+			break;
+		case JSON_FALSE:
+			if (StrCmpIA(key, "value") == 0)
+			{
+				node->value_type = PROTO_VALUE_BOOL;
+				node->value_bool = FALSE;
+			}
+			break;
+		case JSON_NULL:
+			if (StrCmpIA(key, "value") == 0)
+			{
+				node->value_type = PROTO_VALUE_NULL;
+			}
+			break;
+		default:
+			fprintf(stderr, "unrecognized JSON type %d\n", json_typeof(element));
 		}
-		break;
-	case JSON_INTEGER:
-		if (depth == 2 && StrCmpIA(key, "value") == 0)
-		{
-			TWTL_PROTO_NODE* node = JSON_ProtoAddNode(req);
-			node->value_type = PROTO_VALUE_INT;
-			node->value_int = json_integer_value(element);
-		}
-		break;
-	case JSON_REAL:
-		if (depth == 2 && StrCmpIA(key, "value") == 0)
-		{
-			TWTL_PROTO_NODE* node = JSON_ProtoAddNode(req);
-			node->value_type = PROTO_VALUE_REAL;
-			node->value_real = json_real_value(element);
-		}
-		break;
-	case JSON_TRUE:
-		if (depth == 2 && StrCmpIA(key, "value") == 0)
-		{
-			TWTL_PROTO_NODE* node = JSON_ProtoAddNode(req);
-			node->value_type = PROTO_VALUE_BOOL;
-			node->value_bool = TRUE;
-		}
-		break;
-	case JSON_FALSE:
-		if (depth == 2 && StrCmpIA(key, "value") == 0)
-		{
-			TWTL_PROTO_NODE* node = JSON_ProtoAddNode(req);
-			node->value_type = PROTO_VALUE_BOOL;
-			node->value_bool = FALSE;
-		}
-		break;
-	case JSON_NULL:
-		if (depth == 2 && StrCmpIA(key, "value") == 0)
-		{
-			TWTL_PROTO_NODE* node = JSON_ProtoAddNode(req);
-			node->value_type = PROTO_VALUE_NULL;
-		}
-		break;
-	default:
-		fprintf(stderr, "unrecognized JSON type %d\n", json_typeof(element));
 	}
+	
+	
 }
 
 void JSON_ProtoParsePath(TWTL_PROTO_BUF* req, TWTL_PROTO_BUF* res)
@@ -239,6 +266,11 @@ void JSON_ProtoMakeResponse(TWTL_PROTO_BUF* req, TWTL_PROTO_BUF* res)
 {
 	TWTL_PROTO_NODE* req_node = req->contents;
 	memset(res, 0, sizeof(TWTL_PROTO_BUF));
+
+	StringCchCopyA(res->name, TWTL_PROTO_MAX_BUF, req->name);
+	StringCchCopyA(res->app, TWTL_PROTO_MAX_BUF, req->app);
+	StringCchCopyA(res->version, TWTL_PROTO_MAX_BUF, req->version);
+
 	while (req_node)
 	{
 		switch (req_node->type)
@@ -248,11 +280,13 @@ void JSON_ProtoMakeResponse(TWTL_PROTO_BUF* req, TWTL_PROTO_BUF* res)
 			{
 				TWTL_PROTO_NODE* res_node_status = JSON_ProtoAddNode(res);
 				res_node_status->type = PROTO_RES_STATUS;
+				StringCchCopyA(res_node_status->path, TWTL_PROTO_MAX_BUF, req_node->path);
 				res_node_status->value_type = PROTO_VALUE_INT;
 				res_node_status->value_int = PROTO_STATUS_SUCCESS;
 
 				TWTL_PROTO_NODE* res_node_object = JSON_ProtoAddNode(res);
 				res_node_object->type = PROTO_RES_OBJECT;
+				StringCchCopyA(res_node_object->path, TWTL_PROTO_MAX_BUF, req_node->path);
 				res_node_object->value_type = PROTO_VALUE_STR;
 				StringCchCopyA(res_node_object->value_str, TWTL_PROTO_MAX_BUF, g_twtlInfo.engine.version);
 			}
@@ -260,23 +294,27 @@ void JSON_ProtoMakeResponse(TWTL_PROTO_BUF* req, TWTL_PROTO_BUF* res)
 			{
 				TWTL_PROTO_NODE* res_node_status = JSON_ProtoAddNode(res);
 				res_node_status->type = PROTO_RES_STATUS;
+				StringCchCopyA(res_node_status->path, TWTL_PROTO_MAX_BUF, req_node->path);
 				res_node_status->value_type = PROTO_VALUE_INT;
 				res_node_status->value_int = PROTO_STATUS_SUCCESS;
 
 				TWTL_PROTO_NODE* res_node_object = JSON_ProtoAddNode(res);
 				res_node_object->type = PROTO_RES_OBJECT;
+				StringCchCopyA(res_node_object->path, TWTL_PROTO_MAX_BUF, req_node->path);
 				res_node_object->value_type = PROTO_VALUE_STR;
 				StringCchCopyA(res_node_object->value_str, TWTL_PROTO_MAX_BUF, g_twtlInfo.engine.name);
 			}
-			else if (StrCmpIA(req_node->path, "/Engine/RequsetPort/") == 0)
+			else if (StrCmpIA(req_node->path, "/Engine/RequestPort/") == 0)
 			{
 				TWTL_PROTO_NODE* res_node_status = JSON_ProtoAddNode(res);
 				res_node_status->type = PROTO_RES_STATUS;
+				StringCchCopyA(res_node_status->path, TWTL_PROTO_MAX_BUF, req_node->path);
 				res_node_status->value_type = PROTO_VALUE_INT;
 				res_node_status->value_int = PROTO_STATUS_SUCCESS;
 
 				TWTL_PROTO_NODE* res_node_object = JSON_ProtoAddNode(res);
 				res_node_object->type = PROTO_RES_OBJECT;
+				StringCchCopyA(res_node_object->path, TWTL_PROTO_MAX_BUF, req_node->path);
 				res_node_object->value_type = PROTO_VALUE_INT;
 				res_node_object->value_int = g_twtlInfo.engine.reqPort;
 			}
@@ -286,6 +324,7 @@ void JSON_ProtoMakeResponse(TWTL_PROTO_BUF* req, TWTL_PROTO_BUF* res)
 				{ // Not set, return 400
 					TWTL_PROTO_NODE* res_node_status = JSON_ProtoAddNode(res);
 					res_node_status->type = PROTO_RES_STATUS;
+					StringCchCopyA(res_node_status->path, TWTL_PROTO_MAX_BUF, req_node->path);
 					res_node_status->value_type = PROTO_VALUE_INT;
 					res_node_status->value_int = PROTO_STATUS_CLIENT_ERROR;
 				}
@@ -293,11 +332,13 @@ void JSON_ProtoMakeResponse(TWTL_PROTO_BUF* req, TWTL_PROTO_BUF* res)
 				{ // Return 200
 					TWTL_PROTO_NODE* res_node_status = JSON_ProtoAddNode(res);
 					res_node_status->type = PROTO_RES_STATUS;
+					StringCchCopyA(res_node_status->path, TWTL_PROTO_MAX_BUF, req_node->path);
 					res_node_status->value_type = PROTO_VALUE_INT;
 					res_node_status->value_int = PROTO_STATUS_SUCCESS;
 
 					TWTL_PROTO_NODE* res_node_object = JSON_ProtoAddNode(res);
 					res_node_object->type = PROTO_RES_OBJECT;
+					StringCchCopyA(res_node_object->path, TWTL_PROTO_MAX_BUF, req_node->path);
 					res_node_object->value_type = PROTO_VALUE_INT;
 					res_node_object->value_int = g_twtlInfo.engine.trapPort;
 				}				
@@ -308,6 +349,7 @@ void JSON_ProtoMakeResponse(TWTL_PROTO_BUF* req, TWTL_PROTO_BUF* res)
 			{ // Const value, produce error
 				TWTL_PROTO_NODE* res_node_status = JSON_ProtoAddNode(res);
 				res_node_status->type = PROTO_RES_STATUS;
+				StringCchCopyA(res_node_status->path, TWTL_PROTO_MAX_BUF, req_node->path);
 				res_node_status->value_type = PROTO_VALUE_INT;
 				res_node_status->value_int = PROTO_STATUS_CLIENT_ERROR;
 			}
@@ -315,6 +357,7 @@ void JSON_ProtoMakeResponse(TWTL_PROTO_BUF* req, TWTL_PROTO_BUF* res)
 			{ // Const value, produce error
 				TWTL_PROTO_NODE* res_node_status = JSON_ProtoAddNode(res);
 				res_node_status->type = PROTO_RES_STATUS;
+				StringCchCopyA(res_node_status->path, TWTL_PROTO_MAX_BUF, req_node->path);
 				res_node_status->value_type = PROTO_VALUE_INT;
 				res_node_status->value_int = PROTO_STATUS_CLIENT_ERROR;
 			}
@@ -322,6 +365,7 @@ void JSON_ProtoMakeResponse(TWTL_PROTO_BUF* req, TWTL_PROTO_BUF* res)
 			{ // Const value, produce error
 				TWTL_PROTO_NODE* res_node_status = JSON_ProtoAddNode(res);
 				res_node_status->type = PROTO_RES_STATUS;
+				StringCchCopyA(res_node_status->path, TWTL_PROTO_MAX_BUF, req_node->path);
 				res_node_status->value_type = PROTO_VALUE_INT;
 				res_node_status->value_int = PROTO_STATUS_CLIENT_ERROR;
 			}
@@ -331,6 +375,7 @@ void JSON_ProtoMakeResponse(TWTL_PROTO_BUF* req, TWTL_PROTO_BUF* res)
 
 				TWTL_PROTO_NODE* res_node_status = JSON_ProtoAddNode(res);
 				res_node_status->type = PROTO_RES_STATUS;
+				StringCchCopyA(res_node_status->path, TWTL_PROTO_MAX_BUF, req_node->path);
 				res_node_status->value_type = PROTO_VALUE_INT;
 				res_node_status->value_int = PROTO_STATUS_SUCCESS;
 			}
@@ -339,11 +384,6 @@ void JSON_ProtoMakeResponse(TWTL_PROTO_BUF* req, TWTL_PROTO_BUF* res)
 
 		req_node = req_node->next;
 	}
-
-	memset(req_node, 0, sizeof(TWTL_PROTO_NODE));
-
-	TWTL_PROTO_NODE* res_node = JSON_ProtoAddNode(res);
-	// if (res_node->type)
 }
 
 json_t* JSON_ProtoBufToJson(TWTL_PROTO_BUF* res)
@@ -356,7 +396,6 @@ json_t* JSON_ProtoBufToJson(TWTL_PROTO_BUF* res)
 	json_object_set_new(root, "name", json_string(res->name));
 	json_object_set_new(root, "app", json_string(res->app));
 	json_object_set_new(root, "version", json_string(res->version));
-	json_object_set_new(root, "contents", json_arr);
 
 	while (res_node)
 	{
@@ -383,16 +422,16 @@ json_t* JSON_ProtoBufToJson(TWTL_PROTO_BUF* res)
 		switch (res_node->value_type)
 		{
 		case PROTO_VALUE_STR:
-			json_object_set_new(json_node, "type", json_string(res_node->value_str));
+			json_object_set_new(json_node, "value", json_string(res_node->value_str));
 			break;
 		case PROTO_VALUE_INT:
-			json_object_set_new(json_node, "type", json_integer(res_node->value_int));
+			json_object_set_new(json_node, "value", json_integer(res_node->value_int));
 			break;
 		case PROTO_VALUE_REAL:
-			json_object_set_new(json_node, "type", json_real(res_node->value_real));
+			json_object_set_new(json_node, "value", json_real(res_node->value_real));
 			break;
 		case PROTO_VALUE_BOOL:
-			json_object_set_new(json_node, "type", json_boolean(res_node->value_bool));
+			json_object_set_new(json_node, "value", json_boolean(res_node->value_bool));
 			break;
 		case PROTO_VALUE_NULL:
 			break;
@@ -402,6 +441,7 @@ json_t* JSON_ProtoBufToJson(TWTL_PROTO_BUF* res)
 
 		res_node = res_node->next;
 	}
+	json_object_set_new(root, "contents", json_arr);
 
 	return root;
 }
