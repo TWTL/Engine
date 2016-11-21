@@ -21,8 +21,8 @@ DWORD JSON_Parse(const char buf[], size_t buflen, TWTL_PROTO_BUF* req)
 	json_error_t error;
 	memset(req, 0, sizeof(TWTL_PROTO_BUF));
 
-	root = json_loads(buf, 0, &error);
-	// root = json_loadb(buf, buflen, 0, &error);
+	// root = json_loads(buf, 0, &error);
+	root = json_loadb(buf, buflen, 0, &error);
 
 	if (!root) { // Not valid JSON text
 		fprintf(stderr, "json error on line %d: %s\n", error.line, error.text);
