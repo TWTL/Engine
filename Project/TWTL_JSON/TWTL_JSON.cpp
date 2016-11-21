@@ -270,9 +270,9 @@ void JSON_ProtoMakeResponse(TWTL_PROTO_BUF* req, TWTL_PROTO_BUF* res)
 	TWTL_PROTO_NODE* req_node = req->contents;
 	memset(res, 0, sizeof(TWTL_PROTO_BUF));
 
-	StringCchCopyA(res->name, TWTL_PROTO_MAX_BUF, req->name);
-	StringCchCopyA(res->app, TWTL_PROTO_MAX_BUF, req->app);
-	StringCchCopyA(res->version, TWTL_PROTO_MAX_BUF, req->version);
+	StringCchCopyA(res->name, TWTL_PROTO_MAX_BUF, "TWTL");
+	StringCchCopyA(res->app, TWTL_PROTO_MAX_BUF, "TWTL-Engine");
+	StringCchCopyA(res->version, TWTL_PROTO_MAX_BUF, "1");
 
 	while (req_node)
 	{
