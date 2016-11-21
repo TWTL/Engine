@@ -13,7 +13,10 @@ unsigned int WINAPI JsonMainThreadProc(LPVOID lpParam)
 	JSON_InitMainSocket();
 	while (g_runJsonMainThread)
 	{
-		JSON_ProcMainSocket(&g_runJsonMainThread);
+		if (JSON_ProcMainSocket(&g_runJsonMainThread))
+		{ // Error Handling
+			break;
+		}
 	}
 	JSON_CloseMainSocket();
 
@@ -27,7 +30,10 @@ unsigned int WINAPI JsonTrapThreadProc(LPVOID lpParam)
 	JSON_InitTrapSocket("127.0.0.1", (LPCSTR)lpParam);
 	while (g_runJsonTrapThread)
 	{
-		JSON_ProcTrapSocket(&g_runJsonTrapThread);
+		if (JSON_ProcTrapSocket(&g_runJsonTrapThread))
+		{ // Error Handling
+			break;
+		}
 	}
 	JSON_CloseTrapSocket();
 	*/

@@ -117,7 +117,6 @@ TWTL_JSON_API DWORD __stdcall JSON_ProcMainSocket(BOOL* quitSignal)
 			fprintf(stderr, "Bytes received: %d\n", iResult);
 			// iResult == recieved packet size
 
-			printf("[Recv]\n%s\n", recvbuf);
 			if (JSON_Parse(recvbuf, iResult, req))
 			{ // Error Handling
 				fprintf(stderr, "JSON_Parse() failed\n");
