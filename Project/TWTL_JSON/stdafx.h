@@ -5,6 +5,15 @@
 
 #pragma once
 
+#pragma comment(lib, "shlwapi.lib")
+#pragma comment(lib, "ws2_32.lib")
+
+#ifdef _DEBUG
+#pragma comment(lib, "..\\lib\\jansson_d.lib")
+#else
+#pragma comment(lib, "..\\lib\\jansson.lib")
+#endif
+
 #include "Var.h"
 
 #include "targetver.h"

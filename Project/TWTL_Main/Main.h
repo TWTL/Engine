@@ -3,7 +3,7 @@
 #ifdef _DEBUG
 #pragma comment(lib, "..\\Debug\\TWTL_Snapshot.lib")
 #pragma comment(lib, "..\\Debug\\TWTL_JSON.lib")
-#elif
+#else
 #pragma comment(lib, "..\\Release\\TWTL_Snapshot.lib")
 #pragma comment(lib, "..\\Release\\TWTL_JSON.lib")
 #endif
