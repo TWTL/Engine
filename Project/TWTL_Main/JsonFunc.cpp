@@ -3,7 +3,7 @@
 
 #include "stdafx.h"
 
-#include "TWTL_JSON.h"
+#include "JsonFunc.h"
 
 /*
 * Parse text into a JSON object. If text is valid JSON, returns a
@@ -102,7 +102,7 @@ Connection closing...
 TWTL_PROTO_NODE* JSON_ProtoAddNode(TWTL_PROTO_BUF* req)
 {
 	TWTL_PROTO_NODE** now = &req->contents;
-	while (*now)
+	while (*now != NULL)
 	{
 		now = (&(*now)->next);
 	}
@@ -117,7 +117,7 @@ TWTL_PROTO_NODE* JSON_ProtoAddNode(TWTL_PROTO_BUF* req)
 void JSON_ProtoClearNode(TWTL_PROTO_BUF* req)
 {
 	TWTL_PROTO_NODE* now = req->contents;
-	while (now)
+	while (now != NULL)
 	{
 		TWTL_PROTO_NODE* next = now->next;
 		if (now != NULL)
@@ -201,9 +201,11 @@ void JSON_ProtoParse(json_t *element, const char *key, TWTL_PROTO_BUF* req, TWTL
 		case JSON_STRING:
 			if (StrCmpIA(key, "type") == 0)
 			{
-				if (StrCmpIA(json_string_value(element), "request.get") == 0)
+				if (StrCmpIA(json_string_value(element), "request.get") == 0
+					|| StrCmpIA(json_string_value(element), "get.request") == 0)
 					node->type = PROTO_REQ_GET;
-				else if (StrCmpIA(json_string_value(element), "request.set") == 0)
+				else if (StrCmpIA(json_string_value(element), "request.set") == 0
+					|| StrCmpIA(json_string_value(element), "set.request") == 0)
 					node->type = PROTO_REQ_SET;
 				else if (StrCmpIA(json_string_value(element), "response.status") == 0)
 					node->type = PROTO_RES_STATUS;
@@ -270,9 +272,9 @@ void JSON_ProtoMakeResponse(TWTL_PROTO_BUF* req, TWTL_PROTO_BUF* res)
 	TWTL_PROTO_NODE* req_node = req->contents;
 	memset(res, 0, sizeof(TWTL_PROTO_BUF));
 
-	StringCchCopyA(res->name, TWTL_PROTO_MAX_BUF, req->name);
-	StringCchCopyA(res->app, TWTL_PROTO_MAX_BUF, req->app);
-	StringCchCopyA(res->version, TWTL_PROTO_MAX_BUF, req->version);
+	StringCchCopyA(res->name, TWTL_PROTO_MAX_BUF, "TWTL");
+	StringCchCopyA(res->app, TWTL_PROTO_MAX_BUF, "TWTL-Engine");
+	StringCchCopyA(res->version, TWTL_PROTO_MAX_BUF, "1");
 
 	while (req_node)
 	{
@@ -291,7 +293,7 @@ void JSON_ProtoMakeResponse(TWTL_PROTO_BUF* req, TWTL_PROTO_BUF* res)
 				res_node_object->type = PROTO_RES_OBJECT;
 				StringCchCopyA(res_node_object->path, TWTL_PROTO_MAX_BUF, req_node->path);
 				res_node_object->value_type = PROTO_VALUE_STR;
-				StringCchCopyA(res_node_object->value_str, TWTL_PROTO_MAX_BUF, g_twtlInfo.engine.version);
+				StringCchCopyA(res_node_object->value_str, TWTL_PROTO_MAX_BUF, g_twtlInfo.engine.name);
 			}
 			else if (StrCmpIA(req_node->path, "/Engine/Version/") == 0)
 			{
@@ -305,7 +307,7 @@ void JSON_ProtoMakeResponse(TWTL_PROTO_BUF* req, TWTL_PROTO_BUF* res)
 				res_node_object->type = PROTO_RES_OBJECT;
 				StringCchCopyA(res_node_object->path, TWTL_PROTO_MAX_BUF, req_node->path);
 				res_node_object->value_type = PROTO_VALUE_STR;
-				StringCchCopyA(res_node_object->value_str, TWTL_PROTO_MAX_BUF, g_twtlInfo.engine.name);
+				StringCchCopyA(res_node_object->value_str, TWTL_PROTO_MAX_BUF, g_twtlInfo.engine.version);
 			}
 			else if (StrCmpIA(req_node->path, "/Engine/RequestPort/") == 0)
 			{
@@ -450,7 +452,7 @@ json_t* JSON_ProtoBufToJson(TWTL_PROTO_BUF* res)
 }
 
 
-TWTL_JSON_API void JSON_Init_TWTL_INFO_DATA()
+void JSON_Init_TWTL_INFO_DATA()
 {
 	JSON_Init_TWTL_INFO_ENGINE_NODE(&(g_twtlInfo.engine));
 }

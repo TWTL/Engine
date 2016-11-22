@@ -56,3 +56,5 @@ VOID
 __stdcall
 ErrMsg(
 );
+
+void BinaryDump(const uint8_t buf[], const uint32_t bufsize);

@@ -1,6 +1,7 @@
 #include "stdafx.h"
 
-#include "TWTL_JSON.h"
+#include "Socket.h"
+#include "JsonFunc.h"
 
 #pragma comment (lib, "Ws2_32.lib")
 #pragma comment (lib, "Mswsock.lib")
@@ -11,7 +12,7 @@ DWORD __stdcall JSON_ResponseMainSocket(TWTL_PROTO_BUF *req);
 static SOCKET mainSocket;
 static SOCKET trapSocket;
 
-TWTL_JSON_API DWORD __stdcall JSON_InitMainSocket()
+DWORD __stdcall JSON_InitMainSocket()
 {
 	int iResult;
 
@@ -104,11 +105,12 @@ TWTL_JSON_API DWORD __stdcall JSON_InitMainSocket()
 	return FALSE;
 }
 
-TWTL_JSON_API DWORD __stdcall JSON_ProcMainSocket(BOOL* quitSignal)
+ DWORD __stdcall JSON_ProcMainSocket(BOOL* quitSignal)
 {
 	char recvbuf[TWTL_JSON_MAX_BUF];
 	int iResult = 0;
 	TWTL_PROTO_BUF* req = (TWTL_PROTO_BUF*)malloc(sizeof(TWTL_PROTO_BUF));
+	memset(req, 0, sizeof(TWTL_PROTO_BUF));
 
 	// Receive until the peer shuts down the connection
 	do {
@@ -132,16 +134,17 @@ TWTL_JSON_API DWORD __stdcall JSON_ProcMainSocket(BOOL* quitSignal)
 		}
 		else if (iResult == 0)
 			fprintf(stderr, "Connection closing...\n");
-		else if (iResult == WSAETIMEDOUT) {
-			// Trap-ACK has not arrived
-		}
 		else {
-			fprintf(stderr, "recv failed with error: %d\n", WSAGetLastError());
-			closesocket(mainSocket);
-			WSACleanup();
-			JSON_ProtoClearNode(req);
-			free(req);
-			return TRUE;
+			int errorCode = WSAGetLastError();
+			if (errorCode != WSAETIMEDOUT)
+			{
+				fprintf(stderr, "recv failed with error: %d\n", errorCode);
+				closesocket(mainSocket);
+				WSACleanup();
+				JSON_ProtoClearNode(req);
+				free(req);
+				return TRUE;
+			}
 		}
 	}
 	while (iResult > 0 && *quitSignal);
@@ -155,7 +158,6 @@ TWTL_JSON_API DWORD __stdcall JSON_ProcMainSocket(BOOL* quitSignal)
 static DWORD __stdcall JSON_ResponseMainSocket(TWTL_PROTO_BUF *req)
 {
 	TWTL_PROTO_BUF* res = (TWTL_PROTO_BUF*)malloc(sizeof(TWTL_PROTO_BUF));
-
 	memset(res, 0, sizeof(TWTL_PROTO_BUF));
 
 	JSON_ProtoMakeResponse(req, res);
@@ -179,7 +181,7 @@ static DWORD __stdcall JSON_ResponseMainSocket(TWTL_PROTO_BUF *req)
 	return FALSE;
 }
 
-TWTL_JSON_API DWORD __stdcall JSON_CloseMainSocket()
+ DWORD __stdcall JSON_CloseMainSocket()
 {
 	// shutdown the connection since we're done
 	int iResult = shutdown(mainSocket, SD_SEND);
@@ -198,7 +200,7 @@ TWTL_JSON_API DWORD __stdcall JSON_CloseMainSocket()
 }
 
 
-TWTL_JSON_API DWORD __stdcall JSON_InitTrapSocket(LPCSTR address, LPCSTR port)
+ DWORD __stdcall JSON_InitTrapSocket(LPCSTR address, LPCSTR port)
 {
 	// Initialize Winsock
 	WSADATA wsaData;
@@ -267,7 +269,7 @@ TWTL_JSON_API DWORD __stdcall JSON_InitTrapSocket(LPCSTR address, LPCSTR port)
 	return FALSE;
 }
 
-TWTL_JSON_API DWORD __stdcall JSON_ProcTrapSocket(BOOL* quitSignal)
+ DWORD __stdcall JSON_ProcTrapSocket(BOOL* quitSignal)
 {
 	char sendbuf[TWTL_JSON_MAX_BUF];
 	char recvbuf[TWTL_JSON_MAX_BUF];
@@ -303,14 +305,15 @@ TWTL_JSON_API DWORD __stdcall JSON_ProcTrapSocket(BOOL* quitSignal)
 	}
 	else if (iResult == 0)
 		fprintf(stderr, "Connection closing...\n");
-	else if (iResult == WSAETIMEDOUT) {
-		// Trap-ACK has not arrived
-	}
 	else {
-		fprintf(stderr, "recv failed with error: %d\n", WSAGetLastError());
-		closesocket(mainSocket);
-		WSACleanup();
-		return TRUE;
+		int errorCode = WSAGetLastError();
+		if (errorCode != WSAETIMEDOUT)
+		{
+			fprintf(stderr, "recv failed with error: %d\n", errorCode);
+			closesocket(mainSocket);
+			WSACleanup();
+			return TRUE;
+		}
 	}
 
 	printf("Bytes Sent: %ld\n", iResult);
@@ -318,7 +321,7 @@ TWTL_JSON_API DWORD __stdcall JSON_ProcTrapSocket(BOOL* quitSignal)
 	return FALSE;
 }
 
-TWTL_JSON_API DWORD __stdcall JSON_CloseTrapSocket()
+ DWORD __stdcall JSON_CloseTrapSocket()
 {
 	// shutdown the connection since no more data will be sent
 	int iResult = shutdown(trapSocket, SD_SEND);
