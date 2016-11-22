@@ -16,8 +16,6 @@
 #pragma comment(lib, "..\\lib\\jansson.lib")
 #endif
 
-
-
 #include "targetver.h"
 
 #include <stdio.h>

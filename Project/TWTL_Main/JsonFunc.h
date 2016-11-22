@@ -30,6 +30,16 @@ typedef struct twtl_proto_buf {
 	TWTL_PROTO_NODE* contents;
 } TWTL_PROTO_BUF;
 
+typedef struct twtl_trap_queue_node {
+	TWTL_PROTO_BUF buf;
+	struct twtl_trap_queue_node* next;
+} TWTL_TRAP_QUEUE_NODE;
+
+typedef struct twtl_trap_queue {
+	int count;
+	struct twtl_trap_queue_node* node;
+} TWTL_TRAP_QUEUE;
+
 typedef struct twtl_info_engine_node {
 	char name[TWTL_PROTO_MAX_BUF];		// const
 	char version[TWTL_PROTO_MAX_BUF];	// const 
@@ -42,8 +52,11 @@ typedef struct twtl_info_data {
 } TWTL_INFO_DATA;
 
 DWORD JSON_Parse(const char buf[], size_t buflen, TWTL_PROTO_BUF* req);
-TWTL_PROTO_NODE* JSON_ProtoAddNode(TWTL_PROTO_BUF* proto);
-void JSON_ProtoClearNode(TWTL_PROTO_BUF* proto);
+
+TWTL_PROTO_NODE* JSON_AddProtoNode(TWTL_PROTO_BUF* proto);
+void JSON_ClearProtoNode(TWTL_PROTO_BUF* proto);
+
+TWTL_TRAP_QUEUE* JSON_InitTrapQueue(TWTL_TRAP_QUEUE* queue);
 
 void JSON_ProtoParse(json_t *element, const char *key, TWTL_PROTO_BUF* req, TWTL_PROTO_NODE* node, int depth);
 void JSON_ProtoMakeResponse(TWTL_PROTO_BUF* req, TWTL_PROTO_BUF* res);
