@@ -4,10 +4,10 @@
 
 typedef unsigned int (WINAPI *LPTHREADPROC)(LPVOID lpParam);
 
-DWORD __stdcall JSON_InitMainSocket();
-DWORD __stdcall JSON_ProcMainSocket(BOOL* quitSignal);
-DWORD __stdcall JSON_CloseMainSocket();
+DWORD __stdcall SOCK_MainPortInit();
+DWORD __stdcall SOCK_MainPortProc();
+DWORD __stdcall SOCK_MainPortClose();
 
-DWORD __stdcall JSON_InitTrapSocket(LPCSTR address, LPCSTR port);
-DWORD __stdcall JSON_ProcTrapSocket(BOOL* quitSignal);
-DWORD __stdcall JSON_CloseTrapSocket();
+DWORD __stdcall SOCK_TrapPortInit(LPCSTR address, LPCSTR port);
+DWORD __stdcall JSON_ProcTrapSocket();
+DWORD __stdcall SOCK_TrapPortClose();

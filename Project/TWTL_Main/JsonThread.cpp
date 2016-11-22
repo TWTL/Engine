@@ -10,33 +10,25 @@ unsigned int WINAPI JsonMainThreadProc(LPVOID lpParam)
 {
 	JSON_Init_TWTL_INFO_DATA();
 
-	JSON_InitMainSocket();
-	while (g_runJsonMainThread)
-	{
-		if (JSON_ProcMainSocket(&g_runJsonMainThread))
-		{ // Error Handling
-			break;
-		}
+	SOCK_MainPortInit();
+
+	if (SOCK_MainPortProc())
+	{ // Error Handling
 	}
-	JSON_CloseMainSocket();
+
+	SOCK_MainPortClose();
 
 	return 0;
 }
 
 unsigned int WINAPI JsonTrapThreadProc(LPVOID lpParam)
 {
-	// TODO
-	/*
-	JSON_InitTrapSocket("127.0.0.1", (LPCSTR)lpParam);
+	SOCK_TrapPortInit("127.0.0.1", (LPCSTR)lpParam);
 	while (g_runJsonTrapThread)
-	{
-		if (JSON_ProcTrapSocket(&g_runJsonTrapThread))
-		{ // Error Handling
-			break;
-		}
+	{ // Error Handling
+		DelayWait(1000);
 	}
-	JSON_CloseTrapSocket();
-	*/
+	SOCK_TrapPortClose();
 
 	return 0;
 }

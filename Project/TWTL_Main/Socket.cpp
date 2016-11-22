@@ -7,12 +7,15 @@
 #pragma comment (lib, "Mswsock.lib")
 #pragma comment (lib, "AdvApi32.lib")
 
-DWORD __stdcall JSON_ResponseMainSocket(TWTL_PROTO_BUF *req);
+DWORD __stdcall SOCK_MainPortResponse(TWTL_PROTO_BUF *req);
 
 static SOCKET mainSocket;
 static SOCKET trapSocket;
 
-DWORD __stdcall JSON_InitMainSocket()
+extern BOOL g_runJsonMainThread;
+extern BOOL g_runJsonTrapThread;
+
+DWORD __stdcall SOCK_MainPortInit()
 {
 	int iResult;
 
@@ -105,7 +108,7 @@ DWORD __stdcall JSON_InitMainSocket()
 	return FALSE;
 }
 
- DWORD __stdcall JSON_ProcMainSocket(BOOL* quitSignal)
+DWORD __stdcall SOCK_MainPortProc()
 {
 	char recvbuf[TWTL_JSON_MAX_BUF];
 	int iResult = 0;
@@ -113,7 +116,7 @@ DWORD __stdcall JSON_InitMainSocket()
 	memset(req, 0, sizeof(TWTL_PROTO_BUF));
 
 	// Receive until the peer shuts down the connection
-	do {
+	while (1) {
 		iResult = recv(mainSocket, recvbuf, TWTL_JSON_MAX_BUF, 0);
 		if (iResult > 0) {
 			fprintf(stderr, "Bytes received: %d\n", iResult);
@@ -126,14 +129,17 @@ DWORD __stdcall JSON_InitMainSocket()
 			else
 			{
 				// Make Response and send it!
-				JSON_ResponseMainSocket(req);
+				SOCK_MainPortResponse(req);
 				
 				// Clear ProtoBuf
-				JSON_ProtoClearNode(req);
+				JSON_ClearProtoNode(req);
 			}
 		}
-		else if (iResult == 0)
+		else if (iResult == 0) {
 			fprintf(stderr, "Connection closing...\n");
+			if (!g_runJsonMainThread)
+				break;
+		}
 		else {
 			int errorCode = WSAGetLastError();
 			if (errorCode != WSAETIMEDOUT)
@@ -141,21 +147,20 @@ DWORD __stdcall JSON_InitMainSocket()
 				fprintf(stderr, "recv failed with error: %d\n", errorCode);
 				closesocket(mainSocket);
 				WSACleanup();
-				JSON_ProtoClearNode(req);
+				JSON_ClearProtoNode(req);
 				free(req);
 				return TRUE;
 			}
 		}
-	}
-	while (iResult > 0 && *quitSignal);
+	};
 
-	JSON_ProtoClearNode(req);
+	JSON_ClearProtoNode(req);
 	free(req);
 
 	return FALSE;
 }
 
-static DWORD __stdcall JSON_ResponseMainSocket(TWTL_PROTO_BUF *req)
+static DWORD __stdcall SOCK_MainPortResponse(TWTL_PROTO_BUF *req)
 {
 	TWTL_PROTO_BUF* res = (TWTL_PROTO_BUF*)malloc(sizeof(TWTL_PROTO_BUF));
 	memset(res, 0, sizeof(TWTL_PROTO_BUF));
@@ -164,7 +169,7 @@ static DWORD __stdcall JSON_ResponseMainSocket(TWTL_PROTO_BUF *req)
 
 	json_t* json_res = JSON_ProtoBufToJson(res);
 	char* sendbuf = json_dumps(json_res, 0);
-	JSON_ProtoClearNode(req);
+	JSON_ClearProtoNode(req);
 	free(res);
 	json_decref(json_res);
 
@@ -181,7 +186,7 @@ static DWORD __stdcall JSON_ResponseMainSocket(TWTL_PROTO_BUF *req)
 	return FALSE;
 }
 
- DWORD __stdcall JSON_CloseMainSocket()
+ DWORD __stdcall SOCK_MainPortClose()
 {
 	// shutdown the connection since we're done
 	int iResult = shutdown(mainSocket, SD_SEND);
@@ -200,7 +205,7 @@ static DWORD __stdcall JSON_ResponseMainSocket(TWTL_PROTO_BUF *req)
 }
 
 
- DWORD __stdcall JSON_InitTrapSocket(LPCSTR address, LPCSTR port)
+ DWORD __stdcall SOCK_TrapPortInit(LPCSTR address, LPCSTR port)
 {
 	// Initialize Winsock
 	WSADATA wsaData;
@@ -269,6 +274,71 @@ static DWORD __stdcall JSON_ResponseMainSocket(TWTL_PROTO_BUF *req)
 	return FALSE;
 }
 
+ DWORD __stdcall SOCK_TrapPortSend()
+ {
+	 char sendbuf[TWTL_JSON_MAX_BUF];
+	 char recvbuf[TWTL_JSON_MAX_BUF];
+
+	 StringCchCopyA(sendbuf, TWTL_JSON_MAX_BUF, "{\n    \"name\": \"TWTL\",\n    \"app\": \"TWTL-GUI\",\n    \"version\": \"1\",\n    \"contents\": [\n        {\n            \"type\": \"request.get\",\n            \"path\": \"/Engine/Name/\"\n        },\n        {\n            \"type\": \"request.get\",\n            \"path\": \"/Engine/Version/\"\n        },\n        {\n            \"type\": \"request.get\",\n            \"path\": \"/Engine/RequestPort/\"\n        },\n        {\n            \"type\": \"request.set\",\n            \"path\": \"/Engine/TrapPort/\",\n            \"value\": 48207\n        }\n    ]\n}");
+	 printf("[Recv]\n%s\n", sendbuf);
+
+	 // Send an initial buffer
+	 int iResult = send(trapSocket, sendbuf, (int)strlen(sendbuf) + 1, 0);
+	 if (iResult == SOCKET_ERROR) {
+		 fprintf(stderr, "send failed with error: %d\n", WSAGetLastError());
+		 closesocket(trapSocket);
+		 WSACleanup();
+		 return TRUE;
+	 }
+
+	 TWTL_PROTO_BUF* req = (TWTL_PROTO_BUF*)malloc(sizeof(TWTL_PROTO_BUF));
+	 memset(req, 0, sizeof(TWTL_PROTO_BUF));
+
+	 // Receive until the peer shuts down the connection
+	 while (1) {
+		 iResult = recv(mainSocket, recvbuf, TWTL_JSON_MAX_BUF, 0);
+		 if (iResult > 0) {
+			 fprintf(stderr, "Bytes received: %d\n", iResult);
+			 // iResult == recieved packet size
+
+			 if (JSON_Parse(recvbuf, iResult, req))
+			 { // Error Handling
+				 fprintf(stderr, "JSON_Parse() failed\n");
+			 }
+			 else
+			 {
+				 // Make Response and send it!
+				 SOCK_MainPortResponse(req);
+
+				 // Clear ProtoBuf
+				 JSON_ClearProtoNode(req);
+			 }
+		 }
+		 else if (iResult == 0) {
+			 fprintf(stderr, "Connection closing...\n");
+			 if (!g_runJsonTrapThread)
+				 break;
+		 }
+		 else {
+			 int errorCode = WSAGetLastError();
+			 if (errorCode != WSAETIMEDOUT)
+			 {
+				 fprintf(stderr, "recv failed with error: %d\n", errorCode);
+				 closesocket(mainSocket);
+				 WSACleanup();
+				 JSON_ClearProtoNode(req);
+				 free(req);
+				 return TRUE;
+			 }
+		 }
+	 };
+
+	 JSON_ClearProtoNode(req);
+	 free(req);
+
+	 return FALSE;
+ }
+
  DWORD __stdcall JSON_ProcTrapSocket(BOOL* quitSignal)
 {
 	char sendbuf[TWTL_JSON_MAX_BUF];
@@ -298,10 +368,10 @@ static DWORD __stdcall JSON_ResponseMainSocket(TWTL_PROTO_BUF *req)
 		JSON_Parse(recvbuf, iResult, &req);
 
 		// Make Response and send it!
-		JSON_ResponseMainSocket(&req);
+		SOCK_MainPortResponse(&req);
 
 		// Clear ProtoBuf
-		JSON_ProtoClearNode(&req);
+		JSON_ClearProtoNode(&req);
 	}
 	else if (iResult == 0)
 		fprintf(stderr, "Connection closing...\n");
@@ -321,7 +391,7 @@ static DWORD __stdcall JSON_ResponseMainSocket(TWTL_PROTO_BUF *req)
 	return FALSE;
 }
 
- DWORD __stdcall JSON_CloseTrapSocket()
+ DWORD __stdcall SOCK_TrapPortClose()
 {
 	// shutdown the connection since no more data will be sent
 	int iResult = shutdown(trapSocket, SD_SEND);
