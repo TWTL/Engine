@@ -1,7 +1,7 @@
 #include "stdafx.h"
 
-#include "../TWTL_JSON/TWTL_JSON.h"
-#include "../TWTL_JSON/Socket.h"
+#include "JsonFunc.h"
+#include "Socket.h"
 
 extern BOOL g_runJsonMainThread;
 extern BOOL g_runJsonTrapThread;
@@ -40,3 +40,4 @@ unsigned int WINAPI JsonTrapThreadProc(LPVOID lpParam)
 
 	return 0;
 }
+

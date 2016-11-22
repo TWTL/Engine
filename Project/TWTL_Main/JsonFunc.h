@@ -49,5 +49,5 @@ void JSON_ProtoParse(json_t *element, const char *key, TWTL_PROTO_BUF* req, TWTL
 void JSON_ProtoMakeResponse(TWTL_PROTO_BUF* req, TWTL_PROTO_BUF* res);
 json_t* JSON_ProtoBufToJson(TWTL_PROTO_BUF* res);
 
-TWTL_JSON_API void JSON_Init_TWTL_INFO_DATA();
+void JSON_Init_TWTL_INFO_DATA();
 void JSON_Init_TWTL_INFO_ENGINE_NODE(TWTL_INFO_ENGINE_NODE* node);
