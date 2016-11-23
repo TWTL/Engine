@@ -57,6 +57,9 @@ TWTL_PROTO_NODE* JSON_AddProtoNode(TWTL_PROTO_BUF* proto);
 void JSON_ClearProtoNode(TWTL_PROTO_BUF* proto);
 
 TWTL_TRAP_QUEUE* JSON_InitTrapQueue(TWTL_TRAP_QUEUE* queue);
+BOOL JSON_EnqTrapQueue(TWTL_TRAP_QUEUE* queue, TWTL_PROTO_BUF* inBuf);
+BOOL JSON_DeqTrapQueue(TWTL_TRAP_QUEUE* queue, TWTL_PROTO_BUF* outBuf);
+void JSON_ClearTrapQueue(TWTL_TRAP_QUEUE* queue);
 
 void JSON_ProtoParse(json_t *element, const char *key, TWTL_PROTO_BUF* req, TWTL_PROTO_NODE* node, int depth);
 void JSON_ProtoMakeResponse(TWTL_PROTO_BUF* req, TWTL_PROTO_BUF* res);

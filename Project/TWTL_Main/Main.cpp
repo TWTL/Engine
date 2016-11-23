@@ -4,9 +4,12 @@
 #include "stdafx.h"
 
 #include "JsonThread.h"
+#include "JsonFunc.h"
 
 BOOL g_runJsonMainThread = FALSE;
 BOOL g_runJsonTrapThread = FALSE;
+TWTL_TRAP_QUEUE trapQueue;
+SHORT trapPort;
 
 int main()
 {	

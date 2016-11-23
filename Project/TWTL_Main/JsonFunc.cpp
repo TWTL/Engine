@@ -12,6 +12,9 @@
 #define MAX_CHARS 4096
 
 static TWTL_INFO_DATA g_twtlInfo;
+static HANDLE g_hMutex;
+extern TWTL_TRAP_QUEUE trapQueue;
+extern SHORT trapPort;
 
 // Must call JSON_ClearNode outside
 DWORD JSON_Parse(const char buf[], size_t buflen, TWTL_PROTO_BUF* req)
@@ -38,67 +41,6 @@ DWORD JSON_Parse(const char buf[], size_t buflen, TWTL_PROTO_BUF* req)
 	return FALSE;
 }
 
-/*
-{
-    "glossary": {
-        "title": "example glossary",
-        "GlossDiv": {
-			"title": "S",
-			"GlossList": {
-				"GlossEntry": {
-					"ID": "SGML",
-					"SortAs": "SGML",
-					"GlossTerm": "Standard Generalized Markup Language",
-					"Acronym": "SGML",
-					"Abbrev": "ISO 8879:1986",
-					"GlossDef": {
-						"para": "A meta-markup language, used to create markup languages such as DocBook.",
-						"GlossSeeAlso": [
-							"GML", "XML"]
-					},
-					"GlossSee": 123
-                }
-            }
-        }
-    }
-}
-
-JSON Object of 1 pair:
-  JSON Key: "glossary"
-  JSON Object of 2 pairs:
-    JSON Key: "title"
-    JSON String: "example glossary"
-    JSON Key: "GlossDiv"
-    JSON Object of 2 pairs:
-      JSON Key: "title"
-      JSON String: "S"
-      JSON Key: "GlossList"
-      JSON Object of 1 pair:
-        JSON Key: "GlossEntry"
-        JSON Object of 7 pairs:
-          JSON Key: "ID"
-          JSON String: "SGML"
-          JSON Key: "SortAs"
-          JSON String: "SGML"
-          JSON Key: "GlossTerm"
-          JSON String: "Standard Generalized Markup Language"
-          JSON Key: "Acronym"
-          JSON String: "SGML"
-          JSON Key: "Abbrev"
-          JSON String: "ISO 8879:1986"
-          JSON Key: "GlossDef"
-          JSON Object of 2 pairs:
-            JSON Key: "para"
-            JSON String: "A meta-markup language, used to create markup languages such as DocBook."
-            JSON Key: "GlossSeeAlso"
-            JSON Array of 2 elements:
-              JSON String: "GML"
-              JSON String: "XML"
-          JSON Key: "GlossSee"
-          JSON Integer: "123"
-Connection closing...
-*/
-
 TWTL_PROTO_NODE* JSON_AddProtoNode(TWTL_PROTO_BUF* req)
 {
 	TWTL_PROTO_NODE** now = &req->contents;
@@ -114,9 +56,9 @@ TWTL_PROTO_NODE* JSON_AddProtoNode(TWTL_PROTO_BUF* req)
 	return (*now);
 }
 
-void JSON_ClearProtoNode(TWTL_PROTO_BUF* req)
+void JSON_ClearProtoNode(TWTL_PROTO_BUF* buf)
 {
-	TWTL_PROTO_NODE* now = req->contents;
+	TWTL_PROTO_NODE* now = buf->contents;
 	while (now != NULL)
 	{
 		TWTL_PROTO_NODE* next = now->next;
@@ -124,7 +66,7 @@ void JSON_ClearProtoNode(TWTL_PROTO_BUF* req)
 			free(now);
 		now = next;
 	}
-	req->contents = NULL;
+	memset(buf, 0, sizeof(TWTL_PROTO_BUF));
 
 	return;
 }
@@ -135,35 +77,97 @@ TWTL_TRAP_QUEUE* JSON_InitTrapQueue(TWTL_TRAP_QUEUE* queue)
 	queue->count = 0;
 	queue->node = NULL;
 
+	g_hMutex = CreateMutex(
+		NULL,              // default security attributes
+		FALSE,             // initially not owned
+		NULL);             // unnamed mutex
+
+	if (!g_hMutex)
+	{
+		fprintf(stderr, "CreateMutex error: %lu\n", GetLastError());
+		return NULL;
+	}
+
 	return queue;
 }
 
-void JSON_EnqTrapQueue(TWTL_TRAP_QUEUE* queue, TWTL_PROTO_BUF* inBuf)
+BOOL JSON_EnqTrapQueue(TWTL_TRAP_QUEUE* queue, TWTL_PROTO_BUF* inBuf)
 {
-	TWTL_TRAP_QUEUE_NODE** node = &(queue->node);
-	while (*node != NULL)
-		node = &((*node)->next);
+	DWORD dwWaitResult = WaitForSingleObject(g_hMutex, INFINITE);
 
-	(*node) = (TWTL_TRAP_QUEUE_NODE*)malloc(sizeof(TWTL_TRAP_QUEUE_NODE));
-	memcpy(&(*node)->buf, inBuf, sizeof(TWTL_PROTO_BUF));
-	(*node)->next = NULL;
-	queue->count++;
+	switch (dwWaitResult)
+	{
+		// The thread got ownership of the mutex
+	case WAIT_OBJECT_0:
+		__try {
+			// TODO: Write to the database
+			TWTL_TRAP_QUEUE_NODE** node = &(queue->node);
+			while (*node != NULL)
+				node = &((*node)->next);
+
+			(*node) = (TWTL_TRAP_QUEUE_NODE*)malloc(sizeof(TWTL_TRAP_QUEUE_NODE));
+			memcpy(&(*node)->buf, inBuf, sizeof(TWTL_PROTO_BUF));
+			(*node)->next = NULL;
+			queue->count++;
+		}
+		__finally {
+			// Release ownership of the mutex object
+			if (!ReleaseMutex(g_hMutex))
+			{
+				// Handle error.
+			}
+		}
+		break;
+
+		// The thread got ownership of an abandoned mutex
+		// The database is in an indeterminate state
+	case WAIT_ABANDONED:
+		return TRUE;
+	}
+
+	return FALSE;
 }
 
 BOOL JSON_DeqTrapQueue(TWTL_TRAP_QUEUE* queue, TWTL_PROTO_BUF* outBuf)
 {
-	if (0 < queue->count)
+	DWORD dwWaitResult = WaitForSingleObject(g_hMutex, INFINITE);
+
+	switch (dwWaitResult)
 	{
-		TWTL_TRAP_QUEUE_NODE* next = queue->node->next;
-		memcpy(outBuf, &(queue->node->buf), sizeof(TWTL_PROTO_BUF));
-		queue->node = queue->node->next;
-		free(next);
-		queue->count--;
-		return FALSE;
-	}
-	else
+		// The thread got ownership of the mutex
+	case WAIT_OBJECT_0:
+		__try {
+			// TODO: Write to the database
+			if (0 < queue->count)
+			{
+				TWTL_TRAP_QUEUE_NODE* next = queue->node->next;
+				memcpy(outBuf, &(queue->node->buf), sizeof(TWTL_PROTO_BUF));
+				queue->node = queue->node->next;
+				free(next);
+				queue->count--;
+				return FALSE;
+			}
+			else
+				return TRUE;
+		}
+		__finally {
+			// Release ownership of the mutex object
+			if (!ReleaseMutex(g_hMutex))
+			{
+				// Handle error.
+			}
+		}
+		break;
+
+		// The thread got ownership of an abandoned mutex
+		// The database is in an indeterminate state
+	case WAIT_ABANDONED:
 		return TRUE;
+	}
+
+	return FALSE;
 }
+
 
 void JSON_ClearTrapQueue(TWTL_TRAP_QUEUE* queue)
 {
@@ -174,6 +178,8 @@ void JSON_ClearTrapQueue(TWTL_TRAP_QUEUE* queue)
 		free(next);
 		queue->count--;
 	}
+
+	CloseHandle(g_hMutex);
 }
 
 void JSON_ProtoParse(json_t *element, const char *key, TWTL_PROTO_BUF* req, TWTL_PROTO_NODE* node, int depth)
@@ -423,6 +429,8 @@ void JSON_ProtoMakeResponse(TWTL_PROTO_BUF* req, TWTL_PROTO_BUF* res)
 				StringCchCopyA(res_node_status->path, TWTL_PROTO_MAX_BUF, req_node->path);
 				res_node_status->value_type = PROTO_VALUE_INT;
 				res_node_status->value_int = PROTO_STATUS_SUCCESS;
+
+				trapPort = g_twtlInfo.engine.trapPort;
 			}
 			break;
 		}
