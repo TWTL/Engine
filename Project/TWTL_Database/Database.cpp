@@ -15,7 +15,22 @@ Return value :
 */
 TWTL_DATABASE_API sqlite3* __stdcall DB_Connect(LPCWSTR dbFilePath) {
 	sqlite3 *db;
-	int ret = sqlite3_open16(dbFilePath, &db);
+	int ret;
+	ret = sqlite3_config(SQLITE_CONFIG_MULTITHREAD);
+	if (ret) {
+#ifdef _DEBUG
+		fwprintf(stderr, L"[DB_Connect] Multithread failed : %s\n", (LPCWSTR)sqlite3_errmsg16(db));
+#endif
+		return NULL;
+	}
+	else {
+#ifdef _DEBUG
+		fwprintf(stderr, L"[DB_Connect] Multithread success\n");
+#endif
+		return db;
+	}
+
+	ret = sqlite3_open16(dbFilePath, &db);
 	if (ret) {
 #ifdef _DEBUG
 		fwprintf(stderr, L"[DB_Connect] Database cannot be opened : %s\n", (LPCWSTR) sqlite3_errmsg16(db));
