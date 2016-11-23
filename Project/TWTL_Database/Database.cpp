@@ -19,7 +19,7 @@ TWTL_DATABASE_API sqlite3* __stdcall DB_Connect(LPCWSTR dbFilePath) {
 	ret = sqlite3_config(SQLITE_CONFIG_MULTITHREAD);
 	if (ret) {
 #ifdef _DEBUG
-		fwprintf(stderr, L"[DB_Connect] Multithread failed : %s\n", (LPCWSTR)sqlite3_errmsg16(db));
+		fwprintf(stderr, L"[DB_Connect] Multithread failed\n");
 #endif
 		return NULL;
 	}
