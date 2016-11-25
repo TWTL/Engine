@@ -23,7 +23,8 @@ __declspec(dllimport)
 BOOL
 __stdcall
 TerminateCurrentProcess(
-	CONST DWORD32 targetPID
+	CONST DWORD32 targetPID,
+	CONST DWORD mode
 );
 
 __declspec(dllimport)

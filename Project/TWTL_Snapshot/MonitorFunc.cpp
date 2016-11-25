@@ -15,7 +15,6 @@ BOOL __stdcall WriteRegToTxt(FILE* storage, PREGINFO CONST pReg, CONST DWORD32 m
 		( in )	DWORD32 mode :
 			0 -> just print
 			1 -> txt export
-			2 -> push data to database
 			else -> error
 	Return value :
 		0 = Error
@@ -28,6 +27,10 @@ TWTL_SNAPSHOT_API BOOL __stdcall SnapCurrentStatus(CONST DWORD32 mode) {
 	PCPROINFO pCurrentProcessInfo = &currentProcessInfo;
 	currentProcessInfo.pProc32 = &currentProcessInfo.proc32;
 
+	// use c++ because of readability
+	LPWSTR imageName = new WCHAR[MAX_PATH];
+	DWORD imageNameSize = MAX_PATH;
+
 	CHAR fileName[MAX_PATH] = "Snapshot";
 	TCHAR curPID[PROPID_MAX] = { 0, };
 
@@ -35,6 +38,8 @@ TWTL_SNAPSHOT_API BOOL __stdcall SnapCurrentStatus(CONST DWORD32 mode) {
 	PREGINFO pReg = &reg;
 	reg.bufSize = REGNAME_MAX - 1;
 	reg.dataType = REG_SZ;
+
+	SetPrivilege(SE_DEBUG_NAME, TRUE);
 
 	if (!MakeFileName(fileName)) {
 		return NULL;
@@ -72,6 +77,30 @@ TWTL_SNAPSHOT_API BOOL __stdcall SnapCurrentStatus(CONST DWORD32 mode) {
 
 		while ((Process32Next(currentProcessInfo.hSnap, &currentProcessInfo.proc32)))
 		{
+			if (currentProcessInfo.proc32.th32ProcessID < 100) {
+
+			}
+			else {
+				currentProcessInfo.curHandle = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, currentProcessInfo.proc32.th32ProcessID);
+				if (currentProcessInfo.curHandle != NULL) {
+					DWORD result = 0;
+					result = QueryFullProcessImageName(currentProcessInfo.curHandle, 0, imageName, &imageNameSize);
+					imageNameSize = MAX_PATH;
+					if (result==0) {
+						ErrMsg();
+						_tprintf_s(L"Nope :( ... Maybe system file. ");
+					}
+					else {
+						if (mode == 0) {
+							_tprintf_s(L"%s ", imageName);
+						}
+						else if (mode == 1) {
+							fwprintf_s(storage, L"%s\t", imageName);
+						}
+					}
+					CloseHandle(currentProcessInfo.curHandle);
+				}
+			}
 			if (mode == 0) {
 				_tprintf_s(L"Process name : %s, PID : %d\n",
 						   currentProcessInfo.proc32.szExeFile, 
@@ -84,9 +113,6 @@ TWTL_SNAPSHOT_API BOOL __stdcall SnapCurrentStatus(CONST DWORD32 mode) {
 				}
 				fwprintf_s(storage, L"%s\t", &curPID);
 				fwprintf_s(storage, L"%s\n", &currentProcessInfo.proc32.szExeFile);
-			}
-			else if (mode == 2) {
-
 			}
 		}
 		if (mode == 1) {
@@ -113,6 +139,7 @@ TWTL_SNAPSHOT_API BOOL __stdcall SnapCurrentStatus(CONST DWORD32 mode) {
 	}
 
 	ParseNetstat();
+	TerminateCurrentProcess(0, 1);
 	return TRUE;
 }
 
@@ -121,12 +148,18 @@ TWTL_SNAPSHOT_API BOOL __stdcall SnapCurrentStatus(CONST DWORD32 mode) {
 
 	Parameter :
 		( in )	DWORD32 targetPID : target terminated process' ID
-				else -> Error
+		( in )	DWORD	mode
+			0 -> Use PID
+			1 -> Auto Kill
+			else -> Error
 	Return value :
 		0 = Error
 		1 = Success
 */
-BOOL __stdcall TerminateCurrentProcess(CONST DWORD32 targetPID) {
+BOOL __stdcall TerminateCurrentProcess(CONST DWORD32 targetPID, CONST DWORD mode) {
+	LPWSTR imageName = new WCHAR[MAX_PATH];
+	DWORD imageNameSize = MAX_PATH;
+
 	CPROINFO targetProcess;
 	PCPROINFO pTargetProcess = &targetProcess;
 
@@ -138,32 +171,77 @@ BOOL __stdcall TerminateCurrentProcess(CONST DWORD32 targetPID) {
 	if (Process32First(targetProcess.hSnap, &targetProcess.proc32)) {
 		while (Process32Next(targetProcess.hSnap, &targetProcess.proc32)) 
 		{
-			if (targetProcess.proc32.th32ProcessID == targetPID) {
-				DWORD exitCode = NULL;
-				DWORD dwDesiredAccess = PROCESS_TERMINATE;
-				BOOL bInheritHandle = FALSE;
-				targetProcess.curHandle = OpenProcess(dwDesiredAccess, bInheritHandle, targetPID);
-				if (targetProcess.curHandle == NULL) {
-					return NULL;
+			if (mode == 0) {
+				if (targetProcess.proc32.th32ProcessID == targetPID) {
+					DWORD exitCode = NULL;
+					BOOL bInheritHandle = FALSE;
+					DWORD result = 0;
+
+					targetProcess.curHandle = OpenProcess(PROCESS_TERMINATE | PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, bInheritHandle, targetPID);
+					if (targetProcess.curHandle == NULL) {
+						return NULL;
+					}
+					_tprintf_s(L"Terminated Process, PID : %s, %d",
+						targetProcess.proc32.szExeFile,
+						targetProcess.proc32.th32ProcessID);
+					if (TerminateProcess(targetProcess.curHandle, 0)) {
+						_tprintf_s(L" -> Success\n");
+						GetExitCodeProcess(targetProcess.curHandle, &exitCode);
+					}
+					else {
+						_tprintf_s(L" -> Failed\n");
+						CloseHandle(targetProcess.curHandle);
+						return NULL;
+					}
+					CloseHandle(targetProcess.curHandle);
+					return TRUE;
 				}
-				_tprintf_s(L"Terminated Process, PID : %s, %d", 
-						   targetProcess.proc32.szExeFile, 
-						   targetProcess.proc32.th32ProcessID);
-				if (TerminateProcess(targetProcess.curHandle, 0)) {
-					_tprintf_s(L" -> Success\n");
-					GetExitCodeProcess(targetProcess.curHandle, &exitCode);
+			}
+			else if (mode == 1) {
+				if (targetProcess.proc32.th32ProcessID < 100) {
+
 				}
 				else {
-					_tprintf_s(L" -> Failed\n");
+					DWORD exitCode = NULL;
+					BOOL bInheritHandle = FALSE;
+					DWORD result = 0;
+
+					targetProcess.curHandle = OpenProcess(PROCESS_TERMINATE | PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, bInheritHandle, targetProcess.proc32.th32ProcessID);
+					if (targetProcess.curHandle == NULL) {
+						continue;
+					}
+					result = QueryFullProcessImageName(targetProcess.curHandle, 0, imageName, &imageNameSize);
+					imageNameSize = MAX_PATH;
+					if (result == 0) {
+						_tprintf_s(L"asdfasdf\n");
+						CloseHandle(targetProcess.curHandle);
+						continue;
+					}
+					else {
+						// Hard coding ( for the auto kill testing )
+						result = wcscmp(imageName, L"C:\\Windows\\System32\\notepad.exe");
+						if (result == 0) {
+							_tprintf_s(L"Terminated Process, PID : %s, %d",
+								targetProcess.proc32.szExeFile,
+								targetProcess.proc32.th32ProcessID);
+							if (TerminateProcess(targetProcess.curHandle, 0)) {
+								_tprintf_s(L" -> Success\n");
+								GetExitCodeProcess(targetProcess.curHandle, &exitCode);
+							}
+							else {
+								_tprintf_s(L" -> Failed\n");
+							}
+						}
+					}
 					CloseHandle(targetProcess.curHandle);
-					return NULL;
 				}
-				CloseHandle(targetProcess.curHandle);
-				return TRUE;
+			}
+			else {
+				return NULL;
 			}
 		}
 	}
-	return NULL;
+	return TRUE;
 }
 
 /*
@@ -215,6 +293,7 @@ TWTL_SNAPSHOT_API BOOL __stdcall DeleteRunKey(TCHAR CONST keyName[REGNAME_MAX], 
 			2 -> HKEY_LOCAL_MACHINE/Microsoft/Windows/CurrentVersion/Run
 			3 -> HKEY_CURRENT_USER/Microsoft/Windows/CurrentVersion/RunOnce
 			4 -> HKEY_LOCAL_MACHINE/Microsoft/Windows/CurrentVersion/RunOnce
+			5 -> HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Services
 			else -> Error
 	return value :
 		0 = Success
@@ -360,6 +439,13 @@ BOOL __stdcall SetTargetRegistryEntry(FILE* storage, PREGINFO CONST pReg, CONST 
 			0 -> just print
 			1 -> txt export
 			else -> error
+		( in )	DWORD target  :
+			1 -> HKEY_CURRENT_USER/Microsoft/Windows/CurrentVersion/Run
+			2 -> HKEY_LOCAL_MACHINE/Microsoft/Windows/CurrentVersion/Run
+			3 -> HKEY_CURRENT_USER/Microsoft/Windows/CurrentVersion/RunOnce
+			4 -> HKEY_LOCAL_MACHINE/Microsoft/Windows/CurrentVersion/RunOnce
+			5 -> HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Services
+			else -> Error
 	Return value :
 		0 = Error
 		1 = Success
@@ -367,52 +453,142 @@ BOOL __stdcall SetTargetRegistryEntry(FILE* storage, PREGINFO CONST pReg, CONST 
 BOOL __stdcall WriteRegToTxt(FILE* storage, PREGINFO CONST pReg, CONST DWORD32 mode, CONST DWORD32 target) {
 	DWORD result = 0;
 
-	for (int i = 0; result == ERROR_SUCCESS; i++)
-	{
-		result = RegEnumValue(pReg->key, i, pReg->keyName, &pReg->bufSize, NULL, NULL, NULL, NULL);
-		
-		if (result == ERROR_SUCCESS)
-		{	
-			if (1 <= target && target <= 4) {
-				// must initialize reg.bufsize
-				//
-				if (!InitRegSize(pReg, 2)) {
-					return NULL;
-				}
+	if (target == 5) {
+		TCHAR    achKey[REGNAME_MAX];		// buffer for subkey name
+		DWORD    cbName;					// size of name string 
+		TCHAR    achClass[MAX_PATH] = TEXT("");	// buffer for class name 
+		DWORD    cchClassName = MAX_PATH;	// size of class string 
+		DWORD    cSubKeys = 0;              // number of subkeys 
+		DWORD    cbMaxSubKey;				// longest subkey size 
+		DWORD    cchMaxClass;				// longest class string 
+		DWORD    cValues;					// number of values for key 
+		DWORD    cchMaxValue;				// longest value name 
+		DWORD    cbMaxValueData;			// longest value data 
+		DWORD    cbSecurityDescriptor;		// size of security descriptor 
+		FILETIME ftLastWriteTime;			// last write time 
 
-				if (RegQueryValueEx(pReg->key,
-					pReg->keyName,
+		DWORD i, retCode;
+
+		TCHAR achValue[REGVALUE_MAX];
+		DWORD cchValue = REGVALUE_MAX;
+
+		// Get the class name and the value count. 
+
+		retCode = RegQueryInfoKey(
+			pReg->key,               // key handle 
+			achClass,                // buffer for class name 
+			&cchClassName,           // size of class string 
+			NULL,                    // reserved 
+			&cSubKeys,               // number of subkeys 
+			&cbMaxSubKey,            // longest subkey size 
+			&cchMaxClass,            // longest class string 
+			&cValues,                // number of values for this key 
+			&cchMaxValue,            // longest value name 
+			&cbMaxValueData,         // longest value data 
+			&cbSecurityDescriptor,   // security descriptor 
+			&ftLastWriteTime);       // last write time 
+
+		if (cSubKeys)
+		{
+			printf("\nNumber of subkeys: %d\n", cSubKeys);
+			
+			HKEY HKLM = HKEY_LOCAL_MACHINE;
+			REGINFO servReg;
+			PREGINFO pServReg = &servReg;
+			servReg.bufSize = REGNAME_MAX - 1;
+			servReg.dataType = REG_SZ;
+
+			for (i = 0; i < cSubKeys; i++)
+			{
+				cbName = REGNAME_MAX;
+				retCode = RegEnumKeyEx(pReg->key, i,
+					achKey,
+					&cbName,
 					NULL,
-					&pReg->dataType,
-					(LPBYTE)pReg->keyValue,
-					&pReg->bufSize)
-					!= 0)
+					NULL,
+					NULL,
+					&ftLastWriteTime);
+				if (retCode == ERROR_SUCCESS)
 				{
-					return NULL;
-				}
-				// must initialize reg.bufsize
-				//
-				if (!InitRegSize(pReg, 1)) {
-					return NULL;
-				}
-				if (mode == 0) {
-					_tprintf_s(L"Register Name : %s, Value : %s\n", pReg->keyName, pReg->keyValue);
-				}
-				else if (mode == 1) {
-					PrintCUI(pReg->keyName);
-					PrintCUI(pReg->keyValue);
-					fwprintf_s(storage, L"%s\t", pReg->keyName);
-					fwprintf_s(storage, L"%s\n", pReg->keyValue);
-				}
-				else {
-					return NULL;
+					_tprintf(TEXT("(%d) %s\n"), i + 1, achKey);
+					
+					if (cValues)
+					{
+						printf("\nNumber of values: %d\n", cValues);
+
+						for (i = 0, retCode = ERROR_SUCCESS; i<cValues; i++)
+						{
+							cchValue = REGVALUE_MAX;
+							achValue[0] = '\0';
+							retCode = RegEnumValue(pReg->key, i,
+								achValue,
+								&cchValue,
+								NULL,
+								NULL,
+								NULL,
+								NULL);
+
+							if (retCode == ERROR_SUCCESS)
+							{
+								_tprintf(TEXT("(%d) %s\n"), i + 1, achValue);
+							}
+						}
+					}
 				}
 			}
-			else if (target == 5) {
+		}
+	}
+	else {
+		for (int i = 0; result == ERROR_SUCCESS; i++)
+		{
+			if (1 <= target && target <= 4) {
 
+				result = RegEnumValue(pReg->key, i, pReg->keyName, &pReg->bufSize, NULL, NULL, NULL, NULL);
+
+				if (result == ERROR_SUCCESS)
+				{
+					if (1 <= target && target <= 4) {
+						// must initialize reg.bufsize
+						//
+						if (!InitRegSize(pReg, 2)) {
+							return NULL;
+						}
+
+						if (RegQueryValueEx(pReg->key,
+							pReg->keyName,
+							NULL,
+							&pReg->dataType,
+							(LPBYTE)pReg->keyValue,
+							&pReg->bufSize)
+							!= 0)
+						{
+							return NULL;
+						}
+						// must initialize reg.bufsize
+						//
+						if (!InitRegSize(pReg, 1)) {
+							return NULL;
+						}
+						if (mode == 0) {
+							_tprintf_s(L"Register Name : %s, Value : %s\n", pReg->keyName, pReg->keyValue);
+						}
+						else if (mode == 1) {
+							PrintCUI(pReg->keyName);
+							PrintCUI(pReg->keyValue);
+							fwprintf_s(storage, L"%s\t", pReg->keyName);
+							fwprintf_s(storage, L"%s\n", pReg->keyValue);
+						}
+						else {
+							return NULL;
+						}
+					}
+					else {
+						return NULL;
+					}
+				}
 			}
 			else {
-				return NULL;
+				break;
 			}
 		}
 	}
