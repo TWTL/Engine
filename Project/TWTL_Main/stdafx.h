@@ -18,10 +18,14 @@
 
 #include "targetver.h"
 
+// C header
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 #include <tchar.h>
+
+// C++ header
+#include <string>
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
