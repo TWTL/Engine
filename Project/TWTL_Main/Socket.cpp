@@ -354,7 +354,6 @@ DWORD SOCK_TrapPortProc()
 			 {
 				 fprintf(stderr, "recv failed with error: %d\n", errorCode);
 				 JSON_ClearProtoNode(&buf);
-				 // free(&buf);
 				 return TRUE;
 			 }
 		 }
@@ -363,7 +362,6 @@ DWORD SOCK_TrapPortProc()
 	 }
 
 	 JSON_ClearProtoNode(&buf);
-	 // free(buf);
 
 	 return FALSE;
  }
@@ -378,6 +376,7 @@ DWORD SOCK_TrapPortProc()
 		WSACleanup();
 		return TRUE;
 	}
+
 	// cleanup
 	closesocket(trapSocket);
 	WSACleanup();

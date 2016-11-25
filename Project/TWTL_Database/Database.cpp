@@ -141,14 +141,18 @@ TWTL_DATABASE_API BOOL __stdcall DB_CreateTable(sqlite3 *db, DB_TABLE_TYPE type)
 		sql = L"CREATE TABLE IF NOT EXISTS snapshot_service("
 			L"idx INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL"
 			L"time INTEGER NOT NULL"
-			L"key TEXT NOT NULL);";
+			L"key TEXT NOT NULL"
+			L"image_path TEXT NOT NULL);";
 		break;
 	case DB_NETWORK:
 		sql = L"CREATE TABLE IF NOT EXISTS snapshot_network("
 			L"idx INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL"
 			L"time INTEGER NOT NULL"
-			L"ip TEXT NOT NULL"
-			L"port INTEGER);";
+			L"src_ipv4 INTEGER"
+			L"dest_ipv4 INTEGER"
+			L"src_port INTEGER"
+			L"dest_port INTEGER"
+			L"pid INTEGER NOT NULL);";
 		break;
 	default:
 #ifdef _DEBUG
