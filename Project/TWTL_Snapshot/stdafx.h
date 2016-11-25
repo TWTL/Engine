@@ -24,4 +24,7 @@
 #include <WinSock2.h>
 #include <ws2tcpip.h>
 
+#include <inttypes.h>
+#include <stdint.h>
+
 // TODO: reference additional headers your program requires here

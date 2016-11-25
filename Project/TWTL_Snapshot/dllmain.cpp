@@ -167,7 +167,6 @@ BOOL WINAPI NewCreateProcessA(
 
 	if (bRet) {
 		InjectDll2(lpProcessInformation->hProcess, STR_MODULE_NAME);
-		SnapCurrentStatus(1);
 	}
 
 	hook_by_code(L"kernel32.dll", "CreateProcessA",
@@ -208,7 +207,6 @@ BOOL WINAPI NewCreateProcessW(
 
 	if (bRet) {
 		InjectDll2(lpProcessInformation->hProcess, STR_MODULE_NAME);
-		SnapCurrentStatus(1);
 	}
 
 	hook_by_code(L"kernel32.dll", "CreateProcessW",
