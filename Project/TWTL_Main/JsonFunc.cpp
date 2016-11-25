@@ -303,14 +303,14 @@ void JSON_ProtoParse(json_t *element, const char *key, TWTL_PROTO_BUF* req, TWTL
 			if (StrCmpIA(key, "value") == 0)
 			{
 				node->value_type = PROTO_VALUE_INT32;
-				node->value_int32 = json_integer_value(element);
+				node->value_int32 = (int32_t) json_integer_value(element);
 			}
 			break;
 		case JSON_REAL:
 			if (StrCmpIA(key, "value") == 0)
 			{
 				node->value_type = PROTO_VALUE_FLOAT32;
-				node->value_float32 = json_real_value(element);
+				node->value_real = json_real_value(element);
 			}
 			break;
 		case JSON_TRUE:
@@ -517,7 +517,7 @@ json_t* JSON_ProtoBufToJson(TWTL_PROTO_BUF* res)
 			json_object_set_new(json_node, "value", json_integer(res_node->value_int32));
 			break;
 		case PROTO_VALUE_FLOAT32:
-			json_object_set_new(json_node, "value", json_real(res_node->value_float32));
+			json_object_set_new(json_node, "value", json_real(res_node->value_real));
 			break;
 		case PROTO_VALUE_BOOLEAN:
 			json_object_set_new(json_node, "value", json_boolean(res_node->value_boolean));

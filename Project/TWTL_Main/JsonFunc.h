@@ -50,7 +50,7 @@ typedef struct twtl_proto_node {
 	std::string value_string;
 	int32_t value_int32;
 	uint32_t value_uint32;
-	float value_float32;
+	double value_real;
 	bool value_boolean;
 	struct twtl_proto_node* next;
 } TWTL_PROTO_NODE;

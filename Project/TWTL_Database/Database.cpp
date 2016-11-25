@@ -141,14 +141,18 @@ TWTL_DATABASE_API BOOL __stdcall DB_CreateTable(sqlite3 *db, DB_TABLE_TYPE type)
 		sql = L"CREATE TABLE IF NOT EXISTS snapshot_service("
 			L"idx INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL"
 			L"time INTEGER NOT NULL"
-			L"key TEXT NOT NULL);";
+			L"key TEXT NOT NULL"
+			L"image_path TEXT NOT NULL);";
 		break;
 	case DB_NETWORK:
 		sql = L"CREATE TABLE IF NOT EXISTS snapshot_network("
 			L"idx INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL"
 			L"time INTEGER NOT NULL"
-			L"ip TEXT NOT NULL"
-			L"port INTEGER);";
+			L"src_ipv4 INTEGER"
+			L"dest_ipv4 INTEGER"
+			L"src_port INTEGER"
+			L"dest_port INTEGER"
+			L"pid INTEGER NOT NULL);";
 		break;
 	default:
 #ifdef _DEBUG
@@ -226,27 +230,27 @@ TWTL_DATABASE_API BOOL __stdcall DB_Insert(sqlite3 *db, DB_TABLE_TYPE type, void
 		break;
 	case DB_REG_HKLM_RUN:
 		reg = (TWTL_DB_REGISTRY*)data;
-		StringCchPrintfW(sql, MAX_SQL_BUF, L"INSERT INTO snapshot_reg_hklm_run(time, path, value, type, data) VALUES(%lld, '%s', '%s', %ld, '%s'); ", reg->time, reg->path, reg->value, reg->type, reg->data);
+		StringCchPrintfW(sql, MAX_SQL_BUF, L"INSERT INTO snapshot_reg_hklm_run(time, path, value, type, name) VALUES(%lld, '%s', '%s', %ld, '%s'); ", reg->time, reg->path, reg->value, reg->type, reg->name);
 		break;
 	case DB_REG_HKLM_RUNONCE:
 		reg = (TWTL_DB_REGISTRY*)data;
-		StringCchPrintfW(sql, MAX_SQL_BUF, L"INSERT INTO snapshot_reg_hklm_runonce(time, path, value, type, data) VALUES(%lld, '%s', '%s', %ld, '%s'); ", reg->time, reg->path, reg->value, reg->type, reg->data);
+		StringCchPrintfW(sql, MAX_SQL_BUF, L"INSERT INTO snapshot_reg_hklm_runonce(time, path, value, type, name) VALUES(%lld, '%s', '%s', %ld, '%s'); ", reg->time, reg->path, reg->value, reg->type, reg->name);
 		break;
 	case DB_REG_HKCU_RUN:
 		reg = (TWTL_DB_REGISTRY*)data;
-		StringCchPrintfW(sql, MAX_SQL_BUF, L"INSERT INTO snapshot_reg_hkcu_run(time, path, value, type, data) VALUES(%lld, '%s', '%s', %ld, '%s'); ", reg->time, reg->path, reg->value, reg->type, reg->data);
+		StringCchPrintfW(sql, MAX_SQL_BUF, L"INSERT INTO snapshot_reg_hkcu_run(time, path, value, type, name) VALUES(%lld, '%s', '%s', %ld, '%s'); ", reg->time, reg->path, reg->value, reg->type, reg->name);
 		break;
 	case DB_REG_HKCU_RUNONCE:
 		reg = (TWTL_DB_REGISTRY*)data;
-		StringCchPrintfW(sql, MAX_SQL_BUF, L"INSERT INTO snapshot_reg_hkcu_runonce(time, path, value, type, data) VALUES(%lld, '%s', '%s', %ld, '%s'); ", reg->time, reg->path, reg->value, reg->type, reg->data);
+		StringCchPrintfW(sql, MAX_SQL_BUF, L"INSERT INTO snapshot_reg_hkcu_runonce(time, path, value, type, name) VALUES(%lld, '%s', '%s', %ld, '%s'); ", reg->time, reg->path, reg->value, reg->type, reg->name);
 		break;
 	case DB_SERVICE:
 		srv = (TWTL_DB_SERVICE*)data;
-		StringCchPrintfW(sql, MAX_SQL_BUF, L"INSERT INTO snapshot_service(time, key) VALUES(%lld, '%s'); ", srv->time, srv->key);
+		StringCchPrintfW(sql, MAX_SQL_BUF, L"INSERT INTO snapshot_service(time, key, image_path) VALUES(%lld, '%s', '%s'); ", srv->time, srv->key, srv->image_path);
 		break;
 	case DB_NETWORK:
 		net = (TWTL_DB_NETWORK*)data;
-		StringCchPrintfW(sql, MAX_SQL_BUF, L"INSERT INTO snapshot_network VALUES(%lld, %ld, %ld); ", net->time, net->ipv4, net->port);
+		StringCchPrintfW(sql, MAX_SQL_BUF, L"INSERT INTO snapshot_network VALUES(%lld, %lu, %lu, %hu, %hu, %hu); ", net->time, net->src_ipv4, net->dest_ipv4, net->src_port, net->dest_port, net->pid);
 		break;
 	default:
 		return FALSE;
@@ -391,7 +395,7 @@ TWTL_DATABASE_API BOOL __stdcall DB_Select(sqlite3 *db, DB_TABLE_TYPE type, void
 		StringCchCopyW(reg->path, DB_MAX_REG_PATH, (const WCHAR*)sqlite3_column_text16(stmt, 2));
 		StringCchCopyW(reg->value, DB_MAX_REG_VALUE, (const WCHAR*)sqlite3_column_text16(stmt, 3));
 		reg->type = sqlite3_column_int(stmt, 4);
-		StringCchCopyW(reg->data, DB_MAX_REG_DATA, (const WCHAR*)sqlite3_column_text16(stmt, 5));
+		StringCchCopyW(reg->name, DB_MAX_REG_NAME, (const WCHAR*)sqlite3_column_text16(stmt, 5));
 		break;
 	case DB_SERVICE:
 		srv = (TWTL_DB_SERVICE*)data;
@@ -403,8 +407,11 @@ TWTL_DATABASE_API BOOL __stdcall DB_Select(sqlite3 *db, DB_TABLE_TYPE type, void
 		net = (TWTL_DB_NETWORK*)data;
 		// sqlite3_column_int64(stmt, 0); is idx, nothing meaningless
 		net->time = sqlite3_column_int64(stmt, 1);
-		net->ipv4 = sqlite3_column_int(stmt, 2);
-		net->port = (uint16_t)sqlite3_column_int(stmt, 3);
+		net->src_ipv4 = (uint32_t)sqlite3_column_int(stmt, 2);
+		net->dest_ipv4 = (uint32_t)sqlite3_column_int(stmt, 3);
+		net->src_port = (uint16_t)sqlite3_column_int(stmt, 4);
+		net->dest_port = (uint16_t)sqlite3_column_int(stmt, 5);
+		net->pid = (uint16_t)sqlite3_column_int(stmt, 6);
 		break;
 	default:
 		return FALSE;

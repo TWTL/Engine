@@ -297,7 +297,6 @@ DWORD SOCK_TrapPortInit(LPCSTR address, LPCSTR port)
 
 DWORD SOCK_TrapPortProc()
 {
-	 char sendbuf[TWTL_JSON_MAX_BUF];
 	 char recvbuf[TWTL_JSON_MAX_BUF];
 
 	 // TWTL_PROTO_BUF* buf = (TWTL_PROTO_BUF*)malloc(sizeof(TWTL_PROTO_BUF));
@@ -354,7 +353,6 @@ DWORD SOCK_TrapPortProc()
 			 {
 				 fprintf(stderr, "recv failed with error: %d\n", errorCode);
 				 JSON_ClearProtoNode(&buf);
-				 // free(&buf);
 				 return TRUE;
 			 }
 		 }
@@ -363,7 +361,6 @@ DWORD SOCK_TrapPortProc()
 	 }
 
 	 JSON_ClearProtoNode(&buf);
-	 // free(buf);
 
 	 return FALSE;
  }
@@ -378,6 +375,7 @@ DWORD SOCK_TrapPortProc()
 		WSACleanup();
 		return TRUE;
 	}
+
 	// cleanup
 	closesocket(trapSocket);
 	WSACleanup();
