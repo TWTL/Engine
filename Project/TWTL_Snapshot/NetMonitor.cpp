@@ -1,9 +1,18 @@
 #include "stdafx.h"
 #include "NetMonitor.h"
 
-BOOL __stdcall ParseNetstat() {
-	PMIB_TCPTABLE pTcpTable;
-	DWORD dwSize = 0;
+#pragma comment(lib, "iphlpapi.lib")
+#pragma comment(lib, "ws2_32.lib")
+
+#define MALLOC(x) HeapAlloc(GetProcessHeap(), 0, (x))
+#define FREE(x) HeapFree(GetProcessHeap(), 0, (x))
+
+BOOL __stdcall ParseNetstat()
+{
+
+	// Declare and initialize variables
+	PMIB_TCPTABLE2 pTcpTable;
+	ULONG ulSize = 0;
 	DWORD dwRetVal = 0;
 
 	char szLocalAddr[128];
@@ -13,32 +22,30 @@ BOOL __stdcall ParseNetstat() {
 
 	int i;
 
-	pTcpTable = (MIB_TCPTABLE *)malloc(sizeof(MIB_TCPTABLE));
+	pTcpTable = (MIB_TCPTABLE2 *)MALLOC(sizeof(MIB_TCPTABLE2));
 	if (pTcpTable == NULL) {
 		printf("Error allocating memory\n");
 		return 1;
 	}
 
-	dwSize = sizeof(MIB_TCPTABLE);
-	if ((dwRetVal = GetTcpTable(pTcpTable, &dwSize, TRUE)) ==
+	ulSize = sizeof(MIB_TCPTABLE);
+	// Make an initial call to GetTcpTable2 to
+	// get the necessary size into the ulSize variable
+	if ((dwRetVal = GetTcpTable2(pTcpTable, &ulSize, TRUE)) ==
 		ERROR_INSUFFICIENT_BUFFER) {
-		free(pTcpTable);
-		pTcpTable = (MIB_TCPTABLE *)malloc(dwSize);
+		FREE(pTcpTable);
+		pTcpTable = (MIB_TCPTABLE2 *)MALLOC(ulSize);
 		if (pTcpTable == NULL) {
 			printf("Error allocating memory\n");
 			return 1;
 		}
 	}
-
-	if ((dwRetVal = GetTcpTable(pTcpTable, &dwSize, TRUE)) == NO_ERROR) {
-		printf("\tNumber of entries: %d\n", (int)pTcpTable->dwNumEntries);
+	// Make a second call to GetTcpTable2 to get
+	// the actual data we require
+	if ((dwRetVal = GetTcpTable2(pTcpTable, &ulSize, TRUE)) == NO_ERROR) {
+		printf("Number of entries: %d\n", (int)pTcpTable->dwNumEntries);
 		for (i = 0; i < (int)pTcpTable->dwNumEntries; i++) {
-			IpAddr.S_un.S_addr = (u_long)pTcpTable->table[i].dwLocalAddr;
-			strcpy_s(szLocalAddr, sizeof(szLocalAddr), inet_ntoa(IpAddr));
-			IpAddr.S_un.S_addr = (u_long)pTcpTable->table[i].dwRemoteAddr;
-			strcpy_s(szRemoteAddr, sizeof(szRemoteAddr), inet_ntoa(IpAddr));
-
-			printf("\n\tTCP[%d] State: %ld - ", i,
+			printf("\nTCP[%d] State: %ld - ", i,
 				pTcpTable->table[i].dwState);
 			switch (pTcpTable->table[i].dwState) {
 			case MIB_TCP_STATE_CLOSED:
@@ -81,22 +88,49 @@ BOOL __stdcall ParseNetstat() {
 				printf("UNKNOWN dwState value\n");
 				break;
 			}
-			printf("\tTCP[%d] Local Addr: %s\n", i, szLocalAddr);
-			printf("\tTCP[%d] Local Port: %d \n", i,
+			IpAddr.S_un.S_addr = (u_long)pTcpTable->table[i].dwLocalAddr;
+			strcpy_s(szLocalAddr, sizeof(szLocalAddr), inet_ntoa(IpAddr));
+			printf("TCP[%d] Local Addr: %s\n", i, szLocalAddr);
+			printf("TCP[%d] Local Port: %d \n", i,
 				ntohs((u_short)pTcpTable->table[i].dwLocalPort));
-			printf("\tTCP[%d] Remote Addr: %s\n", i, szRemoteAddr);
-			printf("\tTCP[%d] Remote Port: %d\n", i,
+
+			IpAddr.S_un.S_addr = (u_long)pTcpTable->table[i].dwRemoteAddr;
+			strcpy_s(szRemoteAddr, sizeof(szRemoteAddr), inet_ntoa(IpAddr));
+			printf("TCP[%d] Remote Addr: %s\n", i, szRemoteAddr);
+			printf("TCP[%d] Remote Port: %d\n", i,
 				ntohs((u_short)pTcpTable->table[i].dwRemotePort));
+
+			printf("TCP[%d] Owning PID: %d\n", i, pTcpTable->table[i].dwOwningPid);
+			printf("TCP[%d] Offload State: %ld - ", i,
+				pTcpTable->table[i].dwOffloadState);
+			switch (pTcpTable->table[i].dwOffloadState) {
+			case TcpConnectionOffloadStateInHost:
+				printf("Owned by the network stack and not offloaded \n");
+				break;
+			case TcpConnectionOffloadStateOffloading:
+				printf("In the process of being offloaded\n");
+				break;
+			case TcpConnectionOffloadStateOffloaded:
+				printf("Offloaded to the network interface control\n");
+				break;
+			case TcpConnectionOffloadStateUploading:
+				printf("In the process of being uploaded back to the network stack \n");
+				break;
+			default:
+				printf("UNKNOWN Offload state value\n");
+				break;
+			}
+
 		}
 	}
 	else {
-		printf("\tGetTcpTable failed with %d\n", dwRetVal);
-		free(pTcpTable);
+		printf("GetTcpTable2 failed with %d\n", dwRetVal);
+		FREE(pTcpTable);
 		return 1;
 	}
 
 	if (pTcpTable != NULL) {
-		free(pTcpTable);
+		FREE(pTcpTable);
 		pTcpTable = NULL;
 	}
 
