@@ -297,7 +297,6 @@ DWORD SOCK_TrapPortInit(LPCSTR address, LPCSTR port)
 
 DWORD SOCK_TrapPortProc()
 {
-	 char sendbuf[TWTL_JSON_MAX_BUF];
 	 char recvbuf[TWTL_JSON_MAX_BUF];
 
 	 // TWTL_PROTO_BUF* buf = (TWTL_PROTO_BUF*)malloc(sizeof(TWTL_PROTO_BUF));
