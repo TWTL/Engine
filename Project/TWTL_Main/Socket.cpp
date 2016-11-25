@@ -13,6 +13,7 @@ static SOCKET trapSocket;
 extern BOOL g_runJsonMainThread;
 extern BOOL g_runJsonTrapThread;
 extern TWTL_TRAP_QUEUE trapQueue;
+extern SHORT trapPort;
 
 DWORD __stdcall SOCK_MainPortInit()
 {
@@ -124,6 +125,7 @@ DWORD __stdcall SOCK_MainPortProc()
 			if (JSON_Parse(recvbuf, iResult, req))
 			{ // Error Handling
 				fprintf(stderr, "JSON_Parse() failed\n");
+				JSON_ClearProtoNode(req);
 			}
 			else
 			{
@@ -138,7 +140,7 @@ DWORD __stdcall SOCK_MainPortProc()
 				break;
 		}
 		else if (iResult == 0) {
-			fprintf(stderr, "Connection closing...\n");
+			fprintf(stderr, "[MainPort] Connection closed\n");
 			break;
 		}
 		else {
@@ -146,8 +148,6 @@ DWORD __stdcall SOCK_MainPortProc()
 			if (errorCode != WSAETIMEDOUT)
 			{
 				fprintf(stderr, "recv failed with error: %d\n", errorCode);
-				closesocket(mainSocket);
-				WSACleanup();
 				JSON_ClearProtoNode(req);
 				free(req);
 				return TRUE;
@@ -198,8 +198,6 @@ DWORD SOCK_MainPortResponse(TWTL_PROTO_BUF *req)
 	free(sendbuf);
 	if (iResult == SOCKET_ERROR) {
 		printf("send failed with error: %d\n", WSAGetLastError());
-		closesocket(mainSocket);
-		WSACleanup();
 		return TRUE;
 	}
 	return FALSE;
@@ -301,12 +299,13 @@ DWORD SOCK_TrapPortProc()
 	 char recvbuf[TWTL_JSON_MAX_BUF];
 
 	 TWTL_PROTO_BUF* buf = (TWTL_PROTO_BUF*)malloc(sizeof(TWTL_PROTO_BUF));
-	 memset(&buf, 0, sizeof(TWTL_PROTO_BUF));
+	 memset(buf, 0, sizeof(TWTL_PROTO_BUF));
 
-	 while (1)
+	 while (trapPort != 0)
 	 {
 		 if (JSON_DeqTrapQueue(&trapQueue, buf))
 		 { // Queue is empty
+			 DelayWait(1000);
 			 continue;
 		 }
 
@@ -328,9 +327,10 @@ DWORD SOCK_TrapPortProc()
 			 { // Error Handling
 				 fprintf(stderr, "JSON_Parse() failed\n");
 				 JSON_ClearProtoNode(buf);
-				 free(buf);
 				 continue;
 			 }
+
+			 // Check Trap-ACK
 
 			 JSON_ClearProtoNode(buf);
 
@@ -338,7 +338,7 @@ DWORD SOCK_TrapPortProc()
 				 break;
 		 }
 		 else if (iResult == 0) {
-			 fprintf(stderr, "[Trap] Connection closed...\n");
+			 fprintf(stderr, "[TrapPort] Connection closed\n");
 			 break;
 		 }
 		 else {
@@ -346,8 +346,6 @@ DWORD SOCK_TrapPortProc()
 			 if (errorCode != WSAETIMEDOUT)
 			 {
 				 fprintf(stderr, "recv failed with error: %d\n", errorCode);
-				 closesocket(mainSocket);
-				 WSACleanup();
 				 JSON_ClearProtoNode(buf);
 				 free(buf);
 				 return TRUE;

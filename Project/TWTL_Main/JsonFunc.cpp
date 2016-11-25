@@ -58,15 +58,19 @@ TWTL_PROTO_NODE* JSON_AddProtoNode(TWTL_PROTO_BUF* req)
 
 void JSON_ClearProtoNode(TWTL_PROTO_BUF* buf)
 {
-	TWTL_PROTO_NODE* now = buf->contents;
-	while (now != NULL)
+	if (buf)
 	{
-		TWTL_PROTO_NODE* next = now->next;
-		if (now != NULL)
-			free(now);
-		now = next;
+		TWTL_PROTO_NODE* now = buf->contents;
+		while (now != NULL)
+		{
+			TWTL_PROTO_NODE* next = now->next;
+			if (now != NULL)
+				free(now);
+			now = next;
+		}
+		memset(buf, 0, sizeof(TWTL_PROTO_BUF));
 	}
-	memset(buf, 0, sizeof(TWTL_PROTO_BUF));
+	
 
 	return;
 }
