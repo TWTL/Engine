@@ -11,6 +11,7 @@ BOOL __stdcall ParseNetstat()
 {
 
 	// Declare and initialize variables
+	PMIB_UDPTABLE_OWNER_PID  pUdpTable;
 	PMIB_TCPTABLE2 pTcpTable;
 	ULONG ulSize = 0;
 	DWORD dwRetVal = 0;
@@ -27,10 +28,13 @@ BOOL __stdcall ParseNetstat()
 		printf("Error allocating memory\n");
 		return 1;
 	}
+	pUdpTable = (MIB_UDPTABLE_OWNER_PID *)MALLOC(sizeof(MIB_UDPTABLE_OWNER_PID));
+	if (pTcpTable == NULL) {
+		printf("Error allocating memory\n");
+		return 1;
+	}
 
 	ulSize = sizeof(MIB_TCPTABLE);
-	// Make an initial call to GetTcpTable2 to
-	// get the necessary size into the ulSize variable
 	if ((dwRetVal = GetTcpTable2(pTcpTable, &ulSize, TRUE)) ==
 		ERROR_INSUFFICIENT_BUFFER) {
 		FREE(pTcpTable);
@@ -40,8 +44,6 @@ BOOL __stdcall ParseNetstat()
 			return 1;
 		}
 	}
-	// Make a second call to GetTcpTable2 to get
-	// the actual data we require
 	if ((dwRetVal = GetTcpTable2(pTcpTable, &ulSize, TRUE)) == NO_ERROR) {
 		printf("Number of entries: %d\n", (int)pTcpTable->dwNumEntries);
 		for (i = 0; i < (int)pTcpTable->dwNumEntries; i++) {
@@ -132,6 +134,40 @@ BOOL __stdcall ParseNetstat()
 	if (pTcpTable != NULL) {
 		FREE(pTcpTable);
 		pTcpTable = NULL;
+	}
+
+	ulSize = sizeof(MIB_UDPTABLE_OWNER_PID);
+	if ((dwRetVal = GetExtendedUdpTable(pUdpTable, &ulSize, TRUE, AF_INET, UDP_TABLE_OWNER_PID, NULL)) ==
+		ERROR_INSUFFICIENT_BUFFER) {
+		FREE(pUdpTable);
+		pUdpTable = (MIB_UDPTABLE_OWNER_PID *)MALLOC(ulSize);
+		if (pUdpTable == NULL) {
+			printf("Error allocating memory\n");
+			return 1;
+		}
+	}
+	if ((dwRetVal = GetExtendedUdpTable(pUdpTable, &ulSize, TRUE, AF_INET, UDP_TABLE_OWNER_PID, NULL)) == NO_ERROR) {
+		printf("Number of entries: %d\n", (int)pUdpTable->dwNumEntries);
+		for (i = 0; i < (int)pUdpTable->dwNumEntries; i++) {
+			IpAddr.S_un.S_addr = (u_long)pUdpTable->table[i].dwLocalAddr;
+			strcpy_s(szLocalAddr, sizeof(szLocalAddr), inet_ntoa(IpAddr));
+			printf("UDP[%d] Local Addr: %s\n", i, szLocalAddr);
+			printf("UDP[%d] Local Port: %d\n", i,
+				ntohs((u_short)pUdpTable->table[i].dwLocalPort));
+
+			printf("UDP[%d] Owning PID: %d\n\n", i, pUdpTable->table[i].dwOwningPid);
+
+		}
+	}
+	else {
+		printf("GetExtendedUdpTable failed with %d\n", dwRetVal);
+		FREE(pUdpTable);
+		return 1;
+	}
+
+	if (pUdpTable != NULL) {
+		FREE(pUdpTable);
+		pUdpTable = NULL;
 	}
 
 	return 0;
