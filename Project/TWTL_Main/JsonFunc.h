@@ -45,19 +45,20 @@ enum twtl_status_code
 
 typedef struct twtl_proto_node {
 	int type;
-	char path[TWTL_PROTO_MAX_BUF];
+	std::string path;
 	int value_type;
-	char value_str[TWTL_PROTO_MAX_BUF];
-	int64_t value_int;
-	double value_real;
-	bool value_bool;
+	std::string value_string;
+	int32_t value_int32;
+	uint32_t value_uint32;
+	float value_float32;
+	bool value_boolean;
 	struct twtl_proto_node* next;
 } TWTL_PROTO_NODE;
 
 typedef struct twtl_proto_buf {
-	char name[TWTL_PROTO_MAX_BUF];
-	char app[TWTL_PROTO_MAX_BUF];
-	char version[TWTL_PROTO_MAX_BUF];
+	std::string name; 
+	std::string app; 
+	std::string version;
 	TWTL_PROTO_NODE* contents;
 } TWTL_PROTO_BUF;
 
@@ -72,8 +73,9 @@ typedef struct twtl_trap_queue {
 } TWTL_TRAP_QUEUE;
 
 typedef struct twtl_info_engine_node {
-	char name[TWTL_PROTO_MAX_BUF];		// const
-	char version[TWTL_PROTO_MAX_BUF];	// const 
+	std::string name;		// const
+	std::string app;		// const
+	std::string version;	// const 
 	SHORT reqPort;						// const : 5259
 	SHORT trapPort;						// need to be set by client
 } TWTL_INFO_ENGINE_NODE;
@@ -99,4 +101,4 @@ json_t* JSON_ProtoBufToJson(TWTL_PROTO_BUF* res);
 void JSON_Init_TWTL_INFO_DATA();
 void JSON_Init_TWTL_INFO_ENGINE_NODE(TWTL_INFO_ENGINE_NODE* node);
 
-void JSON_Init_TWTL_PROTO_BUF_Header(TWTL_PROTO_BUF* buf);
+void JSON_Init_ProtoBufHeader(TWTL_PROTO_BUF* buf);
