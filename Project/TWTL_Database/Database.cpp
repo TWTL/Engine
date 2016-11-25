@@ -27,7 +27,6 @@ TWTL_DATABASE_API sqlite3* __stdcall DB_Connect(LPCWSTR dbFilePath) {
 #ifdef _DEBUG
 		fwprintf(stderr, L"[DB_Connect] Multithread success\n");
 #endif
-		return db;
 	}
 
 	ret = sqlite3_open16(dbFilePath, &db);
