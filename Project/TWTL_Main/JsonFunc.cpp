@@ -264,44 +264,58 @@ void JSON_ProtoParse(json_t *element, const char *key, TWTL_PROTO_BUF* req, TWTL
 				else if (StrCmpIA(json_string_value(element), "request.set") == 0
 					|| StrCmpIA(json_string_value(element), "set.request") == 0)
 					node->type = PROTO_REQ_SET;
+				else if (StrCmpIA(json_string_value(element), "request.diff") == 0)
+					node->type = PROTO_REQ_DIFF;
+				else if (StrCmpIA(json_string_value(element), "request.patch") == 0)
+					node->type = PROTO_REQ_PATCH;
+				else if (StrCmpIA(json_string_value(element), "request.put") == 0)
+					node->type = PROTO_REQ_PUT;
+				else if (StrCmpIA(json_string_value(element), "request.delete") == 0)
+					node->type = PROTO_REQ_DELETE;
+				else if (StrCmpIA(json_string_value(element), "request.beta") == 0)
+					node->type = PROTO_REQ_BETA;
 				else if (StrCmpIA(json_string_value(element), "response.status") == 0)
 					node->type = PROTO_RES_STATUS;
 				else if (StrCmpIA(json_string_value(element), "response.object") == 0)
 					node->type = PROTO_RES_OBJECT;
+				else if (StrCmpIA(json_string_value(element), "trap.change") == 0)
+					node->type = PROTO_TRAP_CHANGE;
+				else if (StrCmpIA(json_string_value(element), "trak-ack.check") == 0)
+					node->type = PROTO_TRAP_ACK_CHECK;
 			}
 			else if (StrCmpIA(key, "path") == 0)
 				StringCchCopyA(node->path, TWTL_PROTO_MAX_BUF, json_string_value(element));
 			else if (StrCmpIA(key, "value") == 0)
 			{
-				node->value_type = PROTO_VALUE_STR;
+				node->value_type = PROTO_VALUE_STRING;
 				StringCchCopyA(node->value_str, TWTL_PROTO_MAX_BUF, json_string_value(element));
 			}
 			break;
 		case JSON_INTEGER:
 			if (StrCmpIA(key, "value") == 0)
 			{
-				node->value_type = PROTO_VALUE_INT;
+				node->value_type = PROTO_VALUE_INT32;
 				node->value_int = json_integer_value(element);
 			}
 			break;
 		case JSON_REAL:
 			if (StrCmpIA(key, "value") == 0)
 			{
-				node->value_type = PROTO_VALUE_REAL;
+				node->value_type = PROTO_VALUE_FLOAT32;
 				node->value_real = json_real_value(element);
 			}
 			break;
 		case JSON_TRUE:
 			if (StrCmpIA(key, "value") == 0)
 			{
-				node->value_type = PROTO_VALUE_BOOL;
+				node->value_type = PROTO_VALUE_BOOLEAN;
 				node->value_bool = TRUE;
 			}
 			break;
 		case JSON_FALSE:
 			if (StrCmpIA(key, "value") == 0)
 			{
-				node->value_type = PROTO_VALUE_BOOL;
+				node->value_type = PROTO_VALUE_BOOLEAN;
 				node->value_bool = FALSE;
 			}
 			break;
@@ -336,13 +350,13 @@ void JSON_ProtoMakeResponse(TWTL_PROTO_BUF* req, TWTL_PROTO_BUF* res)
 				TWTL_PROTO_NODE* res_node_status = JSON_AddProtoNode(res);
 				res_node_status->type = PROTO_RES_STATUS;
 				StringCchCopyA(res_node_status->path, TWTL_PROTO_MAX_BUF, req_node->path);
-				res_node_status->value_type = PROTO_VALUE_INT;
+				res_node_status->value_type = PROTO_VALUE_INT32;
 				res_node_status->value_int = PROTO_STATUS_SUCCESS;
 
 				TWTL_PROTO_NODE* res_node_object = JSON_AddProtoNode(res);
 				res_node_object->type = PROTO_RES_OBJECT;
 				StringCchCopyA(res_node_object->path, TWTL_PROTO_MAX_BUF, req_node->path);
-				res_node_object->value_type = PROTO_VALUE_STR;
+				res_node_object->value_type = PROTO_VALUE_STRING;
 				StringCchCopyA(res_node_object->value_str, TWTL_PROTO_MAX_BUF, g_twtlInfo.engine.name);
 			}
 			else if (StrCmpIA(req_node->path, "/Engine/Version/") == 0)
@@ -350,13 +364,13 @@ void JSON_ProtoMakeResponse(TWTL_PROTO_BUF* req, TWTL_PROTO_BUF* res)
 				TWTL_PROTO_NODE* res_node_status = JSON_AddProtoNode(res);
 				res_node_status->type = PROTO_RES_STATUS;
 				StringCchCopyA(res_node_status->path, TWTL_PROTO_MAX_BUF, req_node->path);
-				res_node_status->value_type = PROTO_VALUE_INT;
+				res_node_status->value_type = PROTO_VALUE_INT32;
 				res_node_status->value_int = PROTO_STATUS_SUCCESS;
 
 				TWTL_PROTO_NODE* res_node_object = JSON_AddProtoNode(res);
 				res_node_object->type = PROTO_RES_OBJECT;
 				StringCchCopyA(res_node_object->path, TWTL_PROTO_MAX_BUF, req_node->path);
-				res_node_object->value_type = PROTO_VALUE_STR;
+				res_node_object->value_type = PROTO_VALUE_STRING;
 				StringCchCopyA(res_node_object->value_str, TWTL_PROTO_MAX_BUF, g_twtlInfo.engine.version);
 			}
 			else if (StrCmpIA(req_node->path, "/Engine/RequestPort/") == 0)
@@ -364,13 +378,13 @@ void JSON_ProtoMakeResponse(TWTL_PROTO_BUF* req, TWTL_PROTO_BUF* res)
 				TWTL_PROTO_NODE* res_node_status = JSON_AddProtoNode(res);
 				res_node_status->type = PROTO_RES_STATUS;
 				StringCchCopyA(res_node_status->path, TWTL_PROTO_MAX_BUF, req_node->path);
-				res_node_status->value_type = PROTO_VALUE_INT;
+				res_node_status->value_type = PROTO_VALUE_INT32;
 				res_node_status->value_int = PROTO_STATUS_SUCCESS;
 
 				TWTL_PROTO_NODE* res_node_object = JSON_AddProtoNode(res);
 				res_node_object->type = PROTO_RES_OBJECT;
 				StringCchCopyA(res_node_object->path, TWTL_PROTO_MAX_BUF, req_node->path);
-				res_node_object->value_type = PROTO_VALUE_INT;
+				res_node_object->value_type = PROTO_VALUE_INT32;
 				res_node_object->value_int = g_twtlInfo.engine.reqPort;
 			}
 			else if (StrCmpIA(req_node->path, "/Engine/TrapPort/") == 0)
@@ -380,7 +394,7 @@ void JSON_ProtoMakeResponse(TWTL_PROTO_BUF* req, TWTL_PROTO_BUF* res)
 					TWTL_PROTO_NODE* res_node_status = JSON_AddProtoNode(res);
 					res_node_status->type = PROTO_RES_STATUS;
 					StringCchCopyA(res_node_status->path, TWTL_PROTO_MAX_BUF, req_node->path);
-					res_node_status->value_type = PROTO_VALUE_INT;
+					res_node_status->value_type = PROTO_VALUE_INT32;
 					res_node_status->value_int = PROTO_STATUS_CLIENT_ERROR;
 				}
 				else
@@ -388,13 +402,13 @@ void JSON_ProtoMakeResponse(TWTL_PROTO_BUF* req, TWTL_PROTO_BUF* res)
 					TWTL_PROTO_NODE* res_node_status = JSON_AddProtoNode(res);
 					res_node_status->type = PROTO_RES_STATUS;
 					StringCchCopyA(res_node_status->path, TWTL_PROTO_MAX_BUF, req_node->path);
-					res_node_status->value_type = PROTO_VALUE_INT;
+					res_node_status->value_type = PROTO_VALUE_INT32;
 					res_node_status->value_int = PROTO_STATUS_SUCCESS;
 
 					TWTL_PROTO_NODE* res_node_object = JSON_AddProtoNode(res);
 					res_node_object->type = PROTO_RES_OBJECT;
 					StringCchCopyA(res_node_object->path, TWTL_PROTO_MAX_BUF, req_node->path);
-					res_node_object->value_type = PROTO_VALUE_INT;
+					res_node_object->value_type = PROTO_VALUE_INT32;
 					res_node_object->value_int = g_twtlInfo.engine.trapPort;
 				}				
 			}
@@ -405,7 +419,7 @@ void JSON_ProtoMakeResponse(TWTL_PROTO_BUF* req, TWTL_PROTO_BUF* res)
 				TWTL_PROTO_NODE* res_node_status = JSON_AddProtoNode(res);
 				res_node_status->type = PROTO_RES_STATUS;
 				StringCchCopyA(res_node_status->path, TWTL_PROTO_MAX_BUF, req_node->path);
-				res_node_status->value_type = PROTO_VALUE_INT;
+				res_node_status->value_type = PROTO_VALUE_INT32;
 				res_node_status->value_int = PROTO_STATUS_CLIENT_ERROR;
 			}
 			else if (StrCmpIA(req_node->path, "/Engine/Version/") == 0)
@@ -413,7 +427,7 @@ void JSON_ProtoMakeResponse(TWTL_PROTO_BUF* req, TWTL_PROTO_BUF* res)
 				TWTL_PROTO_NODE* res_node_status = JSON_AddProtoNode(res);
 				res_node_status->type = PROTO_RES_STATUS;
 				StringCchCopyA(res_node_status->path, TWTL_PROTO_MAX_BUF, req_node->path);
-				res_node_status->value_type = PROTO_VALUE_INT;
+				res_node_status->value_type = PROTO_VALUE_INT32;
 				res_node_status->value_int = PROTO_STATUS_CLIENT_ERROR;
 			}
 			else if (StrCmpIA(req_node->path, "/Engine/RequsetPort/") == 0)
@@ -421,7 +435,7 @@ void JSON_ProtoMakeResponse(TWTL_PROTO_BUF* req, TWTL_PROTO_BUF* res)
 				TWTL_PROTO_NODE* res_node_status = JSON_AddProtoNode(res);
 				res_node_status->type = PROTO_RES_STATUS;
 				StringCchCopyA(res_node_status->path, TWTL_PROTO_MAX_BUF, req_node->path);
-				res_node_status->value_type = PROTO_VALUE_INT;
+				res_node_status->value_type = PROTO_VALUE_INT32;
 				res_node_status->value_int = PROTO_STATUS_CLIENT_ERROR;
 			}
 			else if (StrCmpIA(req_node->path, "/Engine/TrapPort/") == 0)
@@ -431,11 +445,25 @@ void JSON_ProtoMakeResponse(TWTL_PROTO_BUF* req, TWTL_PROTO_BUF* res)
 				TWTL_PROTO_NODE* res_node_status = JSON_AddProtoNode(res);
 				res_node_status->type = PROTO_RES_STATUS;
 				StringCchCopyA(res_node_status->path, TWTL_PROTO_MAX_BUF, req_node->path);
-				res_node_status->value_type = PROTO_VALUE_INT;
+				res_node_status->value_type = PROTO_VALUE_INT32;
 				res_node_status->value_int = PROTO_STATUS_SUCCESS;
 
+				if (g_twtlInfo.engine.trapPort == 0) {} // Connection Teardown
+
 				trapPort = g_twtlInfo.engine.trapPort;
+
+				
 			}
+			break;
+		case PROTO_REQ_PUT:
+			break;
+		case PROTO_REQ_DELETE:
+			break;
+		case PROTO_REQ_DIFF:
+			break;
+		case PROTO_REQ_PATCH:
+			break;
+		case PROTO_REQ_BETA:
 			break;
 		}
 
@@ -478,16 +506,16 @@ json_t* JSON_ProtoBufToJson(TWTL_PROTO_BUF* res)
 		
 		switch (res_node->value_type)
 		{
-		case PROTO_VALUE_STR:
+		case PROTO_VALUE_STRING:
 			json_object_set_new(json_node, "value", json_string(res_node->value_str));
 			break;
-		case PROTO_VALUE_INT:
+		case PROTO_VALUE_INT32:
 			json_object_set_new(json_node, "value", json_integer(res_node->value_int));
 			break;
-		case PROTO_VALUE_REAL:
+		case PROTO_VALUE_FLOAT32:
 			json_object_set_new(json_node, "value", json_real(res_node->value_real));
 			break;
-		case PROTO_VALUE_BOOL:
+		case PROTO_VALUE_BOOLEAN:
 			json_object_set_new(json_node, "value", json_boolean(res_node->value_bool));
 			break;
 		case PROTO_VALUE_NULL:
@@ -518,3 +546,10 @@ void JSON_Init_TWTL_INFO_ENGINE_NODE(TWTL_INFO_ENGINE_NODE* node)
 	node->trapPort = INVALID_PORT_VALUE; // Invalid value
 }
 
+
+void JSON_Init_TWTL_PROTO_BUF_Header(TWTL_PROTO_BUF* buf)
+{
+	StringCchCopyA(buf->name, TWTL_JSON_MAX_BUF, "TWTL");
+	StringCchCopyA(buf->app, TWTL_JSON_MAX_BUF, "TWTL-Engine");
+	StringCchCopyA(buf->version, TWTL_JSON_MAX_BUF, "1.0");
+}

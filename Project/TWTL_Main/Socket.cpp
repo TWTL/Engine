@@ -330,7 +330,11 @@ DWORD SOCK_TrapPortProc()
 				 continue;
 			 }
 
-			 // Check Trap-ACK
+			 // Check response is Trap-ACK
+			 if (buf->contents->type != PROTO_TRAP_ACK_CHECK)
+			 {
+				 fprintf(stderr, "GUI returned wrong response, mut be \"trap-ack.check\"\n");
+			 }
 
 			 JSON_ClearProtoNode(buf);
 
