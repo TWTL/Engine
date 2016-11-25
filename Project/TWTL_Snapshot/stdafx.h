@@ -22,5 +22,6 @@
 #include <TlHelp32.h>
 #include <iphlpapi.h>
 #include <WinSock2.h>
+#include <ws2tcpip.h>
 
 // TODO: reference additional headers your program requires here
