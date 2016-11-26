@@ -7,6 +7,8 @@
 #define MALLOC(x) HeapAlloc(GetProcessHeap(), 0, (x))
 #define FREE(x) HeapFree(GetProcessHeap(), 0, (x))
 
+char* __stdcall GetDomainName(uint32_t ip);
+
 BOOL __stdcall ParseNetstat(TWTL_DB_NETWORK* sqliteNet1, TWTL_DB_NETWORK* sqliteNet2)
 {
 	// Declare and initialize variables
@@ -17,6 +19,7 @@ BOOL __stdcall ParseNetstat(TWTL_DB_NETWORK* sqliteNet1, TWTL_DB_NETWORK* sqlite
 
 	char szLocalAddr[128];
 	char szRemoteAddr[128];
+	char hostName[1025];
 
 	struct in_addr IpAddr;
 
@@ -47,6 +50,7 @@ BOOL __stdcall ParseNetstat(TWTL_DB_NETWORK* sqliteNet1, TWTL_DB_NETWORK* sqlite
 	if ((dwRetVal = GetTcpTable2(pTcpTable, &ulSize, TRUE)) == NO_ERROR) {
 		printf("Number of entries: %d\n", (int)pTcpTable->dwNumEntries);
 		sqliteNet1 = (TWTL_DB_NETWORK*)realloc(sqliteNet1, sizeof(TWTL_DB_NETWORK)*((int)pTcpTable->dwNumEntries + 10));
+		memset(sqliteNet1, 0x00, sizeof(TWTL_DB_NETWORK)*((int)pTcpTable->dwNumEntries + 10));
 		for (i = 0; i < (int)pTcpTable->dwNumEntries; i++) {
 			printf("\nTCP[%d] State: %ld - ", i,
 				pTcpTable->table[i].dwState);
@@ -103,10 +107,14 @@ BOOL __stdcall ParseNetstat(TWTL_DB_NETWORK* sqliteNet1, TWTL_DB_NETWORK* sqlite
 
 			IpAddr.S_un.S_addr = (u_long)pTcpTable->table[i].dwRemoteAddr;
 			sqliteNet1[i].dest_ipv4 = IpAddr.S_un.S_addr;
+
+			// strcpy_s(hostName, 1025, GetDomainName(sqliteNet1[i].dest_ipv4));
+
 			sqliteNet1[i].dest_port = ntohs((u_short)pTcpTable->table[i].dwRemotePort);
 			strcpy_s(szRemoteAddr, sizeof(szRemoteAddr), inet_ntoa(IpAddr));
 			printf("TCP[%d] Remote Addr: %s\n", i, szRemoteAddr);
-			printf("TCP[%d] Remote Addr: %lu\n", i, sqliteNet1[i].dest_ipv4);
+			// printf("TCP[%d] Remote Addr: %lu\n", i, sqliteNet1[i].dest_ipv4);
+			printf("TCP[%d] Remote Addr: %s\n", i, hostName);
 			printf("TCP[%d] Remote Port: %d\n", i,
 				sqliteNet1[i].dest_port);
 
@@ -158,6 +166,7 @@ BOOL __stdcall ParseNetstat(TWTL_DB_NETWORK* sqliteNet1, TWTL_DB_NETWORK* sqlite
 	if ((dwRetVal = GetExtendedUdpTable(pUdpTable, &ulSize, TRUE, AF_INET, UDP_TABLE_OWNER_PID, NULL)) == NO_ERROR) {
 		printf("Number of entries: %d\n", (int)pUdpTable->dwNumEntries);
 		sqliteNet2 = (TWTL_DB_NETWORK*)realloc(sqliteNet2, sizeof(TWTL_DB_NETWORK)*((int)pUdpTable->dwNumEntries + 10));
+		memset(sqliteNet2, 0x00, sizeof(TWTL_DB_NETWORK)*((int)pUdpTable->dwNumEntries + 10));
 		for (i = 0; i < (int)pUdpTable->dwNumEntries; i++) {
 			sqliteNet2[i].time = time(0);
 			IpAddr.S_un.S_addr = (u_long)pUdpTable->table[i].dwLocalAddr;
@@ -185,4 +194,41 @@ BOOL __stdcall ParseNetstat(TWTL_DB_NETWORK* sqliteNet1, TWTL_DB_NETWORK* sqlite
 	}
 
 	return 0;
+}
+
+char* __stdcall GetDomainName(uint32_t ip) {
+	WSADATA wsaData = { 0 };
+	int iResult = 0;
+
+	DWORD dwRetval;
+
+	struct sockaddr_in saGNI;
+	char hostname[NI_MAXHOST];
+	char servInfo[NI_MAXSERV];
+	u_short port = 27015;
+
+	// Initialize Winsock
+	iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
+	if (iResult != 0) {
+		printf("WSAStartup failed: %d\n", iResult);
+		return NULL;
+	}
+	
+	saGNI.sin_family = AF_INET;
+	saGNI.sin_addr.s_addr = ip;
+	saGNI.sin_port = htons(port);
+
+	dwRetval = getnameinfo((struct sockaddr *) &saGNI,
+		sizeof(struct sockaddr),
+		hostname,
+		NI_MAXHOST, servInfo, NI_MAXSERV, NI_NUMERICSERV);
+
+	if (dwRetval != 0) {
+		printf("getnameinfo failed with error # %ld\n", WSAGetLastError());
+		return NULL;
+	}
+	else {
+		printf("getnameinfo returned hostname = %s\n", hostname);
+		return hostname;
+	}
 }

@@ -103,7 +103,7 @@ TWTL_SNAPSHOT_API BOOL __stdcall SnapCurrentStatus(
 			DWORD result = 0;
 			i = 0;
 			sqlitePrc = (TWTL_DB_PROCESS*)realloc(sqlitePrc, sizeof(TWTL_DB_PROCESS)*(listNum+10));
-
+			memset(sqlitePrc, 0x00, sizeof(TWTL_DB_PROCESS)*(listNum + 10));
 			while ((Process32Next(currentProcessInfo.hSnap, &currentProcessInfo.proc32)))
 			{
 				if (currentProcessInfo.proc32.th32ProcessID < 100) {
@@ -514,8 +514,6 @@ BOOL __stdcall WriteRegToTxt(
 		FILETIME ftLastWriteTime;			// last write time 
 
 		DWORD i, retCode;
-
-		TCHAR achValue[REGVALUE_MAX];
 		DWORD cchValue = REGVALUE_MAX;
 
 		// Get the class name and the value count. 
@@ -538,6 +536,7 @@ BOOL __stdcall WriteRegToTxt(
 		{
 			printf("\nNumber of subkeys: %d\n", cSubKeys);
 			sqliteSvc = (TWTL_DB_SERVICE*)realloc(sqliteSvc, sizeof(TWTL_DB_SERVICE)*(cSubKeys + 10));
+			memset(sqliteSvc, 0x00, sizeof(TWTL_DB_SERVICE)*(cSubKeys + 10));
 			
 			HKEY HKLM = HKEY_LOCAL_MACHINE;
 			REGINFO servReg;
@@ -559,27 +558,51 @@ BOOL __stdcall WriteRegToTxt(
 				{
 					sqliteSvc[i].time = time(0);
 					wcscpy_s(sqliteSvc[i].key, REGNAME_MAX, achKey);
-					_tprintf(TEXT("(%d) %s\n"), i + 1, sqliteSvc[i].key);
-					
-					if (cValues)
+					_tprintf(TEXT("(%d) %s"), i + 1, sqliteSvc[i].key);
+
+					//34 + 255
+					WCHAR path[289] = { 0, };
+					wcscpy_s(path, REGNAME_MAX, L"SYSTEM\\CurrentControlSet\\Services\\");
+					wcscat_s(path, REGNAME_MAX, sqliteSvc[i].key);
+					REGINFO srvReg;
+					PREGINFO pSrvReg = &srvReg;
+					srvReg.bufSize = REGNAME_MAX - 1;
+					srvReg.dataType = REG_SZ;
+					if (!RegOpenKeyEx(HKLM,
+						path,
+						NULL,
+						KEY_ALL_ACCESS,
+						&pSrvReg->key))
 					{
-						printf("\nNumber of values: %d\n", cValues);
+						result = 0;
+						for (int i = 0; result == ERROR_SUCCESS; i++) {
+							result = RegEnumValue(pSrvReg->key, i, pSrvReg->keyName, &pSrvReg->bufSize, NULL, NULL, NULL, NULL);
+							if (result == ERROR_SUCCESS) {
+								// must initialize reg.bufsize
+								//
+								if (!InitRegSize(pSrvReg, 2)) {
+									return NULL;
+								}
 
-						for (i = 0, retCode = ERROR_SUCCESS; i<cValues; i++)
-						{
-							cchValue = REGVALUE_MAX;
-							achValue[0] = '\0';
-							retCode = RegEnumValue(pReg->key, i,
-								achValue,
-								&cchValue,
-								NULL,
-								NULL,
-								NULL,
-								NULL);
-
-							if (retCode == ERROR_SUCCESS)
-							{
-								_tprintf(TEXT("(%d) %s\n"), i + 1, achValue);
+								if (RegQueryValueEx(pSrvReg->key,
+									pSrvReg->keyName,
+									NULL,
+									&pSrvReg->dataType,
+									(LPBYTE)pSrvReg->keyValue,
+									&pSrvReg->bufSize)
+									!= 0)
+								{
+								
+								}
+								else {
+									if (!InitRegSize(pSrvReg, 1)) {
+										return NULL;
+									}
+									if (!wcscmp(pSrvReg->keyName, L"ImagePath")) {
+										wcscpy_s(sqliteSvc[i].image_path, 255, pSrvReg->keyValue);
+										_tprintf_s(L" %s\n", sqliteSvc[i].image_path);
+									}
+								}
 							}
 						}
 					}
@@ -596,6 +619,7 @@ BOOL __stdcall WriteRegToTxt(
 			}
 		}
 		sqliteReg = (TWTL_DB_REGISTRY*)realloc(sqliteReg, sizeof(TWTL_DB_REGISTRY)*(regIndex + 2));
+		memset(sqliteReg, 0x00, sizeof(TWTL_DB_REGISTRY)*(regIndex + 2));
 		for (int i = 0; result == ERROR_SUCCESS; i++)
 		{
 			if (1 <= target && target <= 4) {
