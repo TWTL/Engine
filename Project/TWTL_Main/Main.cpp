@@ -21,14 +21,14 @@ int main()
 	TCHAR keyName[REGNAME_MAX] = { 0, };
 	TCHAR keyValue[REGVALUE_MAX] = { 0, };
 
-	TWTL_DB_PROCESS*  sqlitePrc = (TWTL_DB_PROCESS*)malloc(sizeof(TWTL_DB_PROCESS) * 100);
-	TWTL_DB_REGISTRY* sqliteReg1 = (TWTL_DB_REGISTRY*)malloc(sizeof(TWTL_DB_REGISTRY) * 100);
-	TWTL_DB_REGISTRY* sqliteReg2 = (TWTL_DB_REGISTRY*)malloc(sizeof(TWTL_DB_REGISTRY) * 100);
-	TWTL_DB_REGISTRY* sqliteReg3 = (TWTL_DB_REGISTRY*)malloc(sizeof(TWTL_DB_REGISTRY) * 100);
-	TWTL_DB_REGISTRY* sqliteReg4 = (TWTL_DB_REGISTRY*)malloc(sizeof(TWTL_DB_REGISTRY) * 100);
-	TWTL_DB_SERVICE*  sqliteSvc = (TWTL_DB_SERVICE*)malloc(sizeof(TWTL_DB_SERVICE) * 600);
-	TWTL_DB_NETWORK*  sqliteNet1 = (TWTL_DB_NETWORK*)malloc(sizeof(TWTL_DB_NETWORK) * 300);
-	TWTL_DB_NETWORK*  sqliteNet2 = (TWTL_DB_NETWORK*)malloc(sizeof(TWTL_DB_NETWORK) * 300);
+	TWTL_DB_PROCESS*  sqlitePrc;
+	TWTL_DB_REGISTRY* sqliteReg1;
+	TWTL_DB_REGISTRY* sqliteReg2;
+	TWTL_DB_REGISTRY* sqliteReg3;
+	TWTL_DB_REGISTRY* sqliteReg4;
+	TWTL_DB_SERVICE*  sqliteSvc;
+	TWTL_DB_NETWORK*  sqliteNet1;
+	TWTL_DB_NETWORK*  sqliteNet2;
 
 	SetPrivilege(SE_DEBUG_NAME, TRUE);
 
