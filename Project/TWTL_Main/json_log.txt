@@ -17,7 +17,7 @@
 {"app": "TWTL-Engine", "name": "TWTL", "version": "1", "contents": [{"type": "response.object", "path": "/Engine/RequestPort/", "value": 5259}]}
 
 [E <- U] MainPort Receive
-{"app":"TWTL-GUI","name":"TWTL","version":"1","contents":[{"type":"request.set","path":"/Engine/TrapPort/","value":11025}]}
+{"app":"TWTL-GUI","name":"TWTL","version":"1","contents":[{"type":"request.set","path":"/Engine/TrapPort/","value":15386}]}
 
 [E -> U] MainPort Send
 {"app": "TWTL-Engine", "name": "TWTL", "version": "1", "contents": [{"type": "response.status", "path": "/Engine/TrapPort/", "value": 200}]}
@@ -32,5 +32,23 @@
 {"app":"TWTL-GUI","name":"TWTL","version":"1","contents":[{"type":"request.diff","path":"/Reg/Short/GlobalRun/"}]}
 
 [E -> U] MainPort Send
-{"app": "TWTL-Engine", "name": "TWTL", "version": "1", "contents": [{"type": "response.status", "path": "/Reg/Short/GlobalRun/", "value": 200}, {"type": "response.object", "path": "/Reg/Short/GlobalRun/", "Value": {}}]}
+{"app": "TWTL-Engine", "name": "TWTL", "version": "1", "contents": [{"type": "response.status", "path": "/Reg/Short/GlobalRun/", "value": 200}, {"type": "response.object", "path": "/Reg/Short/GlobalRun/", "value": [{"Name": "", "Value": ""}]}]}
+
+[E <- U] MainPort Receive
+{"app":"TWTL-GUI","name":"TWTL","version":"1","contents":[{"type":"request.diff","path":"/Reg/Short/GlobalRunOnce/"}]}
+
+[E -> U] MainPort Send
+{"app": "TWTL-Engine", "name": "TWTL", "version": "1", "contents": [{"type": "response.status", "path": "/Reg/Short/GlobalRunOnce/", "value": 200}, {"type": "response.object", "path": "/Reg/Short/GlobalRunOnce/", "value": []}]}
+
+[E <- U] MainPort Receive
+{"app":"TWTL-GUI","name":"TWTL","version":"1","contents":[{"type":"request.diff","path":"/Reg/Short/UserRun/"}]}
+
+[E -> U] MainPort Send
+{"app": "TWTL-Engine", "name": "TWTL", "version": "1", "contents": [{"type": "response.status", "path": "/Reg/Short/UserRun/", "value": 200}, {"type": "response.object", "path": "/Reg/Short/UserRun/", "value": []}]}
+
+[E <- U] MainPort Receive
+{"app":"TWTL-GUI","name":"TWTL","version":"1","contents":[{"type":"request.diff","path":"/Reg/Short/UserRunOnce/"}]}
+
+[E -> U] MainPort Send
+{"app": "TWTL-Engine", "name": "TWTL", "version": "1", "contents": [{"type": "response.status", "path": "/Reg/Short/UserRunOnce/", "value": 200}, {"type": "response.object", "path": "/Reg/Short/UserRunOnce/", "value": []}]}
 

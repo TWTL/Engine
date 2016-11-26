@@ -133,7 +133,7 @@ int main()
 	DB_Close(g_db);
 
 	wprintf_s(L"\nBye!\n");
-	DelayWait(5000);
+	DelayWait(20000);
 	
 	return 0;
 }

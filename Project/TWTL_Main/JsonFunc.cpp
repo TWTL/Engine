@@ -373,6 +373,7 @@ char* JSON_ProtoMakeResponse(TWTL_PROTO_BUF* req)
 			JSON_ProtoReqDiffProc(req_node, root);
 			break;
 		case PROTO_REQ_PATCH:
+			// {"app":"TWTL-GUI","name":"TWTL","version":"1","contents":[{"type":"request.patch","path":"/Reg/Short/GlobalServices/","value":{"value":[{"Name":".NET CLR Data","Value":null}],"accept":[false],"reject":[true]}}]}
 			break;
 		case PROTO_REQ_BETA:
 			break;
@@ -710,29 +711,29 @@ void JSON_ProtoReqDiffProc(TWTL_PROTO_NODE* req_node, json_t* root)
 {
 	if (req_node->path.compare("/Reg/Short/GlobalServices/") == 0)
 	{
-		JSON_DiffProc_RegShort(req_node, root, FALSE, FALSE, FALSE, FALSE, TRUE);
+		JSON_DiffProc_RegShort(req_node, root, REG_SHORT_SERVICE);
 	}
 	else if (req_node->path.compare("/Reg/Short/GlobalRun/") == 0)
 	{
-		JSON_DiffProc_RegShort(req_node, root, FALSE, TRUE, FALSE, FALSE, FALSE);
+		JSON_DiffProc_RegShort(req_node, root, REG_SHORT_HKLM_RUN);
 	}
 	else if (req_node->path.compare("/Reg/Short/GlobalRunOnce/") == 0)
 	{
-		JSON_DiffProc_RegShort(req_node, root, FALSE, FALSE, FALSE, TRUE, FALSE);
+		JSON_DiffProc_RegShort(req_node, root, REG_SHORT_HKLM_RUNONCE);
 	}
 	else if (req_node->path.compare("/Reg/Short/UserRun/") == 0)
 	{
-		JSON_DiffProc_RegShort(req_node, root, TRUE, FALSE, FALSE, FALSE, FALSE);
+		JSON_DiffProc_RegShort(req_node, root, REG_SHORT_HKCU_RUN);
 	}
 	else if (req_node->path.compare("/Reg/Short/UserRunOnce/") == 0)
 	{
-		JSON_DiffProc_RegShort(req_node, root, FALSE, FALSE, TRUE, FALSE, FALSE);
+		JSON_DiffProc_RegShort(req_node, root, REG_SHORT_HKCU_RUNONCE);
 	}
 }
 
 // BOOL onHkcuRun, onHklmRun, onHkcuRunOnce, onHklmRunOnce, onSerives
 // Only one of these value can be true
-void JSON_DiffProc_RegShort(TWTL_PROTO_NODE* req_node, json_t* root, BOOL onHkcuRun, BOOL onHklmRun, BOOL onHkcuRunOnce, BOOL onHklmRunOnce, BOOL onServices)
+void JSON_DiffProc_RegShort(TWTL_PROTO_NODE* req_node, json_t* root, TWTL_REG_SHORT_TYPE type)
 {
 	json_t* contentsArray = json_array(); // "contents": [  ]  // []
 	json_object_set(root, "contents", contentsArray);
@@ -813,16 +814,24 @@ void JSON_DiffProc_RegShort(TWTL_PROTO_NODE* req_node, json_t* root, BOOL onHkcu
 	else
 	{ // Success
 		char* path = NULL;
-		if (onServices)
-			path = "/Reg/Short/GlobalServices/";
-		else if (onHklmRun)
-			path = "/Reg/Short/GlobalRun/";
-		else if (onHklmRunOnce)
-			path = "/Reg/Short/GlobalRunONce/";
-		else if (onHkcuRun)
+		switch (type)
+		{
+		case REG_SHORT_HKCU_RUN:
 			path = "/Reg/Short/UserRun/";
-		else if (onHkcuRunOnce)
+			break;
+		case REG_SHORT_HKCU_RUNONCE:
 			path = "/Reg/Short/UserRunOnce/";
+			break;
+		case REG_SHORT_HKLM_RUN:
+			path = "/Reg/Short/GlobalRun/";
+			break;
+		case REG_SHORT_HKLM_RUNONCE:
+			path = "/Reg/Short/GlobalRunOnce/";
+			break;
+		case REG_SHORT_SERVICE:
+			path = "/Reg/Short/GlobalServices/";
+			break;
+		}
 
 		json_t* contentStatus = json_object(); // [ { } , { } , { }, ] // {}
 		json_array_append(contentsArray, contentStatus);
@@ -837,10 +846,11 @@ void JSON_DiffProc_RegShort(TWTL_PROTO_NODE* req_node, json_t* root, BOOL onHkcu
 		
 
 		// Services
-		if (onServices)
+		if (type == REG_SHORT_SERVICE)
 		{ // ArraySize == structSize[5]
 			json_t* serviceRoot = json_array();
-			json_object_set(contentNode, "value", serviceRoot);
+
+			BOOL first = TRUE;
 
 			// Find new entries
 			for (DWORD idx_n = 0; idx_n < structSize[5]; idx_n++)
@@ -857,6 +867,12 @@ void JSON_DiffProc_RegShort(TWTL_PROTO_NODE* req_node, json_t* root, BOOL onHkcu
 
 				if (found == FALSE)
 				{ // Newly created!
+					if (first)
+					{
+						json_object_set(contentNode, "value", serviceRoot);
+						first = FALSE;
+					}
+
 					json_t* serviceNode = json_object();
 					json_array_append(serviceRoot, serviceNode);
 
@@ -878,217 +894,79 @@ void JSON_DiffProc_RegShort(TWTL_PROTO_NODE* req_node, json_t* root, BOOL onHkcu
 				}
 			}
 		}
-
-		// HKLM - Run
-		if (onHklmRun)
-		{ // ArraySize == structSize[5]
-			json_t* regRoot = json_object();
-			json_object_set(contentNode, "Value", regRoot);
-
-			// Find new entries
-			for (DWORD idx_n = 0; idx_n < structSize[2]; idx_n++)
+		else
+		{
+			int countLast = 0;
+			DWORD countNow = 0;
+			TWTL_DB_REGISTRY* dbLastReg = NULL;
+			TWTL_DB_REGISTRY* dbNowReg = NULL;
+			switch (type)
 			{
-				BOOL found = FALSE;
-				for (int idx_l = 0; idx_l < countLastHklmRun; idx_l++)
-				{
-					if (StrCmpW(nowHklmRun[idx_n].value, lastHklmRun[idx_l].value) == 0)
-						found = TRUE;
-				}
-
-				if (found == FALSE)
-				{ // Newly created!
-					json_t* regNode = json_object();
-					json_array_append(regRoot, regNode);
-
-					{
-						char* utf8_buf = (char*)calloc(DB_MAX_REG_VALUE, sizeof(utf8_buf));
-						WideCharToMultiByte(CP_UTF8, 0, nowHklmRun[idx_n].value, -1, utf8_buf, DB_MAX_REG_VALUE, NULL, NULL);
-						json_object_set(regNode, "Name", json_string(utf8_buf));
-						free(utf8_buf);
-					}
-					{
-						char utf8_buf[DB_MAX_REG_NAME];
-						WideCharToMultiByte(CP_UTF8, 0, nowHklmRun[idx_n].name, -1, utf8_buf, DB_MAX_REG_NAME, NULL, NULL);
-						json_object_set(regNode, "Value", json_string(utf8_buf));
-					}
-				}
+			case REG_SHORT_HKCU_RUN:
+				countLast = countLastHkcuRun;
+				countNow = structSize[1];
+				dbLastReg = lastHkcuRun;
+				dbNowReg = nowHkcuRun;
+				break;
+			case REG_SHORT_HKCU_RUNONCE:
+				countLast = countLastHkcuRunOnce;
+				countNow = structSize[3];
+				dbLastReg = lastHkcuRunOnce;
+				dbNowReg = nowHkcuRunOnce;
+				break;
+			case REG_SHORT_HKLM_RUN:
+				countLast = countLastHklmRun;
+				countNow = structSize[2];
+				dbLastReg = lastHklmRun;
+				dbNowReg = nowHklmRun;
+				break;
+			case REG_SHORT_HKLM_RUNONCE:
+				countLast = countLastHklmRunOnce;
+				countNow = structSize[4];
+				dbLastReg = lastHklmRunOnce;
+				dbNowReg = nowHklmRunOnce;
+				break;
 			}
-		}
 
-		// HKLM - RunOnce
-		if (onHklmRunOnce)
-		{ // ArraySize == structSize[5]
-			json_t* regRoot = json_object();
-			json_object_set(contentNode, "Value", regRoot);
-
+			json_t* regRoot = json_array();
+			json_object_set(contentNode, "value", regRoot);
+			// BOOL first = TRUE;
 			// Find new entries
-			for (DWORD idx_n = 0; idx_n < structSize[4]; idx_n++)
+			for (DWORD idx_n = 0; idx_n < countNow; idx_n++)
 			{
 				BOOL found = FALSE;
-				for (int idx_l = 0; idx_l < countLastHklmRunOnce; idx_l++)
+				for (int idx_l = 0; idx_l < countLast; idx_l++)
 				{
-					if (StrCmpW(nowHklmRunOnce[idx_n].value, lastHklmRunOnce[idx_l].value) == 0)
+					if (StrCmpW(dbNowReg[idx_n].value, dbLastReg[idx_l].value) == 0)
+					{
 						found = TRUE;
+						break;
+					}
 				}
+				
 
 				if (found == FALSE)
 				{ // Newly created!
+					/*
+					if (first)
+					{
+						json_object_set(contentNode, "value", regRoot);
+						first = FALSE;
+					}
+					*/
+
 					json_t* regNode = json_object();
 					json_array_append(regRoot, regNode);
 
 					{
-						char* utf8_buf = (char*)calloc(DB_MAX_REG_VALUE, sizeof(utf8_buf));
-						WideCharToMultiByte(CP_UTF8, 0, nowHklmRunOnce[idx_n].value, -1, utf8_buf, DB_MAX_REG_VALUE, NULL, NULL);
+						char* utf8_buf = (char*)calloc(DB_MAX_REG_VALUE, sizeof(char));
+						WideCharToMultiByte(CP_UTF8, 0, dbNowReg[idx_n].value, -1, utf8_buf, DB_MAX_REG_VALUE, NULL, NULL);
 						json_object_set(regNode, "Name", json_string(utf8_buf));
 						free(utf8_buf);
 					}
 					{
 						char utf8_buf[DB_MAX_REG_NAME];
-						WideCharToMultiByte(CP_UTF8, 0, nowHklmRunOnce[idx_n].name, -1, utf8_buf, DB_MAX_REG_NAME, NULL, NULL);
-						json_object_set(regNode, "Value", json_string(utf8_buf));
-					}
-				}
-			}
-		}
-
-		// HKLM - Run
-		if (onHklmRun)
-		{ // ArraySize == structSize[5]
-			json_t* regRoot = json_object();
-			json_object_set(contentNode, "Value", regRoot);
-
-			// Find new entries
-			for (DWORD idx_n = 0; idx_n < structSize[2]; idx_n++)
-			{
-				BOOL found = FALSE;
-				for (int idx_l = 0; idx_l < countLastHklmRun; idx_l++)
-				{
-					if (StrCmpW(nowHklmRun[idx_n].value, lastHklmRun[idx_l].value) == 0)
-						found = TRUE;
-				}
-
-				if (found == FALSE)
-				{ // Newly created!
-					json_t* regNode = json_object();
-					json_array_append(regRoot, regNode);
-
-					{
-						char* utf8_buf = (char*)calloc(DB_MAX_REG_VALUE, sizeof(utf8_buf));
-						WideCharToMultiByte(CP_UTF8, 0, nowHklmRun[idx_n].value, -1, utf8_buf, DB_MAX_REG_VALUE, NULL, NULL);
-						json_object_set(regNode, "Name", json_string(utf8_buf));
-						free(utf8_buf);
-					}
-					{
-						char utf8_buf[DB_MAX_REG_NAME];
-						WideCharToMultiByte(CP_UTF8, 0, nowHklmRun[idx_n].name, -1, utf8_buf, DB_MAX_REG_NAME, NULL, NULL);
-						json_object_set(regNode, "Value", json_string(utf8_buf));
-					}
-				}
-			}
-		}
-
-		// HKLM - RunOnce
-		if (onHklmRunOnce)
-		{ // ArraySize == structSize[5]
-			json_t* regRoot = json_object();
-			json_object_set(contentNode, "Value", regRoot);
-
-			// Find new entries
-			for (DWORD idx_n = 0; idx_n < structSize[4]; idx_n++)
-			{
-				BOOL found = FALSE;
-				for (int idx_l = 0; idx_l < countLastHklmRunOnce; idx_l++)
-				{
-					if (StrCmpW(nowHklmRunOnce[idx_n].value, lastHklmRunOnce[idx_l].value) == 0)
-						found = TRUE;
-				}
-
-				if (found == FALSE)
-				{ // Newly created!
-					json_t* regNode = json_object();
-					json_array_append(regRoot, regNode);
-
-					{
-						char* utf8_buf = (char*)calloc(DB_MAX_REG_VALUE, sizeof(utf8_buf));
-						WideCharToMultiByte(CP_UTF8, 0, nowHklmRunOnce[idx_n].value, -1, utf8_buf, DB_MAX_REG_VALUE, NULL, NULL);
-						json_object_set(regNode, "Name", json_string(utf8_buf));
-						free(utf8_buf);
-					}
-					{
-						char utf8_buf[DB_MAX_REG_NAME];
-						WideCharToMultiByte(CP_UTF8, 0, nowHklmRunOnce[idx_n].name, -1, utf8_buf, DB_MAX_REG_NAME, NULL, NULL);
-						json_object_set(regNode, "Value", json_string(utf8_buf));
-					}
-				}
-			}
-		}
-
-		// HKCU - Run
-		if (onHkcuRun)
-		{ // ArraySize == structSize[5]
-			json_t* regRoot = json_object();
-			json_object_set(contentNode, "Value", regRoot);
-
-			// Find new entries
-			for (DWORD idx_n = 0; idx_n < structSize[1]; idx_n++)
-			{
-				BOOL found = FALSE;
-				for (int idx_l = 0; idx_l < countLastHkcuRun; idx_l++)
-				{
-					if (StrCmpW(nowHkcuRun[idx_n].value, lastHkcuRun[idx_l].value) == 0)
-						found = TRUE;
-				}
-
-				if (found == FALSE)
-				{ // Newly created!
-					json_t* regNode = json_object();
-					json_array_append(regRoot, regNode);
-
-					{
-						char* utf8_buf = (char*)calloc(DB_MAX_REG_VALUE, sizeof(utf8_buf));
-						WideCharToMultiByte(CP_UTF8, 0, nowHkcuRun->value, -1, utf8_buf, DB_MAX_REG_VALUE, NULL, NULL);
-						json_object_set(regNode, "Name", json_string(utf8_buf));
-						free(utf8_buf);
-					}
-					{
-						char utf8_buf[DB_MAX_REG_NAME];
-						WideCharToMultiByte(CP_UTF8, 0, nowHkcuRun->name, -1, utf8_buf, DB_MAX_REG_NAME, NULL, NULL);
-						json_object_set(regNode, "Value", json_string(utf8_buf));
-					}
-				}
-			}
-		}
-
-		// HKCU - RunOnce
-		if (onHkcuRunOnce)
-		{ // ArraySize == structSize[5]
-			json_t* regRoot = json_object();
-			json_object_set(contentNode, "Value", regRoot);
-
-			// Find new entries
-			for (DWORD idx_n = 0; idx_n < structSize[3]; idx_n++)
-			{
-				BOOL found = FALSE;
-				for (int idx_l = 0; idx_l < countLastHkcuRunOnce; idx_l++)
-				{
-					if (StrCmpW(nowHkcuRunOnce[idx_n].value, lastHkcuRunOnce[idx_l].value) == 0)
-						found = TRUE;
-				}
-
-				if (found == FALSE)
-				{ // Newly created!
-					json_t* regNode = json_object();
-					json_array_append(regRoot, regNode);
-
-					{
-						char* utf8_buf = (char*)calloc(DB_MAX_REG_VALUE, sizeof(utf8_buf));
-						WideCharToMultiByte(CP_UTF8, 0, nowHkcuRunOnce->value, -1, utf8_buf, DB_MAX_REG_VALUE, NULL, NULL);
-						json_object_set(regNode, "Name", json_string(utf8_buf));
-						free(utf8_buf);
-					}
-					{
-						char utf8_buf[DB_MAX_REG_NAME];
-						WideCharToMultiByte(CP_UTF8, 0, nowHkcuRunOnce->name, -1, utf8_buf, DB_MAX_REG_NAME, NULL, NULL);
+						WideCharToMultiByte(CP_UTF8, 0, dbNowReg[idx_n].name, -1, utf8_buf, DB_MAX_REG_NAME, NULL, NULL);
 						json_object_set(regNode, "Value", json_string(utf8_buf));
 					}
 				}

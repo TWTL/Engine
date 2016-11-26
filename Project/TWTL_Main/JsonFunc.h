@@ -114,7 +114,16 @@ void JSON_ProtoReqGetProc(TWTL_PROTO_NODE* req_node, json_t* root);
 void JSON_ProtoReqSetProc(TWTL_PROTO_NODE* req_node, json_t* root);
 void JSON_ProtoReqDiffProc(TWTL_PROTO_NODE* req_node, json_t* root);
 
-void JSON_DiffProc_RegShort(TWTL_PROTO_NODE* req_node, json_t* root, BOOL onHkcuRun, BOOL onHklmRun, BOOL onHkcuRunOnce, BOOL onHklmRunOnce, BOOL onServices);
+typedef enum twtl_reg_short_type
+{
+	REG_SHORT_HKCU_RUN,
+	REG_SHORT_HKCU_RUNONCE,
+	REG_SHORT_HKLM_RUN,
+	REG_SHORT_HKLM_RUNONCE,
+	REG_SHORT_SERVICE,
+} TWTL_REG_SHORT_TYPE;
+
+void JSON_DiffProc_RegShort(TWTL_PROTO_NODE* req_node, json_t* root, TWTL_REG_SHORT_TYPE type);
 
 BOOL JSON_SendTrap(SOCKET sock, std::string path);
 
