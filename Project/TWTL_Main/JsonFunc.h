@@ -2,19 +2,11 @@
 
 #pragma once
 
+#include "..\TWTL_Snapshot\MonitorFunc.h"
+
 #define TWTL_PROTO_MAX_BUF 1024
 
 typedef unsigned int (WINAPI *LPTHREADPROC)(LPVOID lpParam);
-
-enum twtl_proto_node_value
-{
-	PROTO_VALUE_STRING,
-	PROTO_VALUE_INT32,
-	PROTO_VALUE_UINT32,
-	PROTO_VALUE_FLOAT32,
-	PROTO_VALUE_BOOLEAN,
-	PROTO_VALUE_NULL
-};
 
 enum twtl_proto_type
 { 
@@ -31,6 +23,18 @@ enum twtl_proto_type
 	PROTO_TRAP_ACK_CHECK
 };
 
+#define PROTO_STR_REQ_GET		"request.get"
+#define PROTO_STR_REQ_SET		"request.set"
+#define PROTO_STR_REQ_DIFF		"request.diff"
+#define PROTO_STR_REQ_PATCH		"request.patch"
+#define PROTO_STR_REQ_PUT		"request.put"
+#define PROTO_STR_REQ_DELETE	"request.delete"
+#define PROTO_STR_REQ_BETA		"request.beta"
+#define PROTO_STR_RES_STATUS	"response.status"
+#define PROTO_STR_RES_OBJECT	"response.object"
+#define PROTO_STR_TRAP_CHANGE	"trap.change"
+#define PROTO_STR_ACK_CHECK		"trak-ack.check"
+
 enum twtl_status_code
 {
 	PROTO_STATUS_WAIT = 100,
@@ -42,6 +46,15 @@ enum twtl_status_code
 
 #define INVALID_PORT_VALUE 0
 
+enum twtl_proto_node_value
+{
+	PROTO_VALUE_STRING,
+	PROTO_VALUE_INT32,
+	PROTO_VALUE_UINT32,
+	PROTO_VALUE_FLOAT32,
+	PROTO_VALUE_BOOLEAN,
+	PROTO_VALUE_NULL
+};
 
 typedef struct twtl_proto_node {
 	int type;
@@ -76,8 +89,8 @@ typedef struct twtl_info_engine_node {
 	std::string name;		// const
 	std::string app;		// const
 	std::string version;	// const 
-	SHORT reqPort;						// const : 5259
-	SHORT trapPort;						// need to be set by client
+	SHORT reqPort;			// const : 5259
+	SHORT trapPort;			// need to be set by client
 } TWTL_INFO_ENGINE_NODE;
 
 typedef struct twtl_info_data {
@@ -95,7 +108,11 @@ BOOL JSON_DeqTrapQueue(TWTL_TRAP_QUEUE* queue, TWTL_PROTO_BUF* outBuf);
 void JSON_ClearTrapQueue(TWTL_TRAP_QUEUE* queue);
 
 void JSON_ProtoParse(json_t *element, const char *key, TWTL_PROTO_BUF* req, TWTL_PROTO_NODE* node, int depth);
-void JSON_ProtoMakeResponse(TWTL_PROTO_BUF* req, TWTL_PROTO_BUF* res);
+
+char* JSON_ProtoMakeResponse(TWTL_PROTO_BUF* req);
+void JSON_ProtoReqGetProc(TWTL_PROTO_NODE* req_node, json_t* root, char** res);
+void JSON_ProtoReqSetProc(TWTL_PROTO_NODE* req_node, json_t* root, char** res);
+void JSON_ProtoReqDiffProc(TWTL_PROTO_NODE* req_node, json_t* root, char** res);
 json_t* JSON_ProtoBufToJson(TWTL_PROTO_BUF* res);
 
 void JSON_Init_TWTL_INFO_DATA();

@@ -21,7 +21,7 @@ typedef struct twtl_db_process
 	WCHAR process_path[MAX_PATH]; // Ex) C:\\Windows\\System32\\explorer.exe
 } TWTL_DB_PROCESS;
 
-#define DB_MAX_REG_PATH 255
+#define DB_MAX_REG_PATH 256
 #define DB_MAX_REG_VALUE 16384
 #define DB_MAX_REG_NAME 2048
 

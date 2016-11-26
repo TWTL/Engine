@@ -131,7 +131,7 @@ DWORD __stdcall SOCK_MainPortProc()
 			else
 			{
 				// Make Response and send it!
-				SOCK_MainPortResponse(&req);
+				SOCK_MainPortResponse(&req, mainSocket);
 				
 				// Clear ProtoBuf
 				JSON_ClearProtoNode(&req);
@@ -180,23 +180,14 @@ DWORD __stdcall SOCK_MainPortClose()
 	return FALSE;
 }
 
-DWORD SOCK_MainPortResponse(TWTL_PROTO_BUF *req)
+DWORD SOCK_MainPortResponse(TWTL_PROTO_BUF *req, SOCKET socket)
 {
-	// TWTL_PROTO_BUF* res = (TWTL_PROTO_BUF*)malloc(sizeof(TWTL_PROTO_BUF));
-	TWTL_PROTO_BUF res;
-	memset(&res, 0, sizeof(TWTL_PROTO_BUF));
-
-	JSON_ProtoMakeResponse(req, &res);
-
-	json_t* json_res = JSON_ProtoBufToJson(&res);
-	char* sendbuf = json_dumps(json_res, 0);
+	char* sendbuf = JSON_ProtoMakeResponse(req);
 	JSON_ClearProtoNode(req);
-	// free(&res);
-	json_decref(json_res);
 
 	printf("[Send]\n%s\n", sendbuf);
 
-	int iResult = send(mainSocket, sendbuf, strlen(sendbuf) + 1, 0);
+	int iResult = send(socket, sendbuf, strlen(sendbuf) + 1, 0);
 	free(sendbuf);
 	if (iResult == SOCKET_ERROR) {
 		printf("send failed with error: %d\n", WSAGetLastError());

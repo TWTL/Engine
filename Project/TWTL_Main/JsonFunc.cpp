@@ -28,7 +28,7 @@ DWORD JSON_Parse(const char buf[], size_t buflen, TWTL_PROTO_BUF* req)
 	BinaryDump((uint8_t*)buf, buflen);
 
 	root = json_loads(buf, 0, &error);
-	// root = json_loadb(buf, buflen, 0, &error);
+	// root = json_loadb(buf, buflen, 0, &error); // Why this function explodes?
 
 	if (!root) { // Not valid JSON text
 		fprintf(stderr, "json error on line %d: %s\n", error.line, error.text);
@@ -264,29 +264,27 @@ void JSON_ProtoParse(json_t *element, const char *key, TWTL_PROTO_BUF* req, TWTL
 		case JSON_STRING:
 			if (StrCmpIA(key, "type") == 0)
 			{
-				if (StrCmpIA(json_string_value(element), "request.get") == 0
-					|| StrCmpIA(json_string_value(element), "get.request") == 0)
+				if (StrCmpIA(json_string_value(element), PROTO_STR_REQ_GET) == 0)
 					node->type = PROTO_REQ_GET;
-				else if (StrCmpIA(json_string_value(element), "request.set") == 0
-					|| StrCmpIA(json_string_value(element), "set.request") == 0)
+				else if (StrCmpIA(json_string_value(element), PROTO_STR_REQ_SET) == 0)
 					node->type = PROTO_REQ_SET;
-				else if (StrCmpIA(json_string_value(element), "request.diff") == 0)
+				else if (StrCmpIA(json_string_value(element), PROTO_STR_REQ_DIFF) == 0)
 					node->type = PROTO_REQ_DIFF;
-				else if (StrCmpIA(json_string_value(element), "request.patch") == 0)
+				else if (StrCmpIA(json_string_value(element), PROTO_STR_REQ_PATCH) == 0)
 					node->type = PROTO_REQ_PATCH;
-				else if (StrCmpIA(json_string_value(element), "request.put") == 0)
+				else if (StrCmpIA(json_string_value(element), PROTO_STR_REQ_PUT) == 0)
 					node->type = PROTO_REQ_PUT;
-				else if (StrCmpIA(json_string_value(element), "request.delete") == 0)
+				else if (StrCmpIA(json_string_value(element), PROTO_STR_REQ_DELETE) == 0)
 					node->type = PROTO_REQ_DELETE;
-				else if (StrCmpIA(json_string_value(element), "request.beta") == 0)
+				else if (StrCmpIA(json_string_value(element), PROTO_STR_REQ_BETA) == 0)
 					node->type = PROTO_REQ_BETA;
-				else if (StrCmpIA(json_string_value(element), "response.status") == 0)
+				else if (StrCmpIA(json_string_value(element), PROTO_STR_RES_STATUS) == 0)
 					node->type = PROTO_RES_STATUS;
-				else if (StrCmpIA(json_string_value(element), "response.object") == 0)
+				else if (StrCmpIA(json_string_value(element), PROTO_STR_RES_OBJECT) == 0)
 					node->type = PROTO_RES_OBJECT;
-				else if (StrCmpIA(json_string_value(element), "trap.change") == 0)
+				else if (StrCmpIA(json_string_value(element), PROTO_STR_TRAP_CHANGE) == 0)
 					node->type = PROTO_TRAP_CHANGE;
-				else if (StrCmpIA(json_string_value(element), "trak-ack.check") == 0)
+				else if (StrCmpIA(json_string_value(element), PROTO_STR_ACK_CHECK) == 0)
 					node->type = PROTO_TRAP_ACK_CHECK;
 			}
 			else if (StrCmpIA(key, "path") == 0)
@@ -339,7 +337,49 @@ void JSON_ProtoParse(json_t *element, const char *key, TWTL_PROTO_BUF* req, TWTL
 	}	
 }
 
-void JSON_ProtoMakeResponse(TWTL_PROTO_BUF* req, TWTL_PROTO_BUF* res)
+char* JSON_ProtoMakeResponse(TWTL_PROTO_BUF* req)
+{
+	TWTL_PROTO_NODE* req_node = req->contents;
+	char* res;
+
+	json_t* root = json_object();
+
+	json_object_set(root, "name", json_string(g_twtlInfo.engine.name.c_str()));
+	json_object_set(root, "app", json_string(g_twtlInfo.engine.app.c_str()));
+	json_object_set(root, "version", json_string(g_twtlInfo.engine.version.c_str()));
+
+	while (req_node)
+	{
+		switch (req_node->type)
+		{
+		case PROTO_REQ_GET:
+			JSON_ProtoReqGetProc(req_node, root, &res);
+			break;
+		case PROTO_REQ_SET:
+			JSON_ProtoReqSetProc(req_node, root, &res);
+			break;
+		case PROTO_REQ_PUT:
+			break;
+		case PROTO_REQ_DELETE:
+			break;
+		case PROTO_REQ_DIFF:
+			JSON_ProtoReqDiffProc(req_node, root, &res);
+			break;
+		case PROTO_REQ_PATCH:
+			break;
+		case PROTO_REQ_BETA:
+			break;
+		}
+
+		req_node = req_node->next;
+	}
+
+	res = json_dumps(root, 0);
+	json_decref(root);
+	return res;
+}
+/*
+void JSON_ProtoMakeResponse_bak(TWTL_PROTO_BUF* req, TWTL_PROTO_BUF* res)
 {
 	TWTL_PROTO_NODE* req_node = req->contents;
 	memset(res, 0, sizeof(TWTL_PROTO_BUF));
@@ -351,119 +391,17 @@ void JSON_ProtoMakeResponse(TWTL_PROTO_BUF* req, TWTL_PROTO_BUF* res)
 		switch (req_node->type)
 		{
 		case PROTO_REQ_GET:
-			if (req_node->path.compare("/Engine/Name/") == 0)
-			{
-				TWTL_PROTO_NODE* res_node_status = JSON_AddProtoNode(res);
-				res_node_status->type = PROTO_RES_STATUS;
-				res_node_status->path = req_node->path;
-				res_node_status->value_type = PROTO_VALUE_INT32;
-				res_node_status->value_int32 = PROTO_STATUS_SUCCESS;
-
-				TWTL_PROTO_NODE* res_node_object = JSON_AddProtoNode(res);
-				res_node_object->type = PROTO_RES_OBJECT;
-				res_node_object->path = req_node->path;
-				res_node_object->value_type = PROTO_VALUE_STRING;
-				res_node_object->value_string = g_twtlInfo.engine.name;
-			}
-			else if (req_node->path.compare("/Engine/Version/") == 0)
-			{
-				TWTL_PROTO_NODE* res_node_status = JSON_AddProtoNode(res);
-				res_node_status->type = PROTO_RES_STATUS;
-				res_node_status->path = req_node->path;
-				res_node_status->value_type = PROTO_VALUE_INT32;
-				res_node_status->value_int32 = PROTO_STATUS_SUCCESS;
-
-				TWTL_PROTO_NODE* res_node_object = JSON_AddProtoNode(res);
-				res_node_object->type = PROTO_RES_OBJECT;
-				res_node_object->path = req_node->path;
-				res_node_object->value_type = PROTO_VALUE_STRING;
-				res_node_object->value_string = g_twtlInfo.engine.version;
-			}
-			else if (req_node->path.compare("/Engine/RequestPort/") == 0)
-			{
-				TWTL_PROTO_NODE* res_node_status = JSON_AddProtoNode(res);
-				res_node_status->type = PROTO_RES_STATUS;
-				res_node_status->path = req_node->path;
-				res_node_status->value_type = PROTO_VALUE_INT32;
-				res_node_status->value_int32 = PROTO_STATUS_SUCCESS;
-
-				TWTL_PROTO_NODE* res_node_object = JSON_AddProtoNode(res);
-				res_node_object->type = PROTO_RES_OBJECT;
-				res_node_object->path = req_node->path;
-				res_node_object->value_type = PROTO_VALUE_INT32;
-				res_node_object->value_int32 = g_twtlInfo.engine.reqPort;
-			}
-			else if (req_node->path.compare("/Engine/TrapPort/") == 0)
-			{ // This value must be set first
-				if (g_twtlInfo.engine.trapPort == INVALID_PORT_VALUE)
-				{ // Not set, return 400
-					TWTL_PROTO_NODE* res_node_status = JSON_AddProtoNode(res);
-					res_node_status->type = PROTO_RES_STATUS;
-					res_node_status->path = req_node->path;
-					res_node_status->value_type = PROTO_VALUE_INT32;
-					res_node_status->value_int32 = PROTO_STATUS_CLIENT_ERROR;
-				}
-				else
-				{ // Return 200
-					TWTL_PROTO_NODE* res_node_status = JSON_AddProtoNode(res);
-					res_node_status->type = PROTO_RES_STATUS;
-					res_node_status->path = req_node->path;
-					res_node_status->value_type = PROTO_VALUE_INT32;
-					res_node_status->value_int32 = PROTO_STATUS_SUCCESS;
-
-					TWTL_PROTO_NODE* res_node_object = JSON_AddProtoNode(res);
-					res_node_object->type = PROTO_RES_OBJECT;
-					res_node_object->path = req_node->path;
-					res_node_object->value_type = PROTO_VALUE_INT32;
-					res_node_object->value_int32 = g_twtlInfo.engine.trapPort;
-				}				
-			}
+			JSON_ProtoReqGetProc(req_node, res);
 			break;
 		case PROTO_REQ_SET:
-			if (req_node->path.compare("/Engine/Name/") == 0)
-			{ // Const value, produce error
-				TWTL_PROTO_NODE* res_node_status = JSON_AddProtoNode(res);
-				res_node_status->type = PROTO_RES_STATUS;
-				res_node_status->path = req_node->path;
-				res_node_status->value_type = PROTO_VALUE_INT32;
-				res_node_status->value_int32 = PROTO_STATUS_CLIENT_ERROR;
-			}
-			else if (req_node->path.compare("/Engine/Version/") == 0)
-			{ // Const value, produce error
-				TWTL_PROTO_NODE* res_node_status = JSON_AddProtoNode(res);
-				res_node_status->type = PROTO_RES_STATUS;
-				res_node_status->path = req_node->path;
-				res_node_status->value_type = PROTO_VALUE_INT32;
-				res_node_status->value_int32 = PROTO_STATUS_CLIENT_ERROR;
-			}
-			else if (req_node->path.compare("/Engine/RequsetPort/") == 0)
-			{ // Const value, produce error
-				TWTL_PROTO_NODE* res_node_status = JSON_AddProtoNode(res);
-				res_node_status->type = PROTO_RES_STATUS;
-				res_node_status->path = req_node->path;
-				res_node_status->value_type = PROTO_VALUE_INT32;
-				res_node_status->value_int32 = PROTO_STATUS_CLIENT_ERROR;
-			}
-			else if (req_node->path.compare("/Engine/TrapPort/") == 0)
-			{ // 
-				g_twtlInfo.engine.trapPort = (SHORT) req_node->value_int32;
-
-				TWTL_PROTO_NODE* res_node_status = JSON_AddProtoNode(res);
-				res_node_status->type = PROTO_RES_STATUS;
-				res_node_status->path = req_node->path;
-				res_node_status->value_type = PROTO_VALUE_INT32;
-				res_node_status->value_int32 = PROTO_STATUS_SUCCESS;
-
-				if (g_twtlInfo.engine.trapPort == 0) {} // Connection Teardown
-
-				trapPort = g_twtlInfo.engine.trapPort;
-			}
+			JSON_ProtoReqSetProc(req_node, res);
 			break;
 		case PROTO_REQ_PUT:
 			break;
 		case PROTO_REQ_DELETE:
 			break;
 		case PROTO_REQ_DIFF:
+			JSON_ProtoReqDiffProc(req_node, res);
 			break;
 		case PROTO_REQ_PATCH:
 			break;
@@ -474,6 +412,301 @@ void JSON_ProtoMakeResponse(TWTL_PROTO_BUF* req, TWTL_PROTO_BUF* res)
 		req_node = req_node->next;
 	}
 }
+*/
+
+void JSON_ProtoReqGetProc(TWTL_PROTO_NODE* req_node, json_t* root, char** res)
+{
+	json_t* contentsArray = json_array(); // "contents": [  ]  // []
+	json_object_set(root, "contents", contentsArray);
+
+	if (req_node->path.compare("/Engine/Name/") == 0)
+	{
+		json_t* contentNode = json_object(); // [ { } , { } , { }, ] // {}
+		json_array_append(contentsArray, contentNode);
+		
+		json_object_set(contentNode, "type", json_string(PROTO_STR_RES_STATUS));
+		json_object_set(contentNode, "path", json_string(req_node->path.c_str()));
+		json_object_set(contentNode, "value", json_integer(PROTO_STATUS_SUCCESS));
+
+		json_object_set(contentNode, "type", json_string(PROTO_STR_RES_OBJECT));
+		json_object_set(contentNode, "path", json_string(req_node->path.c_str()));
+		json_object_set(contentNode, "value", json_string(g_twtlInfo.engine.name.c_str()));
+	}
+	else if (req_node->path.compare("/Engine/Version/") == 0)
+	{
+		json_t* contentNode = json_object(); // [ { } , { } , { }, ] // {}
+		json_array_append(contentsArray, contentNode);
+
+		json_object_set(contentNode, "type", json_string(PROTO_STR_RES_STATUS));
+		json_object_set(contentNode, "path", json_string(req_node->path.c_str()));
+		json_object_set(contentNode, "value", json_integer(PROTO_STATUS_SUCCESS));
+
+		json_object_set(contentNode, "type", json_string(PROTO_STR_RES_OBJECT));
+		json_object_set(contentNode, "path", json_string(req_node->path.c_str()));
+		json_object_set(contentNode, "value", json_string(g_twtlInfo.engine.version.c_str()));
+	}
+	else if (req_node->path.compare("/Engine/RequestPort/") == 0)
+	{
+		json_t* contentNode = json_object(); // [ { } , { } , { }, ] // {}
+		json_array_append(contentsArray, contentNode);
+
+		json_object_set(contentNode, "type", json_string(PROTO_STR_RES_STATUS));
+		json_object_set(contentNode, "path", json_string(req_node->path.c_str()));
+		json_object_set(contentNode, "value", json_integer(PROTO_STATUS_SUCCESS));
+
+		json_object_set(contentNode, "type", json_string(PROTO_STR_RES_OBJECT));
+		json_object_set(contentNode, "path", json_string(req_node->path.c_str()));
+		json_object_set(contentNode, "value", json_integer(g_twtlInfo.engine.reqPort));
+	}
+	else if (req_node->path.compare("/Engine/TrapPort/") == 0)
+	{ // This value must be set first
+		if (g_twtlInfo.engine.trapPort == INVALID_PORT_VALUE)
+		{ // Not set, return 400
+			json_t* contentNode = json_object(); // [ { } , { } , { }, ] // {}
+			json_array_append(contentsArray, contentNode);
+
+			json_object_set(contentNode, "type", json_string(PROTO_STR_RES_STATUS));
+			json_object_set(contentNode, "path", json_string(req_node->path.c_str()));
+			json_object_set(contentNode, "value", json_integer(PROTO_STATUS_CLIENT_ERROR));
+		}
+		else
+		{ // Return 200
+			json_t* contentNode = json_object(); // [ { } , { } , { }, ] // {}
+			json_array_append(contentsArray, contentNode);
+
+			json_object_set(contentNode, "type", json_string(PROTO_STR_RES_STATUS));
+			json_object_set(contentNode, "path", json_string(req_node->path.c_str()));
+			json_object_set(contentNode, "value", json_integer(PROTO_STATUS_SUCCESS));
+
+			json_object_set(contentNode, "type", json_string(PROTO_STR_RES_OBJECT));
+			json_object_set(contentNode, "path", json_string(req_node->path.c_str()));
+			json_object_set(contentNode, "value", json_integer(g_twtlInfo.engine.trapPort));
+		}
+	}
+	else if (req_node->path.compare("/Reg/Short/") == 0)
+	{
+		BOOL failure = FALSE;
+
+		TWTL_DB_REGISTRY* dbHkcuRun = (TWTL_DB_REGISTRY*)calloc(1, sizeof(TWTL_DB_REGISTRY));
+		TWTL_DB_REGISTRY* dbHklmRun = (TWTL_DB_REGISTRY*)calloc(1, sizeof(TWTL_DB_REGISTRY));
+		TWTL_DB_REGISTRY* dbHkcuRunOnce = (TWTL_DB_REGISTRY*)calloc(1, sizeof(TWTL_DB_REGISTRY));
+		TWTL_DB_REGISTRY* dbHklmRunOnce = (TWTL_DB_REGISTRY*)calloc(1, sizeof(TWTL_DB_REGISTRY));
+		TWTL_DB_SERVICE* dbServices = (TWTL_DB_SERVICE*)calloc(1, sizeof(TWTL_DB_SERVICE));
+		
+		if (!(dbHkcuRun && dbHklmRun && dbHkcuRunOnce && dbHklmRunOnce && dbServices))
+		{ // DynAlloc Failure
+			failure = TRUE;
+		}
+
+		if (!SnapCurrentStatus(NULL, dbHkcuRun, dbHklmRun, dbHkcuRunOnce, dbHklmRunOnce, dbServices, NULL, NULL, 0))
+		{ // Snapshot Failure
+			failure = TRUE;
+		}
+
+		if (failure)
+		{ // Internal Server Error
+			json_t* contentNode = json_object(); // [ { } , { } , { }, ] // {}
+			json_array_append(contentsArray, contentNode);
+
+			json_object_set(contentNode, "type", json_string(PROTO_STR_RES_STATUS));
+			json_object_set(contentNode, "path", json_string(req_node->path.c_str()));
+			json_object_set(contentNode, "value", json_integer(PROTO_STATUS_SERVER_ERROR));
+		}
+		else
+		{ // Success
+			json_t* contentNode = json_object(); // [ { } , { } , { }, ] // {}
+			json_array_append(contentsArray, contentNode);
+
+			json_object_set(contentNode, "type", json_string(PROTO_STR_RES_STATUS));
+			json_object_set(contentNode, "path", json_string("/Reg/Short/"));
+			json_object_set(contentNode, "value", json_integer(PROTO_STATUS_SUCCESS));
+
+			json_object_set(contentNode, "type", json_string(PROTO_STR_RES_OBJECT));
+			json_object_set(contentNode, "path", json_string("/Reg/Short/"));
+			json_t* contentNodeObject = json_object();
+			json_object_set(contentNode, "value", contentNodeObject);
+			
+			// Services
+			{
+				json_t* serviceRoot = json_object();
+				json_object_set(contentNodeObject, "GlobalServices", serviceRoot);
+				json_t* serviceArray = json_array();
+				json_t* serviceNode = json_object();
+				json_array_append(serviceArray, serviceNode);
+
+				{
+					char utf8_buf[DB_MAX_REG_PATH];
+					WideCharToMultiByte(CP_UTF8, 0, dbServices->key, -1, utf8_buf, DB_MAX_REG_PATH, NULL, NULL);
+					json_object_set(serviceNode, "name", json_string(utf8_buf));
+				}
+				if (dbServices->image_path[0] == L'\0')
+				{
+					char utf8_buf[DB_MAX_REG_PATH];
+					json_object_set(serviceNode, "value", json_string(utf8_buf));
+				}
+				else
+				{
+					char utf8_buf[DB_MAX_REG_PATH];
+					WideCharToMultiByte(CP_UTF8, 0, dbServices->image_path, -1, utf8_buf, DB_MAX_REG_PATH, NULL, NULL);
+					json_object_set(serviceNode, "value", json_string(utf8_buf));
+				}
+			}
+
+			// HKLM - Run
+			{
+				json_t* regRoot = json_object();
+				json_object_set(contentNodeObject, "GlobalRun", regRoot);
+				json_t* regArray = json_array();
+				json_t* regNode = json_object();
+				json_array_append(regArray, regNode);
+
+				{
+					char* utf8_buf = (char*) calloc(DB_MAX_REG_VALUE, sizeof(utf8_buf));
+					WideCharToMultiByte(CP_UTF8, 0, dbHklmRun->value, -1, utf8_buf, DB_MAX_REG_VALUE, NULL, NULL);
+					json_object_set(regNode, "name", json_string(utf8_buf));
+					free(utf8_buf);
+				}
+				{
+					char utf8_buf[DB_MAX_REG_NAME];
+					WideCharToMultiByte(CP_UTF8, 0, dbHklmRun->name, -1, utf8_buf, DB_MAX_REG_NAME, NULL, NULL);
+					json_object_set(regNode, "value", json_string(utf8_buf));
+				}
+			}
+
+			// HKLM - RunOnce
+			{
+				json_t* regRoot = json_object();
+				json_object_set(contentNodeObject, "GlobalRunOnce", regRoot);
+				json_t* regArray = json_array();
+				json_t* regNode = json_object();
+				json_array_append(regArray, regNode);
+
+				{
+					char* utf8_buf = (char*)calloc(DB_MAX_REG_VALUE, sizeof(utf8_buf));
+					WideCharToMultiByte(CP_UTF8, 0, dbHklmRunOnce->value, -1, utf8_buf, DB_MAX_REG_VALUE, NULL, NULL);
+					json_object_set(regNode, "name", json_string(utf8_buf));
+					free(utf8_buf);
+				}
+				{
+					char utf8_buf[DB_MAX_REG_NAME];
+					WideCharToMultiByte(CP_UTF8, 0, dbHklmRunOnce->name, -1, utf8_buf, DB_MAX_REG_NAME, NULL, NULL);
+					json_object_set(regNode, "value", json_string(utf8_buf));
+				}
+			}
+
+			// HKCU - Run
+			{
+				json_t* regRoot = json_object();
+				json_object_set(contentNodeObject, "UserRun", regRoot);
+				json_t* regArray = json_array();
+				json_t* regNode = json_object();
+				json_array_append(regArray, regNode);
+
+				{
+					char* utf8_buf = (char*)calloc(DB_MAX_REG_VALUE, sizeof(utf8_buf));
+					WideCharToMultiByte(CP_UTF8, 0, dbHkcuRun->value, -1, utf8_buf, DB_MAX_REG_VALUE, NULL, NULL);
+					json_object_set(regNode, "name", json_string(utf8_buf));
+					free(utf8_buf);
+				}
+				{
+					char utf8_buf[DB_MAX_REG_NAME];
+					WideCharToMultiByte(CP_UTF8, 0, dbHkcuRun->name, -1, utf8_buf, DB_MAX_REG_NAME, NULL, NULL);
+					json_object_set(regNode, "value", json_string(utf8_buf));
+				}
+			}
+
+			// HKCU - RunOnce
+			{
+				json_t* regRoot = json_object();
+				json_object_set(contentNodeObject, "UserRunOnce", regRoot);
+				json_t* regArray = json_array();
+				json_t* regNode = json_object();
+				json_array_append(regArray, regNode);
+
+				{
+					char* utf8_buf = (char*)calloc(DB_MAX_REG_VALUE, sizeof(utf8_buf));
+					WideCharToMultiByte(CP_UTF8, 0, dbHkcuRunOnce->value, -1, utf8_buf, DB_MAX_REG_VALUE, NULL, NULL);
+					json_object_set(regNode, "name", json_string(utf8_buf));
+					free(utf8_buf);
+				}
+				{
+					char utf8_buf[DB_MAX_REG_NAME];
+					WideCharToMultiByte(CP_UTF8, 0, dbHkcuRunOnce->name, -1, utf8_buf, DB_MAX_REG_NAME, NULL, NULL);
+					json_object_set(regNode, "value", json_string(utf8_buf));
+				}
+			}
+		}
+
+		// Finalize
+		free(dbHkcuRun);
+		free(dbHklmRun);
+		free(dbHkcuRunOnce);
+		free(dbHklmRunOnce);
+		free(dbServices);
+		dbHkcuRun = NULL;
+		dbHklmRun = NULL;
+		dbHkcuRunOnce = NULL;
+		dbHklmRunOnce = NULL;
+		dbServices = NULL;
+	}
+}
+
+void JSON_ProtoReqSetProc(TWTL_PROTO_NODE* req_node, json_t* root, char** res)
+{
+	json_t* contentsArray = json_array(); // "contents": [  ]  // []
+	json_object_set(root, "contents", contentsArray);
+
+	if (req_node->path.compare("/Engine/Name/") == 0)
+	{ // Const value, produce error
+		json_t* contentNode = json_object(); // [ { } , { } , { }, ] // {}
+		json_array_append(contentsArray, contentNode);
+
+		json_object_set(contentNode, "type", json_string(PROTO_STR_RES_STATUS));
+		json_object_set(contentNode, "path", json_string(req_node->path.c_str()));
+		json_object_set(contentNode, "value", json_integer(PROTO_STATUS_CLIENT_ERROR));
+	}
+	else if (req_node->path.compare("/Engine/Version/") == 0)
+	{ // Const value, produce error
+		json_t* contentNode = json_object(); // [ { } , { } , { }, ] // {}
+		json_array_append(contentsArray, contentNode);
+
+		json_object_set(contentNode, "type", json_string(PROTO_STR_RES_STATUS));
+		json_object_set(contentNode, "path", json_string(req_node->path.c_str()));
+		json_object_set(contentNode, "value", json_integer(PROTO_STATUS_CLIENT_ERROR));
+	}
+	else if (req_node->path.compare("/Engine/RequsetPort/") == 0)
+	{ // Const value, produce error
+		json_t* contentNode = json_object(); // [ { } , { } , { }, ] // {}
+		json_array_append(contentsArray, contentNode);
+
+		json_object_set(contentNode, "type", json_string(PROTO_STR_RES_STATUS));
+		json_object_set(contentNode, "path", json_string(req_node->path.c_str()));
+		json_object_set(contentNode, "value", json_integer(PROTO_STATUS_CLIENT_ERROR));
+	}
+	else if (req_node->path.compare("/Engine/TrapPort/") == 0)
+	{ // 
+		json_t* contentNode = json_object(); // [ { } , { } , { }, ] // {}
+		json_array_append(contentsArray, contentNode);
+
+		g_twtlInfo.engine.trapPort = (SHORT)req_node->value_int32;
+
+		json_object_set(contentNode, "type", json_string(PROTO_STR_RES_STATUS));
+		json_object_set(contentNode, "path", json_string(req_node->path.c_str()));
+		json_object_set(contentNode, "value", json_integer(PROTO_STATUS_SUCCESS));
+
+		if (g_twtlInfo.engine.trapPort == 0) {} // Connection Teardown
+
+		trapPort = g_twtlInfo.engine.trapPort;
+	}
+}
+
+void JSON_ProtoReqDiffProc(TWTL_PROTO_NODE* req_node, json_t* root, char** res)
+{
+	if (req_node->path.compare("/Reg/Short/") == 0)
+	{
+
+	}
+}
 
 json_t* JSON_ProtoBufToJson(TWTL_PROTO_BUF* res)
 {
@@ -482,9 +715,9 @@ json_t* JSON_ProtoBufToJson(TWTL_PROTO_BUF* res)
 
 	TWTL_PROTO_NODE* res_node = res->contents;
 
-	json_object_set_new(root, "name", json_string(res->name.c_str()));
-	json_object_set_new(root, "app", json_string(res->app.c_str()));
-	json_object_set_new(root, "version", json_string(res->version.c_str()));
+	json_object_set(root, "name", json_string(res->name.c_str()));
+	json_object_set(root, "app", json_string(res->app.c_str()));
+	json_object_set(root, "version", json_string(res->version.c_str()));
 
 	while (res_node)
 	{
@@ -493,34 +726,34 @@ json_t* JSON_ProtoBufToJson(TWTL_PROTO_BUF* res)
 		switch (res_node->type)
 		{
 		case PROTO_REQ_GET:
-			json_object_set_new(json_node, "type", json_string("request.get"));
+			json_object_set(json_node, "type", json_string("request.get"));
 			break;
 		case PROTO_REQ_SET:
-			json_object_set_new(json_node, "type", json_string("request.set"));
+			json_object_set(json_node, "type", json_string("request.set"));
 			break;
 		case PROTO_RES_STATUS:
-			json_object_set_new(json_node, "type", json_string("response.status"));
+			json_object_set(json_node, "type", json_string("response.status"));
 			break;
 		case PROTO_RES_OBJECT:
-			json_object_set_new(json_node, "type", json_string("response.object"));
+			json_object_set(json_node, "type", json_string("response.object"));
 			break;
 		}
 
-		json_object_set_new(json_node, "path", json_string(res_node->path.c_str()));
+		json_object_set(json_node, "path", json_string(res_node->path.c_str()));
 		
 		switch (res_node->value_type)
 		{
 		case PROTO_VALUE_STRING:
-			json_object_set_new(json_node, "value", json_string(res_node->value_string.c_str()));
+			json_object_set(json_node, "value", json_string(res_node->value_string.c_str()));
 			break;
 		case PROTO_VALUE_INT32:
-			json_object_set_new(json_node, "value", json_integer(res_node->value_int32));
+			json_object_set(json_node, "value", json_integer(res_node->value_int32));
 			break;
 		case PROTO_VALUE_FLOAT32:
-			json_object_set_new(json_node, "value", json_real(res_node->value_real));
+			json_object_set(json_node, "value", json_real(res_node->value_real));
 			break;
 		case PROTO_VALUE_BOOLEAN:
-			json_object_set_new(json_node, "value", json_boolean(res_node->value_boolean));
+			json_object_set(json_node, "value", json_boolean(res_node->value_boolean));
 			break;
 		case PROTO_VALUE_NULL:
 			break;
@@ -530,7 +763,7 @@ json_t* JSON_ProtoBufToJson(TWTL_PROTO_BUF* res)
 
 		res_node = res_node->next;
 	}
-	json_object_set_new(root, "contents", json_arr);
+	json_object_set(root, "contents", json_arr);
 
 	return root;
 }

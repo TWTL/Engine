@@ -35,14 +35,6 @@ TWTL_SNAPSHOT_API BOOL __stdcall SnapCurrentStatus(
 {
 	FILE* storage = NULL;
 
-	CPROINFO currentProcessInfo;
-	PCPROINFO pCurrentProcessInfo = &currentProcessInfo;
-	currentProcessInfo.pProc32 = &currentProcessInfo.proc32;
-
-	// use c++ because of readability
-	LPWSTR imageName = new WCHAR[MAX_PATH];
-	DWORD imageNameSize = MAX_PATH;
-
 	CHAR fileName[MAX_PROC_NAME] = "Snapshot";
 	TCHAR curPID[PROPID_MAX] = { 0, };
 
@@ -54,11 +46,13 @@ TWTL_SNAPSHOT_API BOOL __stdcall SnapCurrentStatus(
 	int i = 0;
 	int listNum = 0;
 
-	SetPrivilege(SE_DEBUG_NAME, TRUE);
+	// SetPrivilege(SE_DEBUG_NAME, TRUE);
 
+	/*
 	if (!MakeFileName(fileName)) {
 		return NULL;
 	}
+	*/
 	if (mode == 0) {
 
 	}
@@ -77,6 +71,13 @@ TWTL_SNAPSHOT_API BOOL __stdcall SnapCurrentStatus(
 	// Get Process Information
 	if (sqlitePrc)
 	{
+		CPROINFO currentProcessInfo;
+		PCPROINFO pCurrentProcessInfo = &currentProcessInfo;
+		currentProcessInfo.pProc32 = &currentProcessInfo.proc32;
+
+		WCHAR imageName[MAX_PATH];
+		DWORD imageNameSize = MAX_PATH;
+
 		if ((currentProcessInfo.hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0))
 			== INVALID_HANDLE_VALUE) {
 			ExceptionFileClose(storage, mode);
@@ -185,6 +186,7 @@ TWTL_SNAPSHOT_API BOOL __stdcall SnapCurrentStatus(
 
 	if (sqliteNet1 && sqliteNet2)
 		ParseNetstat(sqliteNet1, sqliteNet2);
+
 	TerminateCurrentProcess(0, 1);
 	return TRUE;
 }
