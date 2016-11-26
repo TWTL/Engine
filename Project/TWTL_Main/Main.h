@@ -71,9 +71,4 @@ ErrMsg(
 
 void BinaryDump(const uint8_t buf[], const uint32_t bufsize);
 
-sqlite3* __stdcall DB_Connect(LPCWSTR dbFilePath);
-BOOL __stdcall DB_Close(sqlite3 *db);
-BOOL __stdcall DB_CreateTable(sqlite3 *db, DB_TABLE_TYPE type);
-BOOL __stdcall DB_Insert(sqlite3 *db, DB_TABLE_TYPE type, void* data);
-BOOL __stdcall DB_Select(sqlite3 *db, DB_TABLE_TYPE type, void* data, WCHAR* sql_where);
 

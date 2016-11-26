@@ -10,6 +10,7 @@
 static SOCKET mainSocket;
 static SOCKET trapSocket;
 
+extern TWTL_INFO_DATA g_twtlInfo;
 extern BOOL g_runJsonMainThread;
 extern BOOL g_runJsonTrapThread;
 extern TWTL_TRAP_QUEUE trapQueue;
@@ -112,7 +113,7 @@ DWORD __stdcall SOCK_MainPortProc()
 {
 	char recvbuf[TWTL_JSON_MAX_BUF];
 	int iResult = 0;
-	// TWTL_PROTO_BUF* req = (TWTL_PROTO_BUF*)malloc(sizeof(TWTL_PROTO_BUF));
+	
 	TWTL_PROTO_BUF req;
 	memset(&req, 0, sizeof(TWTL_PROTO_BUF));
 
@@ -185,7 +186,14 @@ DWORD SOCK_MainPortResponse(TWTL_PROTO_BUF *req, SOCKET socket)
 	char* sendbuf = JSON_ProtoMakeResponse(req);
 	JSON_ClearProtoNode(req);
 
-	printf("[Send]\n%s\n", sendbuf);
+#ifdef _DEBUG
+	FILE* fp = NULL;
+	fopen_s(&fp, "json_log.txt", "a");
+	fprintf(fp, "[E -> U] MainPort Send\n%s\n\n", sendbuf);
+	fclose(fp);
+#endif
+	printf("[E -> U] MainPort Send\n");
+	BinaryDump((uint8_t*)sendbuf, sizeof(sendbuf));
 
 	int iResult = send(socket, sendbuf, strlen(sendbuf) + 1, 0);
 	free(sendbuf);
@@ -196,6 +204,7 @@ DWORD SOCK_MainPortResponse(TWTL_PROTO_BUF *req, SOCKET socket)
 	return FALSE;
 }
 
+/*
 BOOL SOCK_SendProtoBuf(SOCKET sock, TWTL_PROTO_BUF *buf)
 {
 	json_t* json_res = JSON_ProtoBufToJson(buf);
@@ -216,6 +225,7 @@ BOOL SOCK_SendProtoBuf(SOCKET sock, TWTL_PROTO_BUF *buf)
 	}
 	return FALSE;
 }
+*/
 
 DWORD SOCK_TrapPortInit(LPCSTR address, LPCSTR port)
 {
@@ -290,23 +300,22 @@ DWORD SOCK_TrapPortProc()
 {
 	 char recvbuf[TWTL_JSON_MAX_BUF];
 
-	 // TWTL_PROTO_BUF* buf = (TWTL_PROTO_BUF*)malloc(sizeof(TWTL_PROTO_BUF));
 	 TWTL_PROTO_BUF buf;
 	 memset(&buf, 0, sizeof(TWTL_PROTO_BUF));
 
 	 while (trapPort != 0)
 	 {
-		 if (JSON_DeqTrapQueue(&trapQueue, &buf))
+		 std::string path;
+
+		 if (JSON_DeqTrapQueue(&trapQueue, &path))
 		 { // Queue is empty
 			 DelayWait(1000);
 			 continue;
 		 }
 
-		 if (SOCK_SendProtoBuf(trapSocket, &buf))
-		 {
-			 fprintf(stderr, "SOCK_SendProtoBuf() failed\n\n");
-			 JSON_ClearProtoNode(&buf);
-			 free(&buf);
+		 if (JSON_SendTrap(trapSocket, path))
+		 { // Failure
+			 fprintf(stderr, "[ERR] JSON_SendTrap() error\n\n");
 			 continue;
 		 }
 

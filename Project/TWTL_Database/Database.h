@@ -59,4 +59,4 @@ TWTL_DATABASE_API sqlite3* __stdcall DB_Connect(LPCWSTR dbFilePath);
 TWTL_DATABASE_API BOOL __stdcall DB_Close(sqlite3 *db);
 TWTL_DATABASE_API BOOL __stdcall DB_CreateTable(sqlite3 *db, DB_TABLE_TYPE type);
 TWTL_DATABASE_API BOOL __stdcall DB_Insert(sqlite3 *db, DB_TABLE_TYPE type, void* data);
-TWTL_DATABASE_API BOOL __stdcall DB_Select(sqlite3 *db, DB_TABLE_TYPE type, void* data, WCHAR* sql_where);
+TWTL_DATABASE_API BOOL __stdcall DB_SelectQuery(sqlite3 *db, DB_TABLE_TYPE type, void* data, int* count, WCHAR* sql_where);

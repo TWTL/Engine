@@ -12,6 +12,10 @@ unsigned int WINAPI JsonMainThreadProc(LPVOID lpParam)
 {
 	JSON_Init_TWTL_INFO_DATA();
 
+	FILE* fp = NULL;
+	fopen_s(&fp, "json_log.txt", "w");
+	fclose(fp);
+
 	while (g_runJsonMainThread)
 	{
 		SOCK_MainPortInit();
@@ -42,18 +46,6 @@ unsigned int WINAPI JsonTrapThreadProc(LPVOID lpParam)
 
 		StringCchPrintfA(trapPortBuf, TWTL_JSON_MAX_BUF, "%d", trapPort);
 		SOCK_TrapPortInit("127.0.0.1", trapPortBuf);
-
-		/*
-		// Trap
-		TWTL_PROTO_BUF res;
-		memset(&res, 0, sizeof(TWTL_PROTO_BUF));
-
-		StringCchCopyA(res.app, TWTL_JSON_MAX_BUF, "TWTL-Engine");
-		StringCchCopyA(res.name, TWTL_JSON_MAX_BUF, "TWTL");
-		StringCchCopyA(res.version, TWTL_JSON_MAX_BUF, "1.0");
-		TWTL_PROTO_NODE* node = JSON_AddProtoNode(&res);
-		JSON_EnqTrapQueue(&trapQueue, &res);
-		*/
 
 		SOCK_TrapPortProc();
 		SOCK_TrapPortClose();

@@ -6,10 +6,12 @@
 #include "JsonThread.h"
 #include "JsonFunc.h"
 
+TWTL_INFO_DATA g_twtlInfo;
 BOOL g_runJsonMainThread = FALSE;
 BOOL g_runJsonTrapThread = FALSE;
 TWTL_TRAP_QUEUE trapQueue;
 SHORT trapPort;
+sqlite3 *g_db;
 
 int main()
 {	
@@ -40,12 +42,25 @@ int main()
 
 	SetPrivilege(SE_DEBUG_NAME, TRUE);
 
+	// Init Database
+	g_db = DB_Connect(L"TWTL_Database.db");
+	DB_CreateTable(g_db, DB_PROCESS);
+	DB_CreateTable(g_db, DB_REG_HKLM_RUN);
+	DB_CreateTable(g_db, DB_REG_HKLM_RUNONCE);
+	DB_CreateTable(g_db, DB_REG_HKCU_RUN);
+	DB_CreateTable(g_db, DB_REG_HKCU_RUNONCE);
+	DB_CreateTable(g_db, DB_SERVICE);
+	DB_CreateTable(g_db, DB_NETWORK);
+	wprintf_s(L"Database Initialized\n");
+
+	// Json Thread
 	hJsonThread[0] = (HANDLE)_beginthreadex(NULL, 0, &JsonMainThreadProc, (LPVOID)NULL, 0, NULL);
 	hJsonThread[1] = (HANDLE)_beginthreadex(NULL, 0, &JsonTrapThreadProc, (LPVOID)NULL, 0, NULL);
 	g_runJsonMainThread = TRUE;
 	g_runJsonTrapThread = TRUE;
-	DB_Connect(L"TWTL_Database.db");
 	wprintf_s(L"Json Threads running\n\n");
+
+
 
 	while (TRUE) {
 		SnapCurrentStatus(
@@ -115,8 +130,10 @@ int main()
 	CloseHandle(hJsonThread[0]);
 	CloseHandle(hJsonThread[1]);
 
+	DB_Close(g_db);
+
 	wprintf_s(L"\nBye!\n");
-	DelayWait(5000);
+	DelayWait(20000);
 	
 	return 0;
 }
