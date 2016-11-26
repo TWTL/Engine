@@ -118,7 +118,7 @@ BOOL __stdcall ParseNetstat(TWTL_DB_NETWORK* sqliteNet1, TWTL_DB_NETWORK* sqlite
 			printf("TCP[%d] Remote Port: %d\n", i,
 				sqliteNet1[i].dest_port);
 
-			sqliteNet1[i].pid = pTcpTable->table[i].dwOwningPid;
+			sqliteNet1[i].pid = (uint16_t) pTcpTable->table[i].dwOwningPid;
 			printf("TCP[%d] Owning PID: %d\n", i, sqliteNet1[i].pid);
 			printf("TCP[%d] Offload State: %ld - ", i,
 				pTcpTable->table[i].dwOffloadState);
@@ -177,7 +177,7 @@ BOOL __stdcall ParseNetstat(TWTL_DB_NETWORK* sqliteNet1, TWTL_DB_NETWORK* sqlite
 			printf("UDP[%d] Local Port: %d\n", i,
 				sqliteNet2[i].src_port);
 
-			sqliteNet2[i].pid = pUdpTable->table[i].dwOwningPid;
+			sqliteNet2[i].pid = (uint16_t) pUdpTable->table[i].dwOwningPid;
 			printf("UDP[%d] Owning PID: %d\n\n", i, sqliteNet2[i].pid);
 
 		}

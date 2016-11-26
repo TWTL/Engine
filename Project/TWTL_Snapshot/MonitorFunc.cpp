@@ -13,6 +13,7 @@ BOOL __stdcall WriteRegToTxt(FILE* storage, PREGINFO CONST pReg, TWTL_DB_REGISTR
 
 	Parameters : 
 		( out ) TWTL_DB_PROCESS* sqlitePrc : Result of parsing PROCESSENTRY32W
+				Put NULL if you don't want to query
 		( in )	DWORD32 mode :
 			0 -> just print
 			1 -> txt export
@@ -34,14 +35,6 @@ TWTL_SNAPSHOT_API BOOL __stdcall SnapCurrentStatus(
 {
 	FILE* storage = NULL;
 
-	CPROINFO currentProcessInfo;
-	PCPROINFO pCurrentProcessInfo = &currentProcessInfo;
-	currentProcessInfo.pProc32 = &currentProcessInfo.proc32;
-
-	// use c++ because of readability
-	LPWSTR imageName = new WCHAR[MAX_PATH];
-	DWORD imageNameSize = MAX_PATH;
-
 	CHAR fileName[MAX_PROC_NAME] = "Snapshot";
 	TCHAR curPID[PROPID_MAX] = { 0, };
 
@@ -53,11 +46,13 @@ TWTL_SNAPSHOT_API BOOL __stdcall SnapCurrentStatus(
 	int i = 0;
 	int listNum = 0;
 
-	SetPrivilege(SE_DEBUG_NAME, TRUE);
+	// SetPrivilege(SE_DEBUG_NAME, TRUE);
 
-	/* if (!MakeFileName(fileName)) {
+	/*
+	if (!MakeFileName(fileName)) {
 		return NULL;
-	}*/
+	}
+	*/
 	if (mode == 0) {
 
 	}
@@ -73,32 +68,24 @@ TWTL_SNAPSHOT_API BOOL __stdcall SnapCurrentStatus(
 		return NULL;
 	}
 
-	if ((currentProcessInfo.hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0))
-		== INVALID_HANDLE_VALUE) {
-		ExceptionFileClose(storage, mode);
-		return NULL;
-	}
+	// Get Process Information
+	if (sqlitePrc)
+	{
+		CPROINFO currentProcessInfo;
+		PCPROINFO pCurrentProcessInfo = &currentProcessInfo;
+		currentProcessInfo.pProc32 = &currentProcessInfo.proc32;
 
-	currentProcessInfo.proc32.dwSize = sizeof(PROCESSENTRY32);
-	DWORD32 PID = 0;
-	if (Process32First(currentProcessInfo.hSnap, &currentProcessInfo.proc32)) {
-		listNum = 0;
-		
-		if (mode == 1) {
-			fwprintf_s(storage, L"<Process List>\n");
-		}
-		// First Process' ID'll be 0, 
-		// so if calling Process32Next before writing, it'll be valid process.
-		//
-		while (Process32Next(currentProcessInfo.hSnap, &currentProcessInfo.proc32))
-		{
-			if (currentProcessInfo.proc32.th32ProcessID == 4) {
+		WCHAR imageName[MAX_PATH];
+		DWORD imageNameSize = MAX_PATH;
 
-			}
-			else {
-				listNum++;
-			}
+		if ((currentProcessInfo.hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0))
+			== INVALID_HANDLE_VALUE) {
+			ExceptionFileClose(storage, mode);
+			return NULL;
 		}
+
+		currentProcessInfo.proc32.dwSize = sizeof(PROCESSENTRY32);
+		DWORD32 PID = 0;
 		if (Process32First(currentProcessInfo.hSnap, &currentProcessInfo.proc32)) {
 			DWORD result = 0;
 			i = 0;
@@ -106,63 +93,85 @@ TWTL_SNAPSHOT_API BOOL __stdcall SnapCurrentStatus(
 			memset(sqlitePrc, 0x00, sizeof(TWTL_DB_PROCESS)*(listNum + 10));
 			while ((Process32Next(currentProcessInfo.hSnap, &currentProcessInfo.proc32)))
 			{
-				if (currentProcessInfo.proc32.th32ProcessID < 100) {
-					continue;
+				if (currentProcessInfo.proc32.th32ProcessID == 4) {
+
 				}
 				else {
-					currentProcessInfo.curHandle = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, currentProcessInfo.proc32.th32ProcessID);
-					if (currentProcessInfo.curHandle != NULL) {
-						result = QueryFullProcessImageName(currentProcessInfo.curHandle, 0, imageName, &imageNameSize);
-						imageNameSize = MAX_PATH;
-						if (result == 0) {
-							ErrMsg();
-							_tprintf_s(L"Nope :( ... Maybe system file. ");
-						}
-						else {
-							sqlitePrc[i].time = time(0);
-							wcscpy_s(sqlitePrc[i].process_path, MAX_PATH, imageName);
-							wcscpy_s(sqlitePrc[i].process_name, DB_MAX_PROC_NAME, currentProcessInfo.proc32.szExeFile);
-							sqlitePrc[i].pid = currentProcessInfo.proc32.th32ProcessID;
-							sqlitePrc[i].ppid = currentProcessInfo.proc32.th32ParentProcessID;
+					listNum++;
+				}
+			}
+			if (Process32First(currentProcessInfo.hSnap, &currentProcessInfo.proc32)) {
+				DWORD result = 0;
+				i = 0;
+				sqlitePrc = (TWTL_DB_PROCESS*)realloc(sqlitePrc, sizeof(TWTL_DB_PROCESS)*(listNum + 10));
 
-							if (mode == 0) {
-								_tprintf_s(L"%s ", sqlitePrc[i].process_path);
-								_tprintf_s(L"Process name : %s, PID : %d, PPID :%d\n",
-									currentProcessInfo.proc32.szExeFile,
-									currentProcessInfo.proc32.th32ProcessID,
-									currentProcessInfo.proc32.th32ParentProcessID);
+				while ((Process32Next(currentProcessInfo.hSnap, &currentProcessInfo.proc32)))
+				{
+					if (currentProcessInfo.proc32.th32ProcessID < 100) {
+						continue;
+					}
+					else {
+						currentProcessInfo.curHandle = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, currentProcessInfo.proc32.th32ProcessID);
+						if (currentProcessInfo.curHandle != NULL) {
+							result = QueryFullProcessImageName(currentProcessInfo.curHandle, 0, imageName, &imageNameSize);
+							imageNameSize = MAX_PATH;
+							if (result == 0) {
+								ErrMsg();
+								_tprintf_s(L"Nope :( ... Maybe system file. ");
 							}
-							else if (mode == 1) {
-								if (_itow_s(currentProcessInfo.proc32.th32ProcessID, curPID, 5, 10)) {
-									ExceptionFileClose(storage, mode);
-									return NULL;
+							else {
+								sqlitePrc[i].time = time(0);
+								wcscpy_s(sqlitePrc[i].process_path, MAX_PATH, imageName);
+								wcscpy_s(sqlitePrc[i].process_name, DB_MAX_PROC_NAME, currentProcessInfo.proc32.szExeFile);
+								sqlitePrc[i].pid = currentProcessInfo.proc32.th32ProcessID;
+								sqlitePrc[i].ppid = currentProcessInfo.proc32.th32ParentProcessID;
+
+								if (mode == 0) {
+									_tprintf_s(L"%s ", sqlitePrc[i].process_path);
+									_tprintf_s(L"Process name : %s, PID : %d, PPID :%d\n",
+										currentProcessInfo.proc32.szExeFile,
+										currentProcessInfo.proc32.th32ProcessID,
+										currentProcessInfo.proc32.th32ParentProcessID);
 								}
-								fwprintf_s(storage, L"%s\t", &curPID);
-								fwprintf_s(storage, L"%s\n", &currentProcessInfo.proc32.szExeFile);
-								fwprintf_s(storage, L"%s\t", imageName);
+								else if (mode == 1) {
+									if (_itow_s(currentProcessInfo.proc32.th32ProcessID, curPID, 5, 10)) {
+										ExceptionFileClose(storage, mode);
+										return NULL;
+									}
+									fwprintf_s(storage, L"%s\t", &curPID);
+									fwprintf_s(storage, L"%s\n", &currentProcessInfo.proc32.szExeFile);
+									fwprintf_s(storage, L"%s\t", imageName);
+								}
 							}
 							CloseHandle(currentProcessInfo.curHandle);
 						}
 					}
+					i++;
 				}
-				i++;
+			}
+			if (mode == 1) {
+				fwprintf_s(storage, L"</Process List>\n\n");
 			}
 		}
-		if (mode == 1) {
-			fwprintf_s(storage, L"</Process List>\n\n");
-		}
+		CloseHandle(currentProcessInfo.hSnap);
 	}
-	CloseHandle(currentProcessInfo.hSnap);
+	
 	
 
 	// Write value of register key value ( Run of current user )
 	//
-
-	if (!SetTargetRegistryEntry(storage, pReg, sqliteReg1, NULL, 1, mode)||
-		!SetTargetRegistryEntry(storage, pReg, sqliteReg2, NULL, 2, mode)||
-		!SetTargetRegistryEntry(storage, pReg, sqliteReg3, NULL, 3, mode)||
-		!SetTargetRegistryEntry(storage, pReg, sqliteReg4, NULL, 4, mode)||
-		!SetTargetRegistryEntry(storage, pReg, NULL, sqliteSvc, 5, mode))
+	BOOL iResult = TRUE;
+	if (sqliteReg1)
+		iResult &= SetTargetRegistryEntry(storage, pReg, sqliteReg1, NULL, 1, mode);
+	if (sqliteReg2)
+		iResult &= SetTargetRegistryEntry(storage, pReg, sqliteReg2, NULL, 2, mode);
+	if (sqliteReg3)
+		iResult &= SetTargetRegistryEntry(storage, pReg, sqliteReg3, NULL, 3, mode);
+	if (sqliteReg4)
+		iResult &= SetTargetRegistryEntry(storage, pReg, sqliteReg4, NULL, 4, mode);
+	if (sqliteSvc)
+		iResult &= SetTargetRegistryEntry(storage, pReg, NULL, sqliteSvc, 5, mode);
+	if (!iResult)
 	{
 		ExceptionFileClose(storage, mode);
 		return NULL;
@@ -171,7 +180,9 @@ TWTL_SNAPSHOT_API BOOL __stdcall SnapCurrentStatus(
 		fclose(storage);
 	}
 
-	ParseNetstat(sqliteNet1, sqliteNet2);
+	if (sqliteNet1 && sqliteNet2)
+		ParseNetstat(sqliteNet1, sqliteNet2);
+
 	TerminateCurrentProcess(0, 1);
 	return TRUE;
 }
