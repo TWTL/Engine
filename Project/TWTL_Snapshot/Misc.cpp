@@ -159,7 +159,7 @@ BOOL __stdcall MakeFileName(CHAR fileName[]) {
 
 		if (fileNameBuf[1] == NULL) {
 			if (strcat_s(fileName,
-				MAX_PATH,
+				MAX_PROC_NAME,
 				"0"))
 			{
 				return NULL;
@@ -167,14 +167,14 @@ BOOL __stdcall MakeFileName(CHAR fileName[]) {
 		}
 
 		if (strcat_s(fileName, 
-			MAX_PATH,
+			MAX_PROC_NAME,
 			fileNameBuf)) 
 		{
 			return NULL;
 		}
 	}
 	if (strcat_s(fileName, 
-		MAX_PATH,
+		MAX_PROC_NAME,
 		".txt")) 
 	{
 		return NULL;

@@ -7,11 +7,10 @@
 #define MALLOC(x) HeapAlloc(GetProcessHeap(), 0, (x))
 #define FREE(x) HeapFree(GetProcessHeap(), 0, (x))
 
-BOOL __stdcall ParseNetstat()
+BOOL __stdcall ParseNetstat(TWTL_DB_NETWORK* sqliteNet1, TWTL_DB_NETWORK* sqliteNet2)
 {
-
 	// Declare and initialize variables
-	PMIB_UDPTABLE_OWNER_PID  pUdpTable;
+	PMIB_UDPTABLE_OWNER_PID pUdpTable;
 	PMIB_TCPTABLE2 pTcpTable;
 	ULONG ulSize = 0;
 	DWORD dwRetVal = 0;
@@ -22,6 +21,7 @@ BOOL __stdcall ParseNetstat()
 	struct in_addr IpAddr;
 
 	int i;
+	int total_entry = 0;
 
 	pTcpTable = (MIB_TCPTABLE2 *)MALLOC(sizeof(MIB_TCPTABLE2));
 	if (pTcpTable == NULL) {
@@ -46,6 +46,7 @@ BOOL __stdcall ParseNetstat()
 	}
 	if ((dwRetVal = GetTcpTable2(pTcpTable, &ulSize, TRUE)) == NO_ERROR) {
 		printf("Number of entries: %d\n", (int)pTcpTable->dwNumEntries);
+		sqliteNet1 = (TWTL_DB_NETWORK*)realloc(sqliteNet1, sizeof(TWTL_DB_NETWORK)*((int)pTcpTable->dwNumEntries + 10));
 		for (i = 0; i < (int)pTcpTable->dwNumEntries; i++) {
 			printf("\nTCP[%d] State: %ld - ", i,
 				pTcpTable->table[i].dwState);
@@ -90,19 +91,27 @@ BOOL __stdcall ParseNetstat()
 				printf("UNKNOWN dwState value\n");
 				break;
 			}
+			sqliteNet1[i].time = time(0);
 			IpAddr.S_un.S_addr = (u_long)pTcpTable->table[i].dwLocalAddr;
+			sqliteNet1[i].src_ipv4 = IpAddr.S_un.S_addr;
+			sqliteNet1[i].src_port = ntohs((u_short)pTcpTable->table[i].dwLocalPort);
 			strcpy_s(szLocalAddr, sizeof(szLocalAddr), inet_ntoa(IpAddr));
 			printf("TCP[%d] Local Addr: %s\n", i, szLocalAddr);
+			printf("TCP[%d] Local Addr: %lu\n", i, sqliteNet1[i].src_ipv4);
 			printf("TCP[%d] Local Port: %d \n", i,
-				ntohs((u_short)pTcpTable->table[i].dwLocalPort));
+				sqliteNet1[i].src_port);
 
 			IpAddr.S_un.S_addr = (u_long)pTcpTable->table[i].dwRemoteAddr;
+			sqliteNet1[i].dest_ipv4 = IpAddr.S_un.S_addr;
+			sqliteNet1[i].dest_port = ntohs((u_short)pTcpTable->table[i].dwRemotePort);
 			strcpy_s(szRemoteAddr, sizeof(szRemoteAddr), inet_ntoa(IpAddr));
 			printf("TCP[%d] Remote Addr: %s\n", i, szRemoteAddr);
+			printf("TCP[%d] Remote Addr: %lu\n", i, sqliteNet1[i].dest_ipv4);
 			printf("TCP[%d] Remote Port: %d\n", i,
-				ntohs((u_short)pTcpTable->table[i].dwRemotePort));
+				sqliteNet1[i].dest_port);
 
-			printf("TCP[%d] Owning PID: %d\n", i, pTcpTable->table[i].dwOwningPid);
+			sqliteNet1[i].pid = pTcpTable->table[i].dwOwningPid;
+			printf("TCP[%d] Owning PID: %d\n", i, sqliteNet1[i].pid);
 			printf("TCP[%d] Offload State: %ld - ", i,
 				pTcpTable->table[i].dwOffloadState);
 			switch (pTcpTable->table[i].dwOffloadState) {
@@ -148,14 +157,19 @@ BOOL __stdcall ParseNetstat()
 	}
 	if ((dwRetVal = GetExtendedUdpTable(pUdpTable, &ulSize, TRUE, AF_INET, UDP_TABLE_OWNER_PID, NULL)) == NO_ERROR) {
 		printf("Number of entries: %d\n", (int)pUdpTable->dwNumEntries);
+		sqliteNet2 = (TWTL_DB_NETWORK*)realloc(sqliteNet2, sizeof(TWTL_DB_NETWORK)*((int)pUdpTable->dwNumEntries + 10));
 		for (i = 0; i < (int)pUdpTable->dwNumEntries; i++) {
+			sqliteNet2[i].time = time(0);
 			IpAddr.S_un.S_addr = (u_long)pUdpTable->table[i].dwLocalAddr;
+			sqliteNet2[i].src_ipv4 = IpAddr.S_un.S_addr;
+			sqliteNet2[i].src_port = ntohs((u_short)pUdpTable->table[i].dwLocalPort);
 			strcpy_s(szLocalAddr, sizeof(szLocalAddr), inet_ntoa(IpAddr));
 			printf("UDP[%d] Local Addr: %s\n", i, szLocalAddr);
 			printf("UDP[%d] Local Port: %d\n", i,
-				ntohs((u_short)pUdpTable->table[i].dwLocalPort));
+				sqliteNet2[i].src_port);
 
-			printf("UDP[%d] Owning PID: %d\n\n", i, pUdpTable->table[i].dwOwningPid);
+			sqliteNet2[i].pid = pUdpTable->table[i].dwOwningPid;
+			printf("UDP[%d] Owning PID: %d\n\n", i, sqliteNet2[i].pid);
 
 		}
 	}

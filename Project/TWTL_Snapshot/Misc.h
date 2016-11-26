@@ -8,9 +8,10 @@
 #define TWTL_SNAPSHOT_API __declspec(dllimport) 
 #endif
 
-#define PROPID_MAX	 6
-#define REGNAME_MAX	 255
-#define REGVALUE_MAX 16383
+#define PROPID_MAX	  6
+#define MAX_PROC_NAME 64
+#define REGNAME_MAX	  255
+#define REGVALUE_MAX  16383
 
 typedef struct CURRENTPROCESS_INFORMATION
 {
