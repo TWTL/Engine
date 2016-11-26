@@ -14,6 +14,21 @@ BOOL __stdcall WriteRegToTxt(FILE* storage, PREGINFO CONST pReg, TWTL_DB_REGISTR
 	Parameters : 
 		( out ) TWTL_DB_PROCESS* sqlitePrc : Result of parsing PROCESSENTRY32W
 				Put NULL if you don't want to query
+		( out ) TWTL_DB_REGISTRY* sqliteReg1 : Result of parsing HKCU\Software\windows\currentversion\run
+				Put NULL if you don't want to query
+		( out ) TWTL_DB_REGISTRY* sqliteReg2 : Result of parsing HKLM\Software\windows\currentversion\run
+				Put NULL if you don't want to query
+		( out ) TWTL_DB_REGISTRY* sqliteReg3 : Result of parsing HKCU\Software\windows\currentversion\runonce
+				Put NULL if you don't want to query
+		( out ) TWTL_DB_REGISTRY* sqliteReg4 : Result of parsing HKLM\Software\windows\currentversion\runonce
+				Put NULL if you don't want to query
+		( out ) TWTL_DB_REGISTRY* sqliteSvc : Result of parsing HKLM\System\currentcontrolset\services
+				Put NULL if you don't want to query
+		( out ) TWTL_DB_REGISTRY* sqliteReg1 : Result of parsing TCPTable
+				Put NULL if you don't want to query
+		( out ) TWTL_DB_REGISTRY* sqliteReg2 : Result of parsing UDPTable
+				Put NULL if you don't want to query
+		( out ) DWORD structSize : get size of reallocated memory.
 		( in )	DWORD32 mode :
 			0 -> print
 			1 -> txt export ( deprecated )
@@ -128,11 +143,13 @@ TWTL_SNAPSHOT_API BOOL __stdcall SnapCurrentStatus(
 									sqlitePrc[i].ppid = currentProcessInfo.proc32.th32ParentProcessID;
 
 									if (mode == 0) {
+#ifdef _DEBUG
 										_tprintf_s(L"%s ", sqlitePrc[i].process_path);
 										_tprintf_s(L"Process name : %s, PID : %d, PPID :%d\n",
 											currentProcessInfo.proc32.szExeFile,
 											currentProcessInfo.proc32.th32ProcessID,
 											currentProcessInfo.proc32.th32ParentProcessID);
+#endif
 									}
 									else if (mode == 1) {
 										if (_itow_s(currentProcessInfo.proc32.th32ProcessID, curPID, 5, 10)) {
@@ -292,11 +309,94 @@ BOOL __stdcall TerminateCurrentProcess(CONST DWORD32 targetPID, CONST DWORD mode
 	return TRUE;
 }
 
+BOOL RegDelnodeRecurse(HKEY hKeyRoot, LPTSTR lpSubKey)
+{
+	LPTSTR lpEnd;
+	LONG lResult;
+	DWORD dwSize;
+	TCHAR szName[MAX_PATH];
+	HKEY hKey;
+	FILETIME ftWrite;
+
+	// First, see if we can delete the key without having
+	// to recurse.
+
+	lResult = RegDeleteKey(hKeyRoot, lpSubKey);
+
+	if (lResult == ERROR_SUCCESS)
+		return TRUE;
+
+	lResult = RegOpenKeyEx(hKeyRoot, lpSubKey, 0, KEY_READ, &hKey);
+
+	if (lResult != ERROR_SUCCESS)
+	{
+		if (lResult == ERROR_FILE_NOT_FOUND) {
+			printf("Key not found.\n");
+			return TRUE;
+		}
+		else {
+			printf("Error opening key.\n");
+			return FALSE;
+		}
+	}
+
+	// Check for an ending slash and add one if it is missing.
+
+	lpEnd = lpSubKey + lstrlen(lpSubKey);
+
+	if (*(lpEnd - 1) != TEXT('\\'))
+	{
+		*lpEnd = TEXT('\\');
+		lpEnd++;
+		*lpEnd = TEXT('\0');
+	}
+
+	// Enumerate the keys
+
+	dwSize = MAX_PATH;
+	lResult = RegEnumKeyEx(hKey, 0, szName, &dwSize, NULL,
+		NULL, NULL, &ftWrite);
+
+	if (lResult == ERROR_SUCCESS)
+	{
+		do {
+
+			StringCchCopy(lpEnd, MAX_PATH * 2, szName);
+
+			if (!RegDelnodeRecurse(hKeyRoot, lpSubKey)) {
+				break;
+			}
+
+			dwSize = MAX_PATH;
+
+			lResult = RegEnumKeyEx(hKey, 0, szName, &dwSize, NULL,
+				NULL, NULL, &ftWrite);
+
+		} while (lResult == ERROR_SUCCESS);
+	}
+
+	lpEnd--;
+	*lpEnd = TEXT('\0');
+
+	RegCloseKey(hKey);
+
+	// Try again to delete the key.
+
+	lResult = RegDeleteKey(hKeyRoot, lpSubKey);
+
+	if (lResult == ERROR_SUCCESS)
+		return TRUE;
+
+	return FALSE;
+}
 /*
 	Description : delete target registry value
 
 	Parameter :
-		( in )	TCHAR keyName[REGNAME_MAX] : deleted value's name
+		( in )	TCHAR keyName[REGNAME_MAX] : deleted value's name or key's name
+			in case of target 1 ~ 4 : value's name
+			in case of target 5 : key's name
+			else : must not executed
 		( in )	DWORD32 targetKey  : 
 			1 -> HKEY_CURRENT_USER/Microsoft/Windows/CurrentVersion/Run
 			2 -> HKEY_LOCAL_MACHINE/Microsoft/Windows/CurrentVersion/Run
@@ -308,7 +408,7 @@ BOOL __stdcall TerminateCurrentProcess(CONST DWORD32 targetPID, CONST DWORD mode
 		0 = Error
 		1 = Success
 */
-TWTL_SNAPSHOT_API BOOL __stdcall DeleteRunKey(TCHAR CONST keyName[REGNAME_MAX], CONST DWORD32 targetKey) {
+TWTL_SNAPSHOT_API BOOL __stdcall DeleteKeyOrKeyValue(TCHAR CONST keyName[REGNAME_MAX], CONST DWORD32 targetKey) {
 	REGINFO reg;
 	PREGINFO pReg = &reg;
 	
@@ -316,12 +416,75 @@ TWTL_SNAPSHOT_API BOOL __stdcall DeleteRunKey(TCHAR CONST keyName[REGNAME_MAX], 
 	
 	DWORD32 target = targetKey;
 	
-	if (!OpenRegisteryKey(pReg, target)) {		
-		if (!RegDeleteValue(pReg->key, pReg->keyName)) {
-			_tprintf_s(L"Delete Value Name : %s\n", pReg->keyName);
+	if (!OpenRegisteryKey(pReg, target)) {
+		if (1 <= target && target <= 4) {
+
+			if (!RegDeleteValue(pReg->key, pReg->keyName)) {
+#ifdef _DEBUG
+				_tprintf_s(L"Delete Value Name : %s\n", pReg->keyName);
+#endif
+			}
+			else {
+#ifdef _DEBUG
+				_tprintf_s(L"Can't find value :(\n");
+#endif
+			}
 		}
-		else {
-			_tprintf_s(L"Can't find value :(\n");
+		else if (target == 5) {
+			TCHAR    achKey[REGNAME_MAX];		// buffer for subkey name
+			DWORD    cbName;					// size of name string 
+			TCHAR    achClass[MAX_PATH] = TEXT("");	// buffer for class name 
+			DWORD    cchClassName = MAX_PATH;	// size of class string 
+			DWORD    cSubKeys = 0;              // number of subkeys 
+			DWORD    cbMaxSubKey;				// longest subkey size 
+			DWORD    cchMaxClass;				// longest class string 
+			DWORD    cValues;					// number of values for key 
+			DWORD    cchMaxValue;				// longest value name 
+			DWORD    cbMaxValueData;			// longest value data 
+			DWORD    cbSecurityDescriptor;		// size of security descriptor 
+			FILETIME ftLastWriteTime;			// last write time 
+
+			DWORD i, retCode;
+			DWORD cchValue = REGVALUE_MAX;
+
+			// Get the class name and the value count. 
+
+			retCode = RegQueryInfoKey(
+				pReg->key,               // key handle 
+				achClass,                // buffer for class name 
+				&cchClassName,           // size of class string 
+				NULL,                    // reserved 
+				&cSubKeys,               // number of subkeys 
+				&cbMaxSubKey,            // longest subkey size 
+				&cchMaxClass,            // longest class string 
+				&cValues,                // number of values for this key 
+				&cchMaxValue,            // longest value name 
+				&cbMaxValueData,         // longest value data 
+				&cbSecurityDescriptor,   // security descriptor 
+				&ftLastWriteTime);       // last write time 
+
+			if (cSubKeys)
+			{
+				for (i = 0; i < cSubKeys; i++)
+				{
+					cbName = REGNAME_MAX;
+					retCode = RegEnumKeyEx(pReg->key, i,
+						achKey,
+						&cbName,
+						NULL,
+						NULL,
+						NULL,
+						&ftLastWriteTime);
+					if (retCode == ERROR_SUCCESS) {
+						if (!wcscmp(keyName, achKey)) {
+							TCHAR szDelKey[MAX_PATH * 2];
+
+							StringCchCopy(szDelKey, MAX_PATH * 2, achKey);
+							return RegDelnodeRecurse(HKEY_LOCAL_MACHINE, szDelKey);
+						}
+					}
+				}
+			}
 		}
 	}
 	else {
@@ -492,6 +655,7 @@ BOOL __stdcall SetTargetRegistryEntry(
 	Parameters : 
 		( out ) FILE* storage : written by this function.
 		( in )	PREGINFO pReg : information of target register entry.
+		( out ) DWORD structSize : get size of reallocated memory.
 		( in )	DWORD32 mode :
 			0 -> just print
 			1 -> txt export ( deprecated )
@@ -554,7 +718,9 @@ BOOL __stdcall WriteRegToTxt(
 
 		if (cSubKeys)
 		{
+#ifdef _DEBUG
 			printf("\nNumber of subkeys: %d\n", cSubKeys);
+#endif 
 			if (mode == 2) {
 				structSize[5] = cSubKeys;
 			}
@@ -582,7 +748,9 @@ BOOL __stdcall WriteRegToTxt(
 				{
 					sqliteSvc[i].time = time(0);
 					wcscpy_s(sqliteSvc[i].key, REGNAME_MAX, achKey);
+#ifdef _DEBUG
 					_tprintf(TEXT("(%d) %s"), i + 1, sqliteSvc[i].key);
+#endif
 
 					//34 + 255
 					WCHAR path[289] = { 0, };
@@ -624,7 +792,9 @@ BOOL __stdcall WriteRegToTxt(
 									}
 									if (!wcscmp(pSrvReg->keyName, L"ImagePath")) {
 										wcscpy_s(sqliteSvc[i].image_path, 255, pSrvReg->keyValue);
+#ifdef _DEBUG
 										_tprintf_s(L" %s\n", sqliteSvc[i].image_path);
+#endif
 									}
 								}
 							}
@@ -706,8 +876,9 @@ BOOL __stdcall WriteRegToTxt(
 								wcscpy_s(sqliteReg[i].path, 255, L"HKLM\\Microsoft\\Windows\\CurrentVersion\\RunOnce");
 							}
 							sqliteReg[i].type = 1;
-
+#ifdef _DEBUG
 							_tprintf_s(L"Register Name : %s, Value : %s\n", sqliteReg[i].name, sqliteReg[i].value);
+#endif
 						}
 						else if (mode == 1) {
 							PrintCUI(pReg->keyName);

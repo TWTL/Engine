@@ -43,7 +43,7 @@ TerminateCurrentProcess(
 __declspec(dllimport)
 BOOL
 __stdcall
-DeleteRunKey(
+DeleteKeyOrKeyValue(
 	TCHAR CONST keyName[REGNAME_MAX],
 	CONST DWORD32 targetKey
 );
