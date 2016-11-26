@@ -76,7 +76,7 @@ typedef struct twtl_proto_buf {
 } TWTL_PROTO_BUF;
 
 typedef struct twtl_trap_queue_node {
-	TWTL_PROTO_BUF buf;
+	std::string path;
 	struct twtl_trap_queue_node* next;
 } TWTL_TRAP_QUEUE_NODE;
 
@@ -103,17 +103,20 @@ TWTL_PROTO_NODE* JSON_AddProtoNode(TWTL_PROTO_BUF* proto);
 void JSON_ClearProtoNode(TWTL_PROTO_BUF* proto);
 
 TWTL_TRAP_QUEUE* JSON_InitTrapQueue(TWTL_TRAP_QUEUE* queue);
-BOOL JSON_EnqTrapQueue(TWTL_TRAP_QUEUE* queue, TWTL_PROTO_BUF* inBuf);
-BOOL JSON_DeqTrapQueue(TWTL_TRAP_QUEUE* queue, TWTL_PROTO_BUF* outBuf);
+BOOL JSON_EnqTrapQueue(TWTL_TRAP_QUEUE* queue, std::string inPath);
+BOOL JSON_DeqTrapQueue(TWTL_TRAP_QUEUE* queue, std::string* outPath);
 void JSON_ClearTrapQueue(TWTL_TRAP_QUEUE* queue);
 
 void JSON_ProtoParse(json_t *element, const char *key, TWTL_PROTO_BUF* req, TWTL_PROTO_NODE* node, int depth);
 
 char* JSON_ProtoMakeResponse(TWTL_PROTO_BUF* req);
-void JSON_ProtoReqGetProc(TWTL_PROTO_NODE* req_node, json_t* root, char** res);
-void JSON_ProtoReqSetProc(TWTL_PROTO_NODE* req_node, json_t* root, char** res);
-void JSON_ProtoReqDiffProc(TWTL_PROTO_NODE* req_node, json_t* root, char** res);
-json_t* JSON_ProtoBufToJson(TWTL_PROTO_BUF* res);
+void JSON_ProtoReqGetProc(TWTL_PROTO_NODE* req_node, json_t* root);
+void JSON_ProtoReqSetProc(TWTL_PROTO_NODE* req_node, json_t* root);
+void JSON_ProtoReqDiffProc(TWTL_PROTO_NODE* req_node, json_t* root);
+
+void JSON_DiffProc_RegShort(TWTL_PROTO_NODE* req_node, json_t* root, BOOL onHkcuRun, BOOL onHklmRun, BOOL onHkcuRunOnce, BOOL onHklmRunOnce, BOOL onServices);
+
+BOOL JSON_SendTrap(SOCKET sock, std::string path);
 
 void JSON_Init_TWTL_INFO_DATA();
 void JSON_Init_TWTL_INFO_ENGINE_NODE(TWTL_INFO_ENGINE_NODE* node);

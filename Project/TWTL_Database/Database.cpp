@@ -286,6 +286,8 @@ TWTL_DATABASE_API BOOL __stdcall DB_Insert(sqlite3 *db, DB_TABLE_TYPE type, void
 	}
 }
 
+
+
 /*
 Description : Obtain data from DB
 Parameters :
@@ -301,9 +303,10 @@ Return value :
   FALSE (0) : Failure
   TRUE  (1) : Sucess
 */
-TWTL_DATABASE_API BOOL __stdcall DB_Select(sqlite3 *db, DB_TABLE_TYPE type, void* data, WCHAR* sql_where)
+TWTL_DATABASE_API BOOL __stdcall DB_SelectQuery(sqlite3 *db, DB_TABLE_TYPE type, void* data, int* count, WCHAR* sql_where)
 {
 	int ret = 0;
+	BOOL countRow = (data == NULL) ? TRUE : FALSE;
 	WCHAR sql[MAX_SQL_BUF] = { 0 };
 	TWTL_DB_PROCESS* proc = NULL;
 	TWTL_DB_REGISTRY* reg = NULL;
@@ -357,8 +360,7 @@ TWTL_DATABASE_API BOOL __stdcall DB_Select(sqlite3 *db, DB_TABLE_TYPE type, void
 		return FALSE;
 	}
 
-	sqlite3_stmt *stmt;
-
+	sqlite3_stmt* stmt;
 	// Prepare statement
 	ret = sqlite3_prepare16_v2(db, sql, -1, &stmt, NULL);
 	if (ret != SQLITE_OK) {
@@ -369,54 +371,60 @@ TWTL_DATABASE_API BOOL __stdcall DB_Select(sqlite3 *db, DB_TABLE_TYPE type, void
 	}
 
 	// Run SQL
-	ret = sqlite3_step(stmt);
-#ifdef _DEBUG
-	if (ret != SQLITE_ROW)
-		return FALSE;
-#endif
-
-	switch (type) {
-	case DB_PROCESS:
-		proc = (TWTL_DB_PROCESS*)data;
-		// sqlite3_column_int64(stmt, 0); is idx, nothing meaningless
-		proc->time = sqlite3_column_int64(stmt, 1);
-		proc->pid = sqlite3_column_int(stmt, 2);
-		proc->ppid = sqlite3_column_int(stmt, 3);
-		StringCchCopyW(proc->process_name, DB_MAX_PROC_NAME, (const WCHAR*)sqlite3_column_text16(stmt, 4));
-		StringCchCopyW(proc->process_path, MAX_PATH, (const WCHAR*)sqlite3_column_text16(stmt, 5));
-		break;
-	case DB_REG_HKLM_RUN:
-	case DB_REG_HKLM_RUNONCE:
-	case DB_REG_HKCU_RUN:
-	case DB_REG_HKCU_RUNONCE:
-		reg = (TWTL_DB_REGISTRY*)data;
-		// sqlite3_column_int64(stmt, 0); is idx, nothing meaningless
-		reg->time = sqlite3_column_int64(stmt, 1);
-		StringCchCopyW(reg->path, DB_MAX_REG_PATH, (const WCHAR*)sqlite3_column_text16(stmt, 2));
-		StringCchCopyW(reg->value, DB_MAX_REG_VALUE, (const WCHAR*)sqlite3_column_text16(stmt, 3));
-		reg->type = sqlite3_column_int(stmt, 4);
-		StringCchCopyW(reg->name, DB_MAX_REG_NAME, (const WCHAR*)sqlite3_column_text16(stmt, 5));
-		break;
-	case DB_SERVICE:
-		srv = (TWTL_DB_SERVICE*)data;
-		// sqlite3_column_int64(stmt, 0); is idx, nothing meaningless
-		srv->time = sqlite3_column_int64(stmt, 1);
-		StringCchCopyW(srv->key, DB_MAX_REG_PATH, (const WCHAR*)sqlite3_column_text16(stmt, 2));
-		break;
-	case DB_NETWORK:
-		net = (TWTL_DB_NETWORK*)data;
-		// sqlite3_column_int64(stmt, 0); is idx, nothing meaningless
-		net->time = sqlite3_column_int64(stmt, 1);
-		net->src_ipv4 = (uint32_t)sqlite3_column_int(stmt, 2);
-		net->dest_ipv4 = (uint32_t)sqlite3_column_int(stmt, 3);
-		net->src_port = (uint16_t)sqlite3_column_int(stmt, 4);
-		net->dest_port = (uint16_t)sqlite3_column_int(stmt, 5);
-		net->pid = (uint16_t)sqlite3_column_int(stmt, 6);
-		break;
-	default:
-		return FALSE;
+	int i = 0;
+	while ((ret = sqlite3_step(stmt)) != SQLITE_ROW)
+	{
+		if (countRow)
+		{
+			(*count)++;
+		}
+		else
+		{
+			switch (type) {
+			case DB_PROCESS:
+				proc = (TWTL_DB_PROCESS*)data;
+				// sqlite3_column_int64(stmt, 0); is idx, nothing meaningless
+				proc[i].time = sqlite3_column_int64(stmt, 1);
+				proc[i].pid = sqlite3_column_int(stmt, 2);
+				proc[i].ppid = sqlite3_column_int(stmt, 3);
+				StringCchCopyW(proc[i].process_name, DB_MAX_PROC_NAME, (const WCHAR*)sqlite3_column_text16(stmt, 4));
+				StringCchCopyW(proc[i].process_path, MAX_PATH, (const WCHAR*)sqlite3_column_text16(stmt, 5));
+				break;
+			case DB_REG_HKLM_RUN:
+			case DB_REG_HKLM_RUNONCE:
+			case DB_REG_HKCU_RUN:
+			case DB_REG_HKCU_RUNONCE:
+				reg = (TWTL_DB_REGISTRY*)data;
+				// sqlite3_column_int64(stmt, 0); is idx, nothing meaningless
+				reg[i].time = sqlite3_column_int64(stmt, 1);
+				StringCchCopyW(reg[i].path, DB_MAX_REG_PATH, (const WCHAR*)sqlite3_column_text16(stmt, 2));
+				StringCchCopyW(reg[i].value, DB_MAX_REG_VALUE, (const WCHAR*)sqlite3_column_text16(stmt, 3));
+				reg[i].type = sqlite3_column_int(stmt, 4);
+				StringCchCopyW(reg[i].name, DB_MAX_REG_NAME, (const WCHAR*)sqlite3_column_text16(stmt, 5));
+				break;
+			case DB_SERVICE:
+				srv = (TWTL_DB_SERVICE*)data;
+				// sqlite3_column_int64(stmt, 0); is idx, nothing meaningless
+				srv[i].time = sqlite3_column_int64(stmt, 1);
+				StringCchCopyW(srv[i].key, DB_MAX_REG_PATH, (const WCHAR*)sqlite3_column_text16(stmt, 2));
+				break;
+			case DB_NETWORK:
+				net = (TWTL_DB_NETWORK*)data;
+				// sqlite3_column_int64(stmt, 0); is idx, nothing meaningless
+				net[i].time = sqlite3_column_int64(stmt, 1);
+				net[i].src_ipv4 = (uint32_t)sqlite3_column_int(stmt, 2);
+				net[i].dest_ipv4 = (uint32_t)sqlite3_column_int(stmt, 3);
+				net[i].src_port = (uint16_t)sqlite3_column_int(stmt, 4);
+				net[i].dest_port = (uint16_t)sqlite3_column_int(stmt, 5);
+				net[i].pid = (uint16_t)sqlite3_column_int(stmt, 6);
+				break;
+			default:
+				break; // Do nothing
+			}
+			i++;
+		}
 	}
-
+	
 	ret = sqlite3_finalize(stmt);
 	if (ret != SQLITE_OK) {
 #ifdef _DEBUG
