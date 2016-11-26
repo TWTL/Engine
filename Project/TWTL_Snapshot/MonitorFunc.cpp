@@ -119,6 +119,7 @@ TWTL_SNAPSHOT_API BOOL __stdcall SnapCurrentStatus(
 							_tprintf_s(L"Nope :( ... Maybe system file. ");
 						}
 						else {
+							sqlitePrc[i].time = time(0);
 							wcscpy_s(sqlitePrc[i].process_path, MAX_PATH, imageName);
 							wcscpy_s(sqlitePrc[i].process_name, DB_MAX_PROC_NAME, currentProcessInfo.proc32.szExeFile);
 							sqlitePrc[i].pid = currentProcessInfo.proc32.th32ProcessID;
@@ -556,6 +557,7 @@ BOOL __stdcall WriteRegToTxt(
 					&ftLastWriteTime);
 				if (retCode == ERROR_SUCCESS)
 				{
+					sqliteSvc[i].time = time(0);
 					wcscpy_s(sqliteSvc[i].key, REGNAME_MAX, achKey);
 					_tprintf(TEXT("(%d) %s\n"), i + 1, sqliteSvc[i].key);
 					
@@ -625,6 +627,7 @@ BOOL __stdcall WriteRegToTxt(
 							return NULL;
 						}
 						if (mode == 0) {
+							sqliteReg[i].time = time(0);
 							wcscpy_s(sqliteReg[i].value, REGVALUE_MAX, pReg->keyValue);
 							wcscpy_s(sqliteReg[i].name, REGNAME_MAX, pReg->keyName);
 							if (target == 1) {

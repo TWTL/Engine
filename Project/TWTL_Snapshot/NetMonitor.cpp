@@ -91,6 +91,7 @@ BOOL __stdcall ParseNetstat(TWTL_DB_NETWORK* sqliteNet1, TWTL_DB_NETWORK* sqlite
 				printf("UNKNOWN dwState value\n");
 				break;
 			}
+			sqliteNet1[i].time = time(0);
 			IpAddr.S_un.S_addr = (u_long)pTcpTable->table[i].dwLocalAddr;
 			sqliteNet1[i].src_ipv4 = IpAddr.S_un.S_addr;
 			sqliteNet1[i].src_port = ntohs((u_short)pTcpTable->table[i].dwLocalPort);
@@ -158,6 +159,7 @@ BOOL __stdcall ParseNetstat(TWTL_DB_NETWORK* sqliteNet1, TWTL_DB_NETWORK* sqlite
 		printf("Number of entries: %d\n", (int)pUdpTable->dwNumEntries);
 		sqliteNet2 = (TWTL_DB_NETWORK*)realloc(sqliteNet2, sizeof(TWTL_DB_NETWORK)*((int)pUdpTable->dwNumEntries + 10));
 		for (i = 0; i < (int)pUdpTable->dwNumEntries; i++) {
+			sqliteNet2[i].time = time(0);
 			IpAddr.S_un.S_addr = (u_long)pUdpTable->table[i].dwLocalAddr;
 			sqliteNet2[i].src_ipv4 = IpAddr.S_un.S_addr;
 			sqliteNet2[i].src_port = ntohs((u_short)pUdpTable->table[i].dwLocalPort);

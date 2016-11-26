@@ -60,8 +60,7 @@ int main()
 			sqliteNet2,
 			0);
 
-
-		DelayWait(5000);
+		Sleep(5000);
 		free(sqlitePrc);
 		free(sqliteReg1);
 		free(sqliteReg2);
