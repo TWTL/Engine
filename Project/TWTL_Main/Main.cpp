@@ -40,14 +40,14 @@ int main()
 	wprintf_s(L"Json Threads running\n\n");
 
 	while (TRUE) {
-		sqlitePrc = (TWTL_DB_PROCESS*)malloc(sizeof(TWTL_DB_PROCESS) * 100);
-		sqliteReg1 = (TWTL_DB_REGISTRY*)malloc(sizeof(TWTL_DB_REGISTRY) * 200);
-		sqliteReg2 = (TWTL_DB_REGISTRY*)malloc(sizeof(TWTL_DB_REGISTRY) * 200);
-		sqliteReg3 = (TWTL_DB_REGISTRY*)malloc(sizeof(TWTL_DB_REGISTRY) * 200);
-		sqliteReg4 = (TWTL_DB_REGISTRY*)malloc(sizeof(TWTL_DB_REGISTRY) * 200);
-		sqliteSvc = (TWTL_DB_SERVICE*)malloc(sizeof(TWTL_DB_SERVICE) * 600);
-		sqliteNet1 = (TWTL_DB_NETWORK*)malloc(sizeof(TWTL_DB_NETWORK) * 300);
-		sqliteNet2 = (TWTL_DB_NETWORK*)malloc(sizeof(TWTL_DB_NETWORK) * 300);
+		sqlitePrc = (TWTL_DB_PROCESS*)calloc(100, sizeof(TWTL_DB_PROCESS));
+		sqliteReg1 = (TWTL_DB_REGISTRY*)calloc(200, sizeof(TWTL_DB_REGISTRY));
+		sqliteReg2 = (TWTL_DB_REGISTRY*)calloc(200, sizeof(TWTL_DB_REGISTRY));
+		sqliteReg3 = (TWTL_DB_REGISTRY*)calloc(200, sizeof(TWTL_DB_REGISTRY));
+		sqliteReg4 = (TWTL_DB_REGISTRY*)calloc(200, sizeof(TWTL_DB_REGISTRY));
+		sqliteSvc = (TWTL_DB_SERVICE*)calloc(600, sizeof(TWTL_DB_SERVICE));
+		sqliteNet1 = (TWTL_DB_NETWORK*)calloc(300, sizeof(TWTL_DB_NETWORK));
+		sqliteNet2 = (TWTL_DB_NETWORK*)calloc(300, sizeof(TWTL_DB_NETWORK));
 		
 		SnapCurrentStatus(
 			sqlitePrc, 
