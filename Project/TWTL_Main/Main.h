@@ -28,6 +28,7 @@ SnapCurrentStatus(
 	TWTL_DB_SERVICE*  sqliteSvc,
 	TWTL_DB_NETWORK*  sqliteNet1,
 	TWTL_DB_NETWORK*  sqliteNet2,
+	DWORD structSize[],
 	CONST DWORD32 mode
 );
 

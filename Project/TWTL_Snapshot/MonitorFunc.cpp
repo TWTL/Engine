@@ -4,8 +4,8 @@
 #include "MonitorFunc.h"
 
 DWORD __stdcall OpenRegisteryKey(PREGINFO CONST pReg, CONST DWORD32 target);
-BOOL __stdcall SetTargetRegistryEntry(FILE* storage, PREGINFO CONST pReg, TWTL_DB_REGISTRY* sqliteReg, TWTL_DB_SERVICE* sqliteSvc ,CONST DWORD32 target, CONST DWORD32 mode);
-BOOL __stdcall WriteRegToTxt(FILE* storage, PREGINFO CONST pReg, TWTL_DB_REGISTRY* sqliteReg, TWTL_DB_SERVICE* sqliteSvc, CONST DWORD32 mode, CONST DWORD32 target);
+BOOL __stdcall SetTargetRegistryEntry(FILE* storage, PREGINFO CONST pReg, TWTL_DB_REGISTRY* sqliteReg, TWTL_DB_SERVICE* sqliteSvc , DWORD structSize[], CONST DWORD32 target, CONST DWORD32 mode);
+BOOL __stdcall WriteRegToTxt(FILE* storage, PREGINFO CONST pReg, TWTL_DB_REGISTRY* sqliteReg, TWTL_DB_SERVICE* sqliteSvc, DWORD structSize[], CONST DWORD32 mode, CONST DWORD32 target);
 
 /*
 	Description : Write current process entry and register ( Run ) 
@@ -15,9 +15,9 @@ BOOL __stdcall WriteRegToTxt(FILE* storage, PREGINFO CONST pReg, TWTL_DB_REGISTR
 		( out ) TWTL_DB_PROCESS* sqlitePrc : Result of parsing PROCESSENTRY32W
 				Put NULL if you don't want to query
 		( in )	DWORD32 mode :
-			0 -> just print
-			1 -> txt export
-			else -> error
+			0 -> print
+			1 -> txt export ( deprecated )
+			2 -> get size
 	Return value :
 		0 = Error
 		1 = Success
@@ -31,6 +31,7 @@ TWTL_SNAPSHOT_API BOOL __stdcall SnapCurrentStatus(
 	TWTL_DB_SERVICE*  sqliteSvc,
 	TWTL_DB_NETWORK*  sqliteNet1,
 	TWTL_DB_NETWORK*  sqliteNet2,
+	DWORD structSize[],
 	CONST DWORD32 mode) 
 {
 	FILE* storage = NULL;
@@ -46,12 +47,14 @@ TWTL_SNAPSHOT_API BOOL __stdcall SnapCurrentStatus(
 	int i = 0;
 	int listNum = 0;
 
-	// SetPrivilege(SE_DEBUG_NAME, TRUE);
 
 	/*
+		Deprecated!
+
 	if (!MakeFileName(fileName)) {
 		return NULL;
 	}
+
 	*/
 	if (mode == 0) {
 
@@ -89,8 +92,6 @@ TWTL_SNAPSHOT_API BOOL __stdcall SnapCurrentStatus(
 		if (Process32First(currentProcessInfo.hSnap, &currentProcessInfo.proc32)) {
 			DWORD result = 0;
 			i = 0;
-			sqlitePrc = (TWTL_DB_PROCESS*)realloc(sqlitePrc, sizeof(TWTL_DB_PROCESS)*(listNum+10));
-			memset(sqlitePrc, 0x00, sizeof(TWTL_DB_PROCESS)*(listNum + 10));
 			while ((Process32Next(currentProcessInfo.hSnap, &currentProcessInfo.proc32)))
 			{
 				if (currentProcessInfo.proc32.th32ProcessID == 4) {
@@ -100,57 +101,61 @@ TWTL_SNAPSHOT_API BOOL __stdcall SnapCurrentStatus(
 					listNum++;
 				}
 			}
-			if (Process32First(currentProcessInfo.hSnap, &currentProcessInfo.proc32)) {
-				DWORD result = 0;
-				i = 0;
-				sqlitePrc = (TWTL_DB_PROCESS*)realloc(sqlitePrc, sizeof(TWTL_DB_PROCESS)*(listNum + 10));
+			if (mode == 0 || mode == 1) {
+				if (Process32First(currentProcessInfo.hSnap, &currentProcessInfo.proc32)) {
+					result = 0;
+					i = 0;
 
-				while ((Process32Next(currentProcessInfo.hSnap, &currentProcessInfo.proc32)))
-				{
-					if (currentProcessInfo.proc32.th32ProcessID < 100) {
-						continue;
-					}
-					else {
-						currentProcessInfo.curHandle = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, currentProcessInfo.proc32.th32ProcessID);
-						if (currentProcessInfo.curHandle != NULL) {
-							result = QueryFullProcessImageName(currentProcessInfo.curHandle, 0, imageName, &imageNameSize);
-							imageNameSize = MAX_PATH;
-							if (result == 0) {
-								ErrMsg();
-								_tprintf_s(L"Nope :( ... Maybe system file. ");
-							}
-							else {
-								sqlitePrc[i].time = time(0);
-								wcscpy_s(sqlitePrc[i].process_path, MAX_PATH, imageName);
-								wcscpy_s(sqlitePrc[i].process_name, DB_MAX_PROC_NAME, currentProcessInfo.proc32.szExeFile);
-								sqlitePrc[i].pid = currentProcessInfo.proc32.th32ProcessID;
-								sqlitePrc[i].ppid = currentProcessInfo.proc32.th32ParentProcessID;
-
-								if (mode == 0) {
-									_tprintf_s(L"%s ", sqlitePrc[i].process_path);
-									_tprintf_s(L"Process name : %s, PID : %d, PPID :%d\n",
-										currentProcessInfo.proc32.szExeFile,
-										currentProcessInfo.proc32.th32ProcessID,
-										currentProcessInfo.proc32.th32ParentProcessID);
-								}
-								else if (mode == 1) {
-									if (_itow_s(currentProcessInfo.proc32.th32ProcessID, curPID, 5, 10)) {
-										ExceptionFileClose(storage, mode);
-										return NULL;
-									}
-									fwprintf_s(storage, L"%s\t", &curPID);
-									fwprintf_s(storage, L"%s\n", &currentProcessInfo.proc32.szExeFile);
-									fwprintf_s(storage, L"%s\t", imageName);
-								}
-							}
-							CloseHandle(currentProcessInfo.curHandle);
+					while ((Process32Next(currentProcessInfo.hSnap, &currentProcessInfo.proc32)))
+					{
+						if (currentProcessInfo.proc32.th32ProcessID < 100) {
+							continue;
 						}
+						else {
+							currentProcessInfo.curHandle = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, currentProcessInfo.proc32.th32ProcessID);
+							if (currentProcessInfo.curHandle != NULL) {
+								result = QueryFullProcessImageName(currentProcessInfo.curHandle, 0, imageName, &imageNameSize);
+								imageNameSize = MAX_PATH;
+								if (result == 0) {
+									ErrMsg();
+									_tprintf_s(L"Nope :( ... Maybe system file. ");
+								}
+								else {
+									sqlitePrc[i].time = time(0);
+									wcscpy_s(sqlitePrc[i].process_path, MAX_PATH, imageName);
+									wcscpy_s(sqlitePrc[i].process_name, DB_MAX_PROC_NAME, currentProcessInfo.proc32.szExeFile);
+									sqlitePrc[i].pid = currentProcessInfo.proc32.th32ProcessID;
+									sqlitePrc[i].ppid = currentProcessInfo.proc32.th32ParentProcessID;
+
+									if (mode == 0) {
+										_tprintf_s(L"%s ", sqlitePrc[i].process_path);
+										_tprintf_s(L"Process name : %s, PID : %d, PPID :%d\n",
+											currentProcessInfo.proc32.szExeFile,
+											currentProcessInfo.proc32.th32ProcessID,
+											currentProcessInfo.proc32.th32ParentProcessID);
+									}
+									else if (mode == 1) {
+										if (_itow_s(currentProcessInfo.proc32.th32ProcessID, curPID, 5, 10)) {
+											ExceptionFileClose(storage, mode);
+											return NULL;
+										}
+										fwprintf_s(storage, L"%s\t", &curPID);
+										fwprintf_s(storage, L"%s\n", &currentProcessInfo.proc32.szExeFile);
+										fwprintf_s(storage, L"%s\t", imageName);
+									}
+								}
+								CloseHandle(currentProcessInfo.curHandle);
+							}
+						}
+						i++;
 					}
-					i++;
+				}
+				if (mode == 1) {
+					fwprintf_s(storage, L"</Process List>\n\n");
 				}
 			}
-			if (mode == 1) {
-				fwprintf_s(storage, L"</Process List>\n\n");
+			else if (mode == 2) {
+				structSize[0] = listNum;
 			}
 		}
 		CloseHandle(currentProcessInfo.hSnap);
@@ -162,15 +167,15 @@ TWTL_SNAPSHOT_API BOOL __stdcall SnapCurrentStatus(
 	//
 	BOOL iResult = TRUE;
 	if (sqliteReg1)
-		iResult &= SetTargetRegistryEntry(storage, pReg, sqliteReg1, NULL, 1, mode);
+		iResult &= SetTargetRegistryEntry(storage, pReg, sqliteReg1, NULL, structSize, 1, mode);
 	if (sqliteReg2)
-		iResult &= SetTargetRegistryEntry(storage, pReg, sqliteReg2, NULL, 2, mode);
+		iResult &= SetTargetRegistryEntry(storage, pReg, sqliteReg2, NULL, structSize, 2, mode);
 	if (sqliteReg3)
-		iResult &= SetTargetRegistryEntry(storage, pReg, sqliteReg3, NULL, 3, mode);
+		iResult &= SetTargetRegistryEntry(storage, pReg, sqliteReg3, NULL, structSize, 3, mode);
 	if (sqliteReg4)
-		iResult &= SetTargetRegistryEntry(storage, pReg, sqliteReg4, NULL, 4, mode);
+		iResult &= SetTargetRegistryEntry(storage, pReg, sqliteReg4, NULL, structSize, 4, mode);
 	if (sqliteSvc)
-		iResult &= SetTargetRegistryEntry(storage, pReg, NULL, sqliteSvc, 5, mode);
+		iResult &= SetTargetRegistryEntry(storage, pReg, NULL, sqliteSvc, structSize, 5, mode);
 	if (!iResult)
 	{
 		ExceptionFileClose(storage, mode);
@@ -181,7 +186,7 @@ TWTL_SNAPSHOT_API BOOL __stdcall SnapCurrentStatus(
 	}
 
 	if (sqliteNet1 && sqliteNet2)
-		ParseNetstat(sqliteNet1, sqliteNet2);
+		ParseNetstat(sqliteNet1, sqliteNet2, structSize, mode);
 
 	TerminateCurrentProcess(0, 1);
 	return TRUE;
@@ -396,7 +401,8 @@ DWORD __stdcall OpenRegisteryKey(PREGINFO CONST pReg, CONST DWORD32 target) {
 			else -> Error
 		( in )	DWORD32 mode :
 			0 -> just print
-			1 -> txt export
+			1 -> txt export ( deprecated )
+			2 -> get size
 			else -> error
 	Return value :
 		0 = Error
@@ -406,14 +412,15 @@ BOOL __stdcall SetTargetRegistryEntry(
 	FILE* storage, 
 	PREGINFO CONST pReg, 
 	TWTL_DB_REGISTRY* sqliteReg, 
-	TWTL_DB_SERVICE* sqliteSvc, 
+	TWTL_DB_SERVICE* sqliteSvc,
+	DWORD structSize[],
 	CONST DWORD32 target, 
 	CONST DWORD32 mode) 
 {
 	if (!OpenRegisteryKey(pReg, target))
 	{
-		if (mode == 0) {
-			if (!WriteRegToTxt(storage, pReg, sqliteReg, sqliteSvc, mode, target)) {
+		if (mode == 0 || mode == 2) {
+			if (!WriteRegToTxt(storage, pReg, sqliteReg, sqliteSvc, structSize, mode, target)) {
 				return NULL;
 			}
 		}
@@ -439,7 +446,7 @@ BOOL __stdcall SetTargetRegistryEntry(
 
 			// call writing entry of target
 			//
-			if (!WriteRegToTxt(storage, pReg, sqliteReg, sqliteSvc, mode, target)) {
+			if (!WriteRegToTxt(storage, pReg, sqliteReg, sqliteSvc, structSize, mode, target)) {
 				return NULL;
 			}
 
@@ -487,7 +494,8 @@ BOOL __stdcall SetTargetRegistryEntry(
 		( in )	PREGINFO pReg : information of target register entry.
 		( in )	DWORD32 mode :
 			0 -> just print
-			1 -> txt export
+			1 -> txt export ( deprecated )
+			2 -> get size
 			else -> error
 		( in )	DWORD target  :
 			1 -> HKEY_CURRENT_USER/Microsoft/Windows/CurrentVersion/Run
@@ -504,7 +512,8 @@ BOOL __stdcall WriteRegToTxt(
 	FILE* storage, 
 	PREGINFO CONST pReg, 
 	TWTL_DB_REGISTRY* sqliteReg, 
-	TWTL_DB_SERVICE* sqliteSvc, 
+	TWTL_DB_SERVICE* sqliteSvc,
+	DWORD structSize[],
 	CONST DWORD32 mode, 
 	CONST DWORD32 target)
 {
@@ -546,9 +555,9 @@ BOOL __stdcall WriteRegToTxt(
 		if (cSubKeys)
 		{
 			printf("\nNumber of subkeys: %d\n", cSubKeys);
-			sqliteSvc = (TWTL_DB_SERVICE*)realloc(sqliteSvc, sizeof(TWTL_DB_SERVICE)*(cSubKeys + 10));
-			memset(sqliteSvc, 0x00, sizeof(TWTL_DB_SERVICE)*(cSubKeys + 10));
-			
+			if (mode == 2) {
+				structSize[5] = cSubKeys;
+			}
 			HKEY HKLM = HKEY_LOCAL_MACHINE;
 			REGINFO servReg;
 			PREGINFO pServReg = &servReg;
@@ -557,6 +566,10 @@ BOOL __stdcall WriteRegToTxt(
 
 			for (i = 0; i < cSubKeys; i++)
 			{
+				if (mode == 2) {
+					break;
+				}
+
 				cbName = REGNAME_MAX;
 				retCode = RegEnumKeyEx(pReg->key, i,
 					achKey,
@@ -629,10 +642,25 @@ BOOL __stdcall WriteRegToTxt(
 				regIndex++;
 			}
 		}
-		sqliteReg = (TWTL_DB_REGISTRY*)realloc(sqliteReg, sizeof(TWTL_DB_REGISTRY)*(regIndex + 2));
-		memset(sqliteReg, 0x00, sizeof(TWTL_DB_REGISTRY)*(regIndex + 2));
+		if (mode == 2) {
+			if (target == 1) {
+				structSize[1] = regIndex;
+			}
+			else if (target == 2) {
+				structSize[2] = regIndex;
+			}
+			else if (target == 3) {
+				structSize[3] = regIndex;
+			}
+			else if (target == 4) {
+				structSize[4] = regIndex;
+			}
+		}
 		for (int i = 0; result == ERROR_SUCCESS; i++)
 		{
+			if (mode == 2) {
+				break;
+			}
 			if (1 <= target && target <= 4) {
 
 				result = RegEnumValue(pReg->key, i, pReg->keyName, &pReg->bufSize, NULL, NULL, NULL, NULL);

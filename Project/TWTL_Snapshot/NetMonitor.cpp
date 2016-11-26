@@ -9,7 +9,12 @@
 
 char* __stdcall GetDomainName(uint32_t ip);
 
-BOOL __stdcall ParseNetstat(TWTL_DB_NETWORK* sqliteNet1, TWTL_DB_NETWORK* sqliteNet2)
+BOOL __stdcall ParseNetstat(
+	TWTL_DB_NETWORK* sqliteNet1, 
+	TWTL_DB_NETWORK* sqliteNet2,
+	DWORD structSize[],
+	CONST DWORD32 mode
+)
 {
 	// Declare and initialize variables
 	PMIB_UDPTABLE_OWNER_PID pUdpTable;
@@ -49,9 +54,13 @@ BOOL __stdcall ParseNetstat(TWTL_DB_NETWORK* sqliteNet1, TWTL_DB_NETWORK* sqlite
 	}
 	if ((dwRetVal = GetTcpTable2(pTcpTable, &ulSize, TRUE)) == NO_ERROR) {
 		printf("Number of entries: %d\n", (int)pTcpTable->dwNumEntries);
-		sqliteNet1 = (TWTL_DB_NETWORK*)realloc(sqliteNet1, sizeof(TWTL_DB_NETWORK)*((int)pTcpTable->dwNumEntries + 10));
-		memset(sqliteNet1, 0x00, sizeof(TWTL_DB_NETWORK)*((int)pTcpTable->dwNumEntries + 10));
+		if (mode == 2) {
+			structSize[6] = (int)pTcpTable->dwNumEntries;
+		}
 		for (i = 0; i < (int)pTcpTable->dwNumEntries; i++) {
+			if (mode == 2) {
+				break;
+			}
 			printf("\nTCP[%d] State: %ld - ", i,
 				pTcpTable->table[i].dwState);
 			switch (pTcpTable->table[i].dwState) {
@@ -165,9 +174,13 @@ BOOL __stdcall ParseNetstat(TWTL_DB_NETWORK* sqliteNet1, TWTL_DB_NETWORK* sqlite
 	}
 	if ((dwRetVal = GetExtendedUdpTable(pUdpTable, &ulSize, TRUE, AF_INET, UDP_TABLE_OWNER_PID, NULL)) == NO_ERROR) {
 		printf("Number of entries: %d\n", (int)pUdpTable->dwNumEntries);
-		sqliteNet2 = (TWTL_DB_NETWORK*)realloc(sqliteNet2, sizeof(TWTL_DB_NETWORK)*((int)pUdpTable->dwNumEntries + 10));
-		memset(sqliteNet2, 0x00, sizeof(TWTL_DB_NETWORK)*((int)pUdpTable->dwNumEntries + 10));
+		if (mode == 2) {
+			structSize[7] = (int)pUdpTable->dwNumEntries;
+		}
 		for (i = 0; i < (int)pUdpTable->dwNumEntries; i++) {
+			if (mode == 2) {
+				break;
+			}
 			sqliteNet2[i].time = time(0);
 			IpAddr.S_un.S_addr = (u_long)pUdpTable->table[i].dwLocalAddr;
 			sqliteNet2[i].src_ipv4 = IpAddr.S_un.S_addr;
