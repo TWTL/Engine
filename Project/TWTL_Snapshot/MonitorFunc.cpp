@@ -55,9 +55,9 @@ TWTL_SNAPSHOT_API BOOL __stdcall SnapCurrentStatus(
 
 	SetPrivilege(SE_DEBUG_NAME, TRUE);
 
-	if (!MakeFileName(fileName)) {
+	/* if (!MakeFileName(fileName)) {
 		return NULL;
-	}
+	}*/
 	if (mode == 0) {
 
 	}
@@ -141,8 +141,8 @@ TWTL_SNAPSHOT_API BOOL __stdcall SnapCurrentStatus(
 								fwprintf_s(storage, L"%s\n", &currentProcessInfo.proc32.szExeFile);
 								fwprintf_s(storage, L"%s\t", imageName);
 							}
+							CloseHandle(currentProcessInfo.curHandle);
 						}
-						CloseHandle(currentProcessInfo.curHandle);
 					}
 				}
 				i++;

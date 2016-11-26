@@ -19,7 +19,7 @@ BOOL __stdcall ParseNetstat(TWTL_DB_NETWORK* sqliteNet1, TWTL_DB_NETWORK* sqlite
 
 	char szLocalAddr[128];
 	char szRemoteAddr[128];
-	char hostName[1025];
+	char hostName[1025] = { 0, };
 
 	struct in_addr IpAddr;
 
