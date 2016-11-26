@@ -492,13 +492,30 @@ void JSON_ProtoReqGetProc(TWTL_PROTO_NODE* req_node, json_t* root, char** res)
 		TWTL_DB_REGISTRY* dbHkcuRunOnce = (TWTL_DB_REGISTRY*)calloc(1, sizeof(TWTL_DB_REGISTRY));
 		TWTL_DB_REGISTRY* dbHklmRunOnce = (TWTL_DB_REGISTRY*)calloc(1, sizeof(TWTL_DB_REGISTRY));
 		TWTL_DB_SERVICE* dbServices = (TWTL_DB_SERVICE*)calloc(1, sizeof(TWTL_DB_SERVICE));
-		
+		DWORD size[6] = { 0, };
+
 		if (!(dbHkcuRun && dbHklmRun && dbHkcuRunOnce && dbHklmRunOnce && dbServices))
 		{ // DynAlloc Failure
 			failure = TRUE;
 		}
 
-		if (!SnapCurrentStatus(NULL, dbHkcuRun, dbHklmRun, dbHkcuRunOnce, dbHklmRunOnce, dbServices, NULL, NULL, 0))
+		if (!SnapCurrentStatus(NULL, dbHkcuRun, dbHklmRun, dbHkcuRunOnce, dbHklmRunOnce, dbServices, NULL, NULL, size, 2))
+		{ // Snapshot Failure
+			failure = TRUE;
+		}
+
+		dbHkcuRun = (TWTL_DB_REGISTRY*)realloc(dbHkcuRun, sizeof(TWTL_DB_REGISTRY)*(size[1] + 1));
+		memset(dbHkcuRun, 0x00, sizeof(TWTL_DB_REGISTRY)*(size[1] + 1));
+		dbHklmRun = (TWTL_DB_REGISTRY*)realloc(dbHklmRun, sizeof(TWTL_DB_REGISTRY)*(size[2] + 1));
+		memset(dbHklmRun, 0x00, sizeof(TWTL_DB_REGISTRY)*(size[2] + 1));
+		dbHkcuRunOnce = (TWTL_DB_REGISTRY*)realloc(dbHkcuRunOnce, sizeof(TWTL_DB_REGISTRY)*(size[3] + 1));
+		memset(dbHkcuRunOnce, 0x00, sizeof(TWTL_DB_REGISTRY)*(size[3] + 1));
+		dbHklmRunOnce = (TWTL_DB_REGISTRY*)realloc(dbHklmRunOnce, sizeof(TWTL_DB_REGISTRY)*(size[4] + 1));
+		memset(dbHklmRunOnce, 0x00, sizeof(TWTL_DB_REGISTRY)*(size[4] + 1));
+		dbServices = (TWTL_DB_SERVICE*)realloc(dbServices, sizeof(TWTL_DB_SERVICE)*(size[5] + 1));
+		memset(dbServices, 0x00, sizeof(TWTL_DB_SERVICE)*(size[5] + 1));
+
+		if (!SnapCurrentStatus(NULL, dbHkcuRun, dbHklmRun, dbHkcuRunOnce, dbHklmRunOnce, dbServices, NULL, NULL, NULL, 0))
 		{ // Snapshot Failure
 			failure = TRUE;
 		}

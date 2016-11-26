@@ -21,14 +21,22 @@ int main()
 	TCHAR keyName[REGNAME_MAX] = { 0, };
 	TCHAR keyValue[REGVALUE_MAX] = { 0, };
 
-	TWTL_DB_PROCESS*  sqlitePrc;
-	TWTL_DB_REGISTRY* sqliteReg1;
-	TWTL_DB_REGISTRY* sqliteReg2;
-	TWTL_DB_REGISTRY* sqliteReg3;
-	TWTL_DB_REGISTRY* sqliteReg4;
-	TWTL_DB_SERVICE*  sqliteSvc;
-	TWTL_DB_NETWORK*  sqliteNet1;
-	TWTL_DB_NETWORK*  sqliteNet2;
+	TWTL_DB_PROCESS*  sqlitePrc = (TWTL_DB_PROCESS*)calloc(1, sizeof(TWTL_DB_PROCESS));
+	TWTL_DB_REGISTRY* sqliteReg1= (TWTL_DB_REGISTRY*)calloc(1, sizeof(TWTL_DB_REGISTRY));
+	TWTL_DB_REGISTRY* sqliteReg2= (TWTL_DB_REGISTRY*)calloc(1, sizeof(TWTL_DB_REGISTRY));
+	TWTL_DB_REGISTRY* sqliteReg3= (TWTL_DB_REGISTRY*)calloc(1, sizeof(TWTL_DB_REGISTRY));
+	TWTL_DB_REGISTRY* sqliteReg4= (TWTL_DB_REGISTRY*)calloc(1, sizeof(TWTL_DB_REGISTRY));
+	TWTL_DB_SERVICE*  sqliteSvc = (TWTL_DB_SERVICE*)calloc(1, sizeof(TWTL_DB_SERVICE));
+	TWTL_DB_NETWORK*  sqliteNet1= (TWTL_DB_NETWORK*)calloc(1, sizeof(TWTL_DB_NETWORK));
+	TWTL_DB_NETWORK*  sqliteNet2= (TWTL_DB_NETWORK*)calloc(1, sizeof(TWTL_DB_NETWORK));
+	
+	DWORD structSize[8] = { 0, };
+
+	// 0 : Accessable, 1 : Can't Access
+	DWORD lock = 1;
+
+	// Initialization
+	DWORD initSizeCheck = 0;
 
 	SetPrivilege(SE_DEBUG_NAME, TRUE);
 
@@ -40,15 +48,6 @@ int main()
 	wprintf_s(L"Json Threads running\n\n");
 
 	while (TRUE) {
-		sqlitePrc = (TWTL_DB_PROCESS*)calloc(100, sizeof(TWTL_DB_PROCESS));
-		sqliteReg1 = (TWTL_DB_REGISTRY*)calloc(200, sizeof(TWTL_DB_REGISTRY));
-		sqliteReg2 = (TWTL_DB_REGISTRY*)calloc(200, sizeof(TWTL_DB_REGISTRY));
-		sqliteReg3 = (TWTL_DB_REGISTRY*)calloc(200, sizeof(TWTL_DB_REGISTRY));
-		sqliteReg4 = (TWTL_DB_REGISTRY*)calloc(200, sizeof(TWTL_DB_REGISTRY));
-		sqliteSvc = (TWTL_DB_SERVICE*)calloc(600, sizeof(TWTL_DB_SERVICE));
-		sqliteNet1 = (TWTL_DB_NETWORK*)calloc(300, sizeof(TWTL_DB_NETWORK));
-		sqliteNet2 = (TWTL_DB_NETWORK*)calloc(300, sizeof(TWTL_DB_NETWORK));
-		
 		SnapCurrentStatus(
 			sqlitePrc, 
 			sqliteReg1, 
@@ -58,9 +57,47 @@ int main()
 			sqliteSvc, 
 			sqliteNet1,
 			sqliteNet2,
-			0);
+			structSize,
+			2);
 
-		Sleep(5000);
+		if (initSizeCheck == 0) {
+			free(sqlitePrc);
+			free(sqliteReg1);
+			free(sqliteReg2);
+			free(sqliteReg3);
+			free(sqliteReg4);
+			free(sqliteSvc);
+			free(sqliteNet1);
+			free(sqliteNet2);
+			initSizeCheck = 1;
+		}
+
+		sqlitePrc = (TWTL_DB_PROCESS*)calloc(structSize[0] + 1, sizeof(TWTL_DB_PROCESS));
+		sqliteReg1 = (TWTL_DB_REGISTRY*)calloc(structSize[1] + 1, sizeof(TWTL_DB_REGISTRY));
+		sqliteReg2 = (TWTL_DB_REGISTRY*)calloc(structSize[2] + 1, sizeof(TWTL_DB_REGISTRY));
+		sqliteReg3 = (TWTL_DB_REGISTRY*)calloc(structSize[3] + 1, sizeof(TWTL_DB_REGISTRY));
+		sqliteReg4 = (TWTL_DB_REGISTRY*)calloc(structSize[4] + 1, sizeof(TWTL_DB_REGISTRY));
+		sqliteSvc = (TWTL_DB_SERVICE*)calloc(structSize[5] + 1, sizeof(TWTL_DB_SERVICE));
+		sqliteNet1 = (TWTL_DB_NETWORK*)calloc(structSize[6] + 1, sizeof(TWTL_DB_NETWORK));
+		sqliteNet2 = (TWTL_DB_NETWORK*)calloc(structSize[7] + 1, sizeof(TWTL_DB_NETWORK));
+
+		SnapCurrentStatus(
+			sqlitePrc,
+			sqliteReg1,
+			sqliteReg2,
+			sqliteReg3,
+			sqliteReg4,
+			sqliteSvc,
+			sqliteNet1,
+			sqliteNet2,
+			NULL,
+			0);
+		lock = 0;
+
+		Sleep(4000);
+
+		lock = 1;
+		Sleep(1000);
 		free(sqlitePrc);
 		free(sqliteReg1);
 		free(sqliteReg2);
