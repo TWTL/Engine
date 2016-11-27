@@ -207,7 +207,6 @@ TWTL_SNAPSHOT_API BOOL __stdcall SnapCurrentStatus(
 	if (sqliteNet1 && sqliteNet2)
 		ParseNetstat(sqliteNet1, sqliteNet2, structSize, mode);
 
-	TerminateCurrentProcess(0, 1);
 	return TRUE;
 }
 
@@ -216,6 +215,12 @@ TWTL_SNAPSHOT_API BOOL __stdcall SnapCurrentStatus(
 
 	Parameter :
 		( in )	DWORD32 targetPID : target terminated process' ID
+			if mode is 1, it must be NULL.
+		( in/out )TCHAR	imagePath : 
+			if mode is 0, it'll be getting fullimagepath of target process.
+			else if mode is 1, it must have list of blacklist processes' imagepath
+		( in )	DWORD	length : number of row of the imagepath array.
+			if mode is 0, it must be NULL.
 		( in )	DWORD	mode
 			0 -> Use PID
 			1 -> Auto Kill
@@ -224,12 +229,19 @@ TWTL_SNAPSHOT_API BOOL __stdcall SnapCurrentStatus(
 		0 = Error
 		1 = Success
 */
-BOOL __stdcall TerminateCurrentProcess(CONST DWORD32 targetPID, CONST DWORD mode) {
+TWTL_SNAPSHOT_API BOOL __stdcall TerminateCurrentProcess(CONST DWORD32 targetPID, TCHAR imagePath[], CONST DWORD length, CONST DWORD mode) {
 	LPWSTR imageName = new WCHAR[MAX_PATH];
 	DWORD imageNameSize = MAX_PATH;
 
 	CPROINFO targetProcess;
 	PCPROINFO pTargetProcess = &targetProcess;
+	
+	if (targetPID && mode == 1) {
+		return NULL;
+	}
+	if (length && mode == 0) {
+		return NULL;
+	}
 
 	if ((targetProcess.hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0))
 		== INVALID_HANDLE_VALUE) {
@@ -249,6 +261,14 @@ BOOL __stdcall TerminateCurrentProcess(CONST DWORD32 targetPID, CONST DWORD mode
 					if (targetProcess.curHandle == NULL) {
 						return NULL;
 					}
+					result = QueryFullProcessImageName(targetProcess.curHandle, 0, imagePath, &imageNameSize);
+					imageNameSize = MAX_PATH;
+
+					if (result == 0) {
+						CloseHandle(targetProcess.curHandle);
+						return NULL;
+					}
+
 					_tprintf_s(L"Terminated Process, PID : %s, %d",
 						targetProcess.proc32.szExeFile,
 						targetProcess.proc32.th32ProcessID);
@@ -285,18 +305,19 @@ BOOL __stdcall TerminateCurrentProcess(CONST DWORD32 targetPID, CONST DWORD mode
 						continue;
 					}
 					else {
-						// Hard coding ( for the auto kill testing )
-						result = wcscmp(imageName, L"C:\\Windows\\System32\\notepad.exe");
-						if (result == 0) {
-							_tprintf_s(L"Terminated Process, PID : %s, %d",
-								targetProcess.proc32.szExeFile,
-								targetProcess.proc32.th32ProcessID);
-							if (TerminateProcess(targetProcess.curHandle, 0)) {
-								_tprintf_s(L" -> Success\n");
-								GetExitCodeProcess(targetProcess.curHandle, &exitCode);
-							}
-							else {
-								_tprintf_s(L" -> Failed\n");
+						for (int i = 0; i < length; i++) {
+							result = wcscmp(imageName, &imagePath[i]);
+							if (result == 0) {
+								_tprintf_s(L"Terminated Process, PID : %s, %d",
+									targetProcess.proc32.szExeFile,
+									targetProcess.proc32.th32ProcessID);
+								if (TerminateProcess(targetProcess.curHandle, 0)) {
+									_tprintf_s(L" -> Success\n");
+									GetExitCodeProcess(targetProcess.curHandle, &exitCode);
+								}
+								else {
+									_tprintf_s(L" -> Failed\n");
+								}
 							}
 						}
 					}
@@ -399,9 +420,9 @@ TWTL_SNAPSHOT_API BOOL __stdcall DeleteKeyOrKeyValue(TCHAR CONST keyName[REGNAME
 						&ftLastWriteTime);
 					if (retCode == ERROR_SUCCESS) {
 						if (!wcscmp(keyName, achKey)) {
-							TCHAR szDelKey[MAX_PATH * 2];
+							TCHAR szDelKey[MAX_PATH * 2]= L"SYSTEM\\CurrentControlSet\\Services\\";
 
-							StringCchCopy(szDelKey, MAX_PATH * 2, achKey);
+							wcscat_s(szDelKey, MAX_PATH * 2, achKey);
 							return RegDelnodeRecurse(HKEY_LOCAL_MACHINE, szDelKey);
 						}
 					}

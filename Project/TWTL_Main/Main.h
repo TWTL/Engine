@@ -37,6 +37,8 @@ BOOL
 __stdcall
 TerminateCurrentProcess(
 	CONST DWORD32 targetPID,
+	TCHAR imagePath[],
+	CONST DWORD length,
 	CONST DWORD mode
 );
 

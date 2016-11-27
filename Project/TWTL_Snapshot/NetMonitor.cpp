@@ -8,6 +8,7 @@
 #define FREE(x) HeapFree(GetProcessHeap(), 0, (x))
 
 char* __stdcall GetDomainName(uint32_t ip);
+BOOL __stdcall isBlacklist(TWTL_DB_NETWORK* sqliteNet1, char szRemoteAddr[], CONST DWORD32 index);
 
 BOOL __stdcall ParseNetstat(
 	TWTL_DB_NETWORK* sqliteNet1, 
@@ -126,6 +127,7 @@ BOOL __stdcall ParseNetstat(
 
 			sqliteNet1[i].dest_port = ntohs((u_short)pTcpTable->table[i].dwRemotePort);
 			strcpy_s(szRemoteAddr, sizeof(szRemoteAddr), inet_ntoa(IpAddr));
+			isBlacklist(sqliteNet1, szRemoteAddr, i);
 #ifdef _DEBUG
 			printf("TCP[%d] Remote Addr: %s\n", i, szRemoteAddr);
 			// printf("TCP[%d] Remote Addr: %lu\n", i, sqliteNet1[i].dest_ipv4);
@@ -256,5 +258,26 @@ char* __stdcall GetDomainName(uint32_t ip) {
 	else {
 		printf("getnameinfo returned hostname = %s\n", hostname);
 		return hostname;
+	}
+}
+
+BOOL __stdcall isBlacklist(TWTL_DB_NETWORK* sqliteNet1, char szRemoteAddr[], CONST DWORD32 index) {
+	FILE *f;
+	fopen_s(&f, "Blacklist.dat", "r");
+
+	if (f != NULL) {
+		char comparedIP[17] = { 0, };
+		while (!feof(f))
+		{
+			fgets(comparedIP, sizeof(comparedIP), f);
+			if (!strcmp(szRemoteAddr, comparedIP)) {
+				// sqliteNet1[index].
+			}
+		}
+		return TRUE;
+	}
+	else {
+		printf("Error\n");
+		return NULL;
 	}
 }
