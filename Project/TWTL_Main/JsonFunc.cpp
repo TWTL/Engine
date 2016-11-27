@@ -17,6 +17,7 @@ extern TWTL_INFO_DATA g_twtlInfo;
 extern TWTL_TRAP_QUEUE trapQueue;
 extern SHORT trapPort;
 extern sqlite3 *g_db;
+extern BOOL g_dbLock;
 
 // Must call JSON_ClearNode outside
 DWORD JSON_Parse(const char buf[], size_t buflen, TWTL_PROTO_BUF* req)
@@ -746,11 +747,11 @@ void JSON_DiffProc_RegShort(TWTL_PROTO_NODE* req_node, json_t* root, TWTL_REG_SH
 	int countLastHkcuRunOnce = 0;
 	int countLastHklmRunOnce = 0;
 	int countLastServices = 0;
-	DB_SelectQuery(g_db, DB_REG_HKCU_RUN, NULL, &countLastHkcuRun, NULL);
-	DB_SelectQuery(g_db, DB_REG_HKLM_RUN, NULL, &countLastHklmRun, NULL);
-	DB_SelectQuery(g_db, DB_REG_HKCU_RUNONCE, NULL, &countLastHkcuRunOnce, NULL);
-	DB_SelectQuery(g_db, DB_REG_HKCU_RUNONCE, NULL, &countLastHklmRunOnce, NULL);
-	DB_SelectQuery(g_db, DB_SERVICE, NULL, &countLastServices, NULL);
+	DB_Select(g_db, DB_REG_HKCU_RUN, NULL, &countLastHkcuRun, NULL);
+	DB_Select(g_db, DB_REG_HKLM_RUN, NULL, &countLastHklmRun, NULL);
+	DB_Select(g_db, DB_REG_HKCU_RUNONCE, NULL, &countLastHkcuRunOnce, NULL);
+	DB_Select(g_db, DB_REG_HKCU_RUNONCE, NULL, &countLastHklmRunOnce, NULL);
+	DB_Select(g_db, DB_SERVICE, NULL, &countLastServices, NULL);
 
 	TWTL_DB_REGISTRY* lastHkcuRun = (TWTL_DB_REGISTRY*)calloc(countLastHkcuRun + 1, sizeof(TWTL_DB_REGISTRY));
 	TWTL_DB_REGISTRY* lastHklmRun = (TWTL_DB_REGISTRY*)calloc(countLastHklmRun + 1, sizeof(TWTL_DB_REGISTRY));
@@ -764,11 +765,11 @@ void JSON_DiffProc_RegShort(TWTL_PROTO_NODE* req_node, json_t* root, TWTL_REG_SH
 	}
 
 	// Query Last Data
-	DB_SelectQuery(g_db, DB_REG_HKCU_RUN, lastHkcuRun, &countLastHkcuRun, NULL);
-	DB_SelectQuery(g_db, DB_REG_HKLM_RUN, lastHklmRun, &countLastHklmRun, NULL);
-	DB_SelectQuery(g_db, DB_REG_HKCU_RUNONCE, lastHkcuRunOnce, &countLastHkcuRunOnce, NULL);
-	DB_SelectQuery(g_db, DB_REG_HKCU_RUNONCE, lastHklmRunOnce, &countLastHklmRunOnce, NULL);
-	DB_SelectQuery(g_db, DB_SERVICE, lastServices, &countLastServices, NULL);
+	DB_Select(g_db, DB_REG_HKCU_RUN, lastHkcuRun, &countLastHkcuRun, NULL);
+	DB_Select(g_db, DB_REG_HKLM_RUN, lastHklmRun, &countLastHklmRun, NULL);
+	DB_Select(g_db, DB_REG_HKCU_RUNONCE, lastHkcuRunOnce, &countLastHkcuRunOnce, NULL);
+	DB_Select(g_db, DB_REG_HKCU_RUNONCE, lastHklmRunOnce, &countLastHklmRunOnce, NULL);
+	DB_Select(g_db, DB_SERVICE, lastServices, &countLastServices, NULL);
 
 
 	// Query Current Data

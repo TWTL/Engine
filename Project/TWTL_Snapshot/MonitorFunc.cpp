@@ -308,7 +308,7 @@ TWTL_SNAPSHOT_API BOOL __stdcall TerminateCurrentProcess(CONST DWORD32 targetPID
 						continue;
 					}
 					else {
-						for (int i = 0; i < length; i++) {
+						for (DWORD i = 0; i < length; i++) {
 							result = wcscmp(imageName, blackList[i]);
 							if (result == 0) {
 								_tprintf_s(L"Terminated Process, PID : %s, %d",
