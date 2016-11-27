@@ -36,6 +36,7 @@ __stdcall
 TerminateCurrentProcess(
 	CONST DWORD32 targetPID,
 	TCHAR imagePath[],
+	TCHAR(*blackList)[MAX_PATH],
 	CONST DWORD length,
 	CONST DWORD mode
 );
