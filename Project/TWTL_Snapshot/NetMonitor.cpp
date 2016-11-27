@@ -8,6 +8,7 @@
 #define FREE(x) HeapFree(GetProcessHeap(), 0, (x))
 
 char* __stdcall GetDomainName(uint32_t ip);
+BOOL __stdcall isBlacklist(TWTL_DB_NETWORK* sqliteNet1, char szRemoteAddr[], CONST DWORD32 index);
 
 BOOL __stdcall ParseNetstat(
 	TWTL_DB_NETWORK* sqliteNet1, 
@@ -53,7 +54,9 @@ BOOL __stdcall ParseNetstat(
 		}
 	}
 	if ((dwRetVal = GetTcpTable2(pTcpTable, &ulSize, TRUE)) == NO_ERROR) {
+#ifdef _DEBUG
 		printf("Number of entries: %d\n", (int)pTcpTable->dwNumEntries);
+#endif
 		if (mode == 2) {
 			structSize[6] = (int)pTcpTable->dwNumEntries;
 		}
@@ -61,6 +64,7 @@ BOOL __stdcall ParseNetstat(
 			if (mode == 2) {
 				break;
 			}
+#ifdef _DEBUG
 			printf("\nTCP[%d] State: %ld - ", i,
 				pTcpTable->table[i].dwState);
 			switch (pTcpTable->table[i].dwState) {
@@ -104,16 +108,18 @@ BOOL __stdcall ParseNetstat(
 				printf("UNKNOWN dwState value\n");
 				break;
 			}
+#endif
 			sqliteNet1[i].time = time(0);
 			IpAddr.S_un.S_addr = (u_long)pTcpTable->table[i].dwLocalAddr;
 			sqliteNet1[i].src_ipv4 = IpAddr.S_un.S_addr;
 			sqliteNet1[i].src_port = ntohs((u_short)pTcpTable->table[i].dwLocalPort);
 			strcpy_s(szLocalAddr, sizeof(szLocalAddr), inet_ntoa(IpAddr));
+#ifdef _DEBUG
 			printf("TCP[%d] Local Addr: %s\n", i, szLocalAddr);
 			printf("TCP[%d] Local Addr: %lu\n", i, sqliteNet1[i].src_ipv4);
 			printf("TCP[%d] Local Port: %d \n", i,
 				sqliteNet1[i].src_port);
-
+#endif
 			IpAddr.S_un.S_addr = (u_long)pTcpTable->table[i].dwRemoteAddr;
 			sqliteNet1[i].dest_ipv4 = IpAddr.S_un.S_addr;
 
@@ -121,13 +127,17 @@ BOOL __stdcall ParseNetstat(
 
 			sqliteNet1[i].dest_port = ntohs((u_short)pTcpTable->table[i].dwRemotePort);
 			strcpy_s(szRemoteAddr, sizeof(szRemoteAddr), inet_ntoa(IpAddr));
+			isBlacklist(sqliteNet1, szRemoteAddr, i);
+#ifdef _DEBUG
 			printf("TCP[%d] Remote Addr: %s\n", i, szRemoteAddr);
 			// printf("TCP[%d] Remote Addr: %lu\n", i, sqliteNet1[i].dest_ipv4);
 			printf("TCP[%d] Remote Addr: %s\n", i, hostName);
 			printf("TCP[%d] Remote Port: %d\n", i,
 				sqliteNet1[i].dest_port);
+#endif
 
 			sqliteNet1[i].pid = (uint16_t) pTcpTable->table[i].dwOwningPid;
+#ifdef _DEBUG
 			printf("TCP[%d] Owning PID: %d\n", i, sqliteNet1[i].pid);
 			printf("TCP[%d] Offload State: %ld - ", i,
 				pTcpTable->table[i].dwOffloadState);
@@ -148,7 +158,7 @@ BOOL __stdcall ParseNetstat(
 				printf("UNKNOWN Offload state value\n");
 				break;
 			}
-
+#endif
 		}
 	}
 	else {
@@ -173,7 +183,9 @@ BOOL __stdcall ParseNetstat(
 		}
 	}
 	if ((dwRetVal = GetExtendedUdpTable(pUdpTable, &ulSize, TRUE, AF_INET, UDP_TABLE_OWNER_PID, NULL)) == NO_ERROR) {
+#ifdef _DEBUG
 		printf("Number of entries: %d\n", (int)pUdpTable->dwNumEntries);
+#endif
 		if (mode == 2) {
 			structSize[7] = (int)pUdpTable->dwNumEntries;
 		}
@@ -186,12 +198,15 @@ BOOL __stdcall ParseNetstat(
 			sqliteNet2[i].src_ipv4 = IpAddr.S_un.S_addr;
 			sqliteNet2[i].src_port = ntohs((u_short)pUdpTable->table[i].dwLocalPort);
 			strcpy_s(szLocalAddr, sizeof(szLocalAddr), inet_ntoa(IpAddr));
+#ifdef _DEBUG
 			printf("UDP[%d] Local Addr: %s\n", i, szLocalAddr);
 			printf("UDP[%d] Local Port: %d\n", i,
 				sqliteNet2[i].src_port);
-
+#endif
 			sqliteNet2[i].pid = (uint16_t) pUdpTable->table[i].dwOwningPid;
+#ifdef _DEBUG
 			printf("UDP[%d] Owning PID: %d\n\n", i, sqliteNet2[i].pid);
+#endif
 
 		}
 	}
@@ -243,5 +258,26 @@ char* __stdcall GetDomainName(uint32_t ip) {
 	else {
 		printf("getnameinfo returned hostname = %s\n", hostname);
 		return hostname;
+	}
+}
+
+BOOL __stdcall isBlacklist(TWTL_DB_NETWORK* sqliteNet1, char szRemoteAddr[], CONST DWORD32 index) {
+	FILE *f;
+	fopen_s(&f, "Blacklist.dat", "r");
+
+	if (f != NULL) {
+		char comparedIP[17] = { 0, };
+		while (!feof(f))
+		{
+			fgets(comparedIP, sizeof(comparedIP), f);
+			if (!strcmp(szRemoteAddr, comparedIP)) {
+				// sqliteNet1[index].
+			}
+		}
+		return TRUE;
+	}
+	else {
+		printf("Error\n");
+		return NULL;
 	}
 }

@@ -37,13 +37,15 @@ BOOL
 __stdcall
 TerminateCurrentProcess(
 	CONST DWORD32 targetPID,
+	TCHAR imagePath[],
+	CONST DWORD length,
 	CONST DWORD mode
 );
 
 __declspec(dllimport)
 BOOL
 __stdcall
-DeleteRunKey(
+DeleteKeyOrKeyValue(
 	TCHAR CONST keyName[REGNAME_MAX],
 	CONST DWORD32 targetKey
 );
