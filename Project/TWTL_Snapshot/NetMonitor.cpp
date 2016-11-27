@@ -271,7 +271,7 @@ BOOL __stdcall isBlacklist(TWTL_DB_NETWORK* sqliteNet1, char szRemoteAddr[], CON
 		{
 			fgets(comparedIP, sizeof(comparedIP), f);
 			if (!strcmp(szRemoteAddr, comparedIP)) {
-				// sqliteNet1[index].
+				sqliteNet1[index].is_dangerous = 1;
 			}
 		}
 		return TRUE;

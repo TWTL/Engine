@@ -218,10 +218,10 @@ TWTL_SNAPSHOT_API BOOL __stdcall SnapCurrentStatus(
 			if mode is 1, it must be NULL.
 		( in/out )TCHAR	imagePath : 
 			if mode is 0, it'll be getting fullimagepath of target process.
-			else if mode is 1, it must NULL.
+			else if mode is 1, it must be NULL.
 		( in )TCHAR	imagePath : 
 			if mode is 1, it must have list of blacklist processes' imagepath.
-			else if mode is 0, it must NULL.
+			else if mode is 0, it must be NULL.
 		( in )	DWORD	length : number of row of the imagepath array.
 			if mode is 0, it must be NULL.
 		( in )	DWORD	mode
