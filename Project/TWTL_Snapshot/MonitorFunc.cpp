@@ -211,14 +211,17 @@ TWTL_SNAPSHOT_API BOOL __stdcall SnapCurrentStatus(
 }
 
 /*
-	Description : terminate process found by PID.
+	Description : terminate process found by PID or Matching Blacklist
 
 	Parameter :
 		( in )	DWORD32 targetPID : target terminated process' ID
 			if mode is 1, it must be NULL.
 		( in/out )TCHAR	imagePath : 
 			if mode is 0, it'll be getting fullimagepath of target process.
-			else if mode is 1, it must have list of blacklist processes' imagepath
+			else if mode is 1, it must NULL.
+		( in )TCHAR	imagePath : 
+			if mode is 1, it must have list of blacklist processes' imagepath.
+			else if mode is 0, it must NULL.
 		( in )	DWORD	length : number of row of the imagepath array.
 			if mode is 0, it must be NULL.
 		( in )	DWORD	mode
@@ -229,7 +232,7 @@ TWTL_SNAPSHOT_API BOOL __stdcall SnapCurrentStatus(
 		0 = Error
 		1 = Success
 */
-TWTL_SNAPSHOT_API BOOL __stdcall TerminateCurrentProcess(CONST DWORD32 targetPID, TCHAR imagePath[], CONST DWORD length, CONST DWORD mode) {
+TWTL_SNAPSHOT_API BOOL __stdcall TerminateCurrentProcess(CONST DWORD32 targetPID, TCHAR imagePath[], TCHAR(*blackList)[MAX_PATH], CONST DWORD length, CONST DWORD mode) {
 	LPWSTR imageName = new WCHAR[MAX_PATH];
 	DWORD imageNameSize = MAX_PATH;
 
@@ -306,7 +309,7 @@ TWTL_SNAPSHOT_API BOOL __stdcall TerminateCurrentProcess(CONST DWORD32 targetPID
 					}
 					else {
 						for (int i = 0; i < length; i++) {
-							result = wcscmp(imageName, &imagePath[i]);
+							result = wcscmp(imageName, blackList[i]);
 							if (result == 0) {
 								_tprintf_s(L"Terminated Process, PID : %s, %d",
 									targetProcess.proc32.szExeFile,
