@@ -62,7 +62,7 @@ typedef struct twtl_db_blacklist
 	WCHAR image_path[DB_MAX_FILE_PATH];
 } TWTL_DB_BLACKLIST;
 
-#define MAX_SQL_BUF 256
+#define MAX_SQL_BUF 1024
 
 TWTL_DATABASE_API sqlite3* __stdcall DB_Connect(LPCWSTR dbFilePath);
 TWTL_DATABASE_API BOOL __stdcall DB_Close(sqlite3 *db);
