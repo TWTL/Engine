@@ -12,6 +12,7 @@
 #include "..\TWTL_Database\Database.h"
 
 #include "NetMonitor.h"
+#include <Shlwapi.h>
 
 TWTL_SNAPSHOT_API
 BOOL
@@ -34,13 +35,15 @@ BOOL
 __stdcall
 TerminateCurrentProcess(
 	CONST DWORD32 targetPID,
+	TCHAR imagePath[],
+	CONST DWORD length,
 	CONST DWORD mode
 );
 
 TWTL_SNAPSHOT_API
 BOOL
 __stdcall 
-DeleteRunKey(
+DeleteKeyOrKeyValue(
 	TCHAR CONST keyName[REGNAME_MAX],
 	CONST DWORD32 targetKey
 );
