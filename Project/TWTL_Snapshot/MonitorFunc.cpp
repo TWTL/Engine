@@ -2,10 +2,12 @@
 
 #include "stdafx.h"
 #include "MonitorFunc.h"
+#pragma comment(lib, "Shlwapi.lib")
 
 DWORD __stdcall OpenRegisteryKey(PREGINFO CONST pReg, CONST DWORD32 target);
 BOOL __stdcall SetTargetRegistryEntry(FILE* storage, PREGINFO CONST pReg, TWTL_DB_REGISTRY* sqliteReg, TWTL_DB_SERVICE* sqliteSvc , DWORD structSize[], CONST DWORD32 target, CONST DWORD32 mode);
 BOOL __stdcall WriteRegToTxt(FILE* storage, PREGINFO CONST pReg, TWTL_DB_REGISTRY* sqliteReg, TWTL_DB_SERVICE* sqliteSvc, DWORD structSize[], CONST DWORD32 mode, CONST DWORD32 target);
+BOOL __stdcall RegDelnodeRecurse(HKEY hKeyRoot, LPTSTR lpSubKey);
 
 /*
 	Description : Write current process entry and register ( Run ) 
@@ -309,86 +311,6 @@ BOOL __stdcall TerminateCurrentProcess(CONST DWORD32 targetPID, CONST DWORD mode
 	return TRUE;
 }
 
-BOOL RegDelnodeRecurse(HKEY hKeyRoot, LPTSTR lpSubKey)
-{
-	LPTSTR lpEnd;
-	LONG lResult;
-	DWORD dwSize;
-	TCHAR szName[MAX_PATH];
-	HKEY hKey;
-	FILETIME ftWrite;
-
-	// First, see if we can delete the key without having
-	// to recurse.
-
-	lResult = RegDeleteKey(hKeyRoot, lpSubKey);
-
-	if (lResult == ERROR_SUCCESS)
-		return TRUE;
-
-	lResult = RegOpenKeyEx(hKeyRoot, lpSubKey, 0, KEY_READ, &hKey);
-
-	if (lResult != ERROR_SUCCESS)
-	{
-		if (lResult == ERROR_FILE_NOT_FOUND) {
-			printf("Key not found.\n");
-			return TRUE;
-		}
-		else {
-			printf("Error opening key.\n");
-			return FALSE;
-		}
-	}
-
-	// Check for an ending slash and add one if it is missing.
-
-	lpEnd = lpSubKey + lstrlen(lpSubKey);
-
-	if (*(lpEnd - 1) != TEXT('\\'))
-	{
-		*lpEnd = TEXT('\\');
-		lpEnd++;
-		*lpEnd = TEXT('\0');
-	}
-
-	// Enumerate the keys
-
-	dwSize = MAX_PATH;
-	lResult = RegEnumKeyEx(hKey, 0, szName, &dwSize, NULL,
-		NULL, NULL, &ftWrite);
-
-	if (lResult == ERROR_SUCCESS)
-	{
-		do {
-
-			StringCchCopy(lpEnd, MAX_PATH * 2, szName);
-
-			if (!RegDelnodeRecurse(hKeyRoot, lpSubKey)) {
-				break;
-			}
-
-			dwSize = MAX_PATH;
-
-			lResult = RegEnumKeyEx(hKey, 0, szName, &dwSize, NULL,
-				NULL, NULL, &ftWrite);
-
-		} while (lResult == ERROR_SUCCESS);
-	}
-
-	lpEnd--;
-	*lpEnd = TEXT('\0');
-
-	RegCloseKey(hKey);
-
-	// Try again to delete the key.
-
-	lResult = RegDeleteKey(hKeyRoot, lpSubKey);
-
-	if (lResult == ERROR_SUCCESS)
-		return TRUE;
-
-	return FALSE;
-}
 /*
 	Description : delete target registry value
 
@@ -791,7 +713,13 @@ BOOL __stdcall WriteRegToTxt(
 										return NULL;
 									}
 									if (!wcscmp(pSrvReg->keyName, L"ImagePath")) {
-										wcscpy_s(sqliteSvc[i].image_path, 255, pSrvReg->keyValue);
+										TCHAR buffer[MAX_PATH] = { 0, };
+										TCHAR buffer2[MAX_PATH] = { 0, };
+										TCHAR *trash = NULL;
+										wcscpy_s(buffer, MAX_PATH, pSrvReg->keyValue);
+										PathRemoveArgs(buffer);
+										ExpandEnvironmentStrings(buffer, buffer2, MAX_PATH);
+										wcscpy_s(sqliteSvc[i].image_path, 255, buffer2);
 #ifdef _DEBUG
 										_tprintf_s(L" %s\n", sqliteSvc[i].image_path);
 #endif
@@ -860,7 +788,12 @@ BOOL __stdcall WriteRegToTxt(
 							return NULL;
 						}
 						if (mode == 0) {
+							TCHAR buffer[MAX_PATH] = { 0, };
+							TCHAR *trash = NULL;
 							sqliteReg[i].time = time(0);
+							wcscpy_s(buffer, MAX_PATH, pReg->keyValue);
+							wcstok_s(buffer, L" ", &trash);
+
 							wcscpy_s(sqliteReg[i].value, REGVALUE_MAX, pReg->keyValue);
 							wcscpy_s(sqliteReg[i].name, REGNAME_MAX, pReg->keyName);
 							if (target == 1) {
@@ -901,4 +834,86 @@ BOOL __stdcall WriteRegToTxt(
 		}
 	}
 	return TRUE;
+}
+
+
+BOOL __stdcall RegDelnodeRecurse(HKEY hKeyRoot, LPTSTR lpSubKey)
+{
+	LPTSTR lpEnd;
+	LONG lResult;
+	DWORD dwSize;
+	TCHAR szName[MAX_PATH];
+	HKEY hKey;
+	FILETIME ftWrite;
+
+	// First, see if we can delete the key without having
+	// to recurse.
+
+	lResult = RegDeleteKey(hKeyRoot, lpSubKey);
+
+	if (lResult == ERROR_SUCCESS)
+		return TRUE;
+
+	lResult = RegOpenKeyEx(hKeyRoot, lpSubKey, 0, KEY_READ, &hKey);
+
+	if (lResult != ERROR_SUCCESS)
+	{
+		if (lResult == ERROR_FILE_NOT_FOUND) {
+			printf("Key not found.\n");
+			return TRUE;
+		}
+		else {
+			printf("Error opening key.\n");
+			return FALSE;
+		}
+	}
+
+	// Check for an ending slash and add one if it is missing.
+
+	lpEnd = lpSubKey + lstrlen(lpSubKey);
+
+	if (*(lpEnd - 1) != TEXT('\\'))
+	{
+		*lpEnd = TEXT('\\');
+		lpEnd++;
+		*lpEnd = TEXT('\0');
+	}
+
+	// Enumerate the keys
+
+	dwSize = MAX_PATH;
+	lResult = RegEnumKeyEx(hKey, 0, szName, &dwSize, NULL,
+		NULL, NULL, &ftWrite);
+
+	if (lResult == ERROR_SUCCESS)
+	{
+		do {
+
+			StringCchCopy(lpEnd, MAX_PATH * 2, szName);
+
+			if (!RegDelnodeRecurse(hKeyRoot, lpSubKey)) {
+				break;
+			}
+
+			dwSize = MAX_PATH;
+
+			lResult = RegEnumKeyEx(hKey, 0, szName, &dwSize, NULL,
+				NULL, NULL, &ftWrite);
+
+		} while (lResult == ERROR_SUCCESS);
+	}
+
+	lpEnd--;
+	*lpEnd = TEXT('\0');
+
+	RegCloseKey(hKey);
+
+	// Try again to delete the key.
+
+	lResult = RegDeleteKey(hKeyRoot, lpSubKey);
+
+	if (lResult == ERROR_SUCCESS)
+		return TRUE;
+
+	return FALSE;
 }

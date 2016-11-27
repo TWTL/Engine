@@ -12,6 +12,7 @@
 #include "..\TWTL_Database\Database.h"
 
 #include "NetMonitor.h"
+#include <Shlwapi.h>
 
 TWTL_SNAPSHOT_API
 BOOL
