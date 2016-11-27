@@ -152,7 +152,14 @@ TWTL_DATABASE_API BOOL __stdcall DB_CreateTable(sqlite3 *db, DB_TABLE_TYPE type)
 			L"dest_ipv4 INTEGER"
 			L"src_port INTEGER"
 			L"dest_port INTEGER"
-			L"pid INTEGER NOT NULL);";
+			L"pid INTEGER NOT NULL"
+			L"is_dangerous INTEGER NOT NULL);";
+		break;
+	case DB_BLACKLIST:
+		sql = L"CREATE TABLE IF NOT EXISTS snapshot_blacklist("
+			L"idx INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL"
+			L"time INTEGER NOT NULL"
+			L"image_path TEXT NOT NULL);";
 		break;
 	default:
 #ifdef _DEBUG
@@ -219,6 +226,7 @@ TWTL_DATABASE_API BOOL __stdcall DB_Insert(sqlite3 *db, DB_TABLE_TYPE type, void
 	TWTL_DB_REGISTRY* reg = NULL;
 	TWTL_DB_SERVICE* srv = NULL;
 	TWTL_DB_NETWORK* net = NULL;
+	TWTL_DB_BLACKLIST* black = NULL;
 
 	switch (type) {
 	case DB_PROCESS:
@@ -250,7 +258,11 @@ TWTL_DATABASE_API BOOL __stdcall DB_Insert(sqlite3 *db, DB_TABLE_TYPE type, void
 		break;
 	case DB_NETWORK:
 		net = (TWTL_DB_NETWORK*)data;
-		StringCchPrintfW(sql, MAX_SQL_BUF, L"INSERT INTO snapshot_network VALUES(%lld, %lu, %lu, %hu, %hu, %hu); ", net->time, net->src_ipv4, net->dest_ipv4, net->src_port, net->dest_port, net->pid);
+		StringCchPrintfW(sql, MAX_SQL_BUF, L"INSERT INTO snapshot_network(time, src_ipv4, dest_ipv4, src_port, dest_port, pid, is_dangerous) VALUES(%lld, %lu, %lu, %hu, %hu, %hu, %hu); ", net->time, net->src_ipv4, net->dest_ipv4, net->src_port, net->dest_port, net->pid, net->is_dangerous);
+		break;
+	case DB_BLACKLIST:
+		black = (TWTL_DB_BLACKLIST*)data;
+		StringCchPrintfW(sql, MAX_SQL_BUF, L"INSERT INTO snapshot_blacklist(time, image_path) VALUES(%lld, '%s'); ", black->time, black->image_path);
 		break;
 	default:
 		return FALSE;
@@ -312,6 +324,7 @@ TWTL_DATABASE_API BOOL __stdcall DB_SelectQuery(sqlite3 *db, DB_TABLE_TYPE type,
 	TWTL_DB_REGISTRY* reg = NULL;
 	TWTL_DB_SERVICE* srv = NULL;
 	TWTL_DB_NETWORK* net = NULL;
+	TWTL_DB_BLACKLIST* black = NULL;
 
 	switch (type) {
 	case DB_PROCESS:
@@ -356,6 +369,11 @@ TWTL_DATABASE_API BOOL __stdcall DB_SelectQuery(sqlite3 *db, DB_TABLE_TYPE type,
 		else
 			StringCchCopyW(sql, MAX_SQL_BUF, L"SELECT * from snapshot_network;");
 		break;
+	case DB_BLACKLIST:
+		if (sql_where)
+			StringCchPrintfW(sql, MAX_SQL_BUF, L"SELECT * from snapshot_blacklist WHERE %s;", sql_where);
+		else
+			StringCchCopyW(sql, MAX_SQL_BUF, L"SELECT * from snapshot_blacklist;");
 	default:
 		return FALSE;
 	}
@@ -417,6 +435,13 @@ TWTL_DATABASE_API BOOL __stdcall DB_SelectQuery(sqlite3 *db, DB_TABLE_TYPE type,
 				net[i].src_port = (uint16_t)sqlite3_column_int(stmt, 4);
 				net[i].dest_port = (uint16_t)sqlite3_column_int(stmt, 5);
 				net[i].pid = (uint16_t)sqlite3_column_int(stmt, 6);
+				net[i].is_dangerous = (uint16_t)sqlite3_column_int(stmt, 7);
+				break;
+			case DB_BLACKLIST:
+				black = (TWTL_DB_BLACKLIST*)data;
+				// sqlite3_column_int64(stmt, 0); is idx, nothing meaningless
+				black[i].time = sqlite3_column_int64(stmt, 1);
+				StringCchCopyW(black[i].image_path, DB_MAX_FILE_PATH, (const WCHAR*)sqlite3_column_text16(stmt, 2));
 				break;
 			default:
 				break; // Do nothing

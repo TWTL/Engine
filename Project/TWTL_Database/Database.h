@@ -7,7 +7,8 @@ enum DB_TABLE_TYPE
 	DB_PROCESS,
 	DB_REG_HKLM_RUN, DB_REG_HKLM_RUNONCE, DB_REG_HKCU_RUN, DB_REG_HKCU_RUNONCE,
 	DB_SERVICE,
-	DB_NETWORK
+	DB_NETWORK,
+	DB_BLACKLIST
 };
 
 #define DB_MAX_PROC_NAME 64
@@ -51,7 +52,15 @@ typedef struct twtl_db_network
 	uint16_t src_port; // Src Port
 	uint16_t dest_port; // Dest Port
 	uint16_t pid; // PID
+	uint16_t is_dangerous; // Boolean
 } TWTL_DB_NETWORK;
+
+#define DB_MAX_FILE_PATH 260
+typedef struct twtl_db_blacklist
+{
+	int64_t time;
+	WCHAR image_path[DB_MAX_FILE_PATH];
+} TWTL_DB_BLACKLIST;
 
 #define MAX_SQL_BUF 256
 
