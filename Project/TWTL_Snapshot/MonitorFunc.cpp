@@ -233,6 +233,10 @@ TWTL_SNAPSHOT_API BOOL __stdcall SnapCurrentStatus(
 	Return value :
 		0 = Error
 		1 = Success
+
+	Usage :
+	ex 1) Kill With PID and get ImagePath : TerminateCurrentProcess(PID, ImagePath, NULL, NULL, 0);
+	ex 2) Auto Kill with blacklist : TerminateCurrentProcess(NULL, NULL, blacklist, number of row of blacklist array, 1 );
 */
 TWTL_SNAPSHOT_API BOOL __stdcall TerminateCurrentProcess(CONST DWORD32 targetPID, TCHAR imagePath[], TCHAR(*blackList)[MAX_PATH], CONST DWORD length, CONST DWORD mode) {
 	LPWSTR imageName = new WCHAR[MAX_PATH];
