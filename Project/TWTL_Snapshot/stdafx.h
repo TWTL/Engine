@@ -29,4 +29,6 @@
 #include <stdint.h>
 #include <atlstr.h>
 
+#include <iostream>
+
 // TODO: reference additional headers your program requires here

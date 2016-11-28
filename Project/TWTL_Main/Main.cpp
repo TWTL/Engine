@@ -77,7 +77,10 @@ int main()
 			sqliteNet1,
 			sqliteNet2,
 			structSize,
-			2);
+			2,
+			JSON_EnqTrapQueue,
+			&trapQueue
+		);
 
 		if (initSizeCheck == 0) {
 			free(sqlitePrc);
@@ -110,7 +113,9 @@ int main()
 			sqliteNet1,
 			sqliteNet2,
 			NULL,
-			0);
+			0,
+			JSON_EnqTrapQueue,
+			&trapQueue);
 		lock = 0;
 
 		Sleep(4000);

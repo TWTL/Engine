@@ -305,9 +305,9 @@ DWORD SOCK_TrapPortProc()
 
 	 while (trapPort != 0)
 	 {
-		 std::string path;
+		 char path[TRAP_PATH_MAX] = { 0 };
 
-		 if (JSON_DeqTrapQueue(&trapQueue, &path))
+		 if (JSON_DeqTrapQueue(&trapQueue, path))
 		 { // Queue is empty
 			 DelayWait(1000);
 			 continue;

@@ -14,6 +14,20 @@
 #include "NetMonitor.h"
 #include <Shlwapi.h>
 
+#ifndef TWTL_TRAP_H
+#define TWTL_TRAP_H
+#define TRAP_PATH_MAX 1024
+typedef struct twtl_trap_queue_node {
+	char path[TRAP_PATH_MAX];
+	struct twtl_trap_queue_node* next;
+} TWTL_TRAP_QUEUE_NODE;
+typedef struct twtl_trap_queue {
+	int count;
+	struct twtl_trap_queue_node* node;
+} TWTL_TRAP_QUEUE;
+typedef BOOL(*JSON_EnqTrapQueue_t)(TWTL_TRAP_QUEUE* queue, char* inPath);
+#endif
+
 TWTL_SNAPSHOT_API
 BOOL
 __stdcall
@@ -27,7 +41,9 @@ SnapCurrentStatus(
 	TWTL_DB_NETWORK*  sqliteNet1, // TCP
 	TWTL_DB_NETWORK*  sqliteNet2, // UDP
 	DWORD structSize[],
-	CONST DWORD32 mode
+	CONST DWORD32 mode,
+	JSON_EnqTrapQueue_t trapProc,
+	TWTL_TRAP_QUEUE* queue
 );
 
 TWTL_SNAPSHOT_API

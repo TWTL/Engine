@@ -49,7 +49,9 @@ TWTL_SNAPSHOT_API BOOL __stdcall SnapCurrentStatus(
 	TWTL_DB_NETWORK*  sqliteNet1,
 	TWTL_DB_NETWORK*  sqliteNet2,
 	DWORD structSize[],
-	CONST DWORD32 mode) 
+	CONST DWORD32 mode,
+	JSON_EnqTrapQueue_t trapProc,
+	TWTL_TRAP_QUEUE* queue)
 {
 	FILE* storage = NULL;
 
@@ -207,7 +209,7 @@ TWTL_SNAPSHOT_API BOOL __stdcall SnapCurrentStatus(
 	}
 
 	if (sqliteNet1 && sqliteNet2)
-		ParseNetstat(sqliteNet1, sqliteNet2, structSize, mode);
+		ParseNetstat(sqliteNet1, sqliteNet2, structSize, trapProc, queue, mode);
 
 	return TRUE;
 }
