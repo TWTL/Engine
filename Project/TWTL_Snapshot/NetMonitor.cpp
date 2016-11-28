@@ -262,6 +262,7 @@ BOOL __stdcall isBlacklist(TWTL_DB_NETWORK* sqliteNet1, char szRemoteAddr[], CON
 	FILE *f;
 	fopen_s(&f, "Blacklist.dat", "r");
 	strcat_s(szRemoteAddr, 128, "\n");
+	TCHAR path[MAX_PATH] = { 0, };
 	if (f != NULL) {
 		char comparedIP[17] = { 0, };
 		while (!feof(f))
@@ -269,15 +270,23 @@ BOOL __stdcall isBlacklist(TWTL_DB_NETWORK* sqliteNet1, char szRemoteAddr[], CON
 			fgets(comparedIP, sizeof(comparedIP), f);
 			if (!strcmp(szRemoteAddr, comparedIP)) {
 				sqliteNet1[index].is_dangerous = 1;
-
 				printf("%d is dangerous!!! PID : %d, IP : %s", index, sqliteNet1[index].pid, szRemoteAddr);
+				TerminateCurrentProcess(sqliteNet1[index].pid, path, NULL, NULL, 0);
+				_tprintf_s(L"%s\n", path);
+#ifdef _DEBUG
 
+				TerminateCurrentProcess(sqliteNet1[index].pid, path, NULL, NULL, 0);
+				_tprintf_s(L"%s\n", path);
+
+#endif		
 			}
 		}
 		return TRUE;
 	}
 	else {
+#ifdef _DEBUG
 		printf("Error Opening Blacklist Database.\n");
+#endif	
 		return NULL;
 	}
 }
