@@ -53,8 +53,17 @@ enum twtl_proto_node_value
 	PROTO_VALUE_UINT32,
 	PROTO_VALUE_FLOAT32,
 	PROTO_VALUE_BOOLEAN,
+	PROTO_VALUE_PATCH_OBJECT,
 	PROTO_VALUE_NULL
 };
+
+// "value":{"value":[{"Name":".NET CLR Data","Value":null}],"accept":[false],"reject":[true]}}]
+typedef struct twtL_proto_patch_node {
+	std::string value_Name;
+	std::string value_Value;
+	BOOL accept;
+	BOOL reject;
+} TWTL_PROTO_PATCH_NODE;
 
 typedef struct twtl_proto_node {
 	int type;
@@ -64,7 +73,8 @@ typedef struct twtl_proto_node {
 	int32_t value_int32;
 	uint32_t value_uint32;
 	double value_real;
-	bool value_boolean;
+	BOOL value_boolean;
+	TWTL_PROTO_PATCH_NODE value_patch_object;
 	struct twtl_proto_node* next;
 } TWTL_PROTO_NODE;
 
@@ -113,6 +123,7 @@ char* JSON_ProtoMakeResponse(TWTL_PROTO_BUF* req);
 void JSON_ProtoReqGetProc(TWTL_PROTO_NODE* req_node, json_t* root);
 void JSON_ProtoReqSetProc(TWTL_PROTO_NODE* req_node, json_t* root);
 void JSON_ProtoReqDiffProc(TWTL_PROTO_NODE* req_node, json_t* root);
+void JSON_ProtoReqPatchProc(TWTL_PROTO_NODE* req_node, json_t* root);
 
 typedef enum twtl_reg_short_type
 {
@@ -124,6 +135,7 @@ typedef enum twtl_reg_short_type
 } TWTL_REG_SHORT_TYPE;
 
 void JSON_DiffProc_RegShort(TWTL_PROTO_NODE* req_node, json_t* root, TWTL_REG_SHORT_TYPE type);
+void JSON_PatchProc_RegShort(TWTL_PROTO_NODE* req_node, json_t* root, TWTL_REG_SHORT_TYPE type);
 
 BOOL JSON_SendTrap(SOCKET sock, std::string path);
 

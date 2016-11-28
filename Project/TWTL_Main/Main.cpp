@@ -113,26 +113,6 @@ int main()
 			0);
 		lock = 0;
 
-		// Put data into database
-		g_dbLock = TRUE;
-		DB_Delete(g_db, DB_PROCESS, NULL);
-		DB_Delete(g_db, DB_REG_HKLM_RUN, NULL);
-		DB_Delete(g_db, DB_REG_HKLM_RUNONCE, NULL);
-		DB_Delete(g_db, DB_REG_HKCU_RUN, NULL);
-		DB_Delete(g_db, DB_REG_HKCU_RUNONCE, NULL);
-		DB_Delete(g_db, DB_SERVICE, NULL);
-		DB_Delete(g_db, DB_NETWORK, NULL);
-		DB_Delete(g_db, DB_BLACKLIST, NULL);
-		DB_Insert(g_db, DB_PROCESS, sqlitePrc, structSize[0]);
-		DB_Insert(g_db, DB_REG_HKCU_RUN, sqliteReg1, structSize[1]);
-		DB_Insert(g_db, DB_REG_HKLM_RUN, sqliteReg2, structSize[2]);
-		DB_Insert(g_db, DB_REG_HKCU_RUNONCE, sqliteReg3, structSize[3]);
-		DB_Insert(g_db, DB_REG_HKLM_RUNONCE, sqliteReg4, structSize[4]);
-		DB_Insert(g_db, DB_SERVICE, sqliteSvc, structSize[5]);
-		DB_Insert(g_db, DB_NETWORK, sqliteNet1, structSize[6]);
-		DB_Insert(g_db, DB_NETWORK, sqliteNet2, structSize[7]);
-		g_dbLock = FALSE;
-
 		Sleep(4000);
 
 		lock = 1;
