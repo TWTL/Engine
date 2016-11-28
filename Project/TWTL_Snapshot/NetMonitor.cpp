@@ -277,7 +277,9 @@ BOOL __stdcall isBlacklist(TWTL_DB_NETWORK* sqliteNet1, char szRemoteAddr[], CON
 		return TRUE;
 	}
 	else {
-		printf("Error\n");
+#ifdef _DEBUG
+		printf("Error Opening Blacklist Database.\n");
+#endif
 		return NULL;
 	}
 }

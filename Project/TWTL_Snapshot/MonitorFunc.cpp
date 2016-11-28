@@ -802,12 +802,6 @@ BOOL __stdcall WriteRegToTxt(
 			}
 			if (1 <= target && target <= 4) {
 				result = RegEnumValue(pReg->key, i, pReg->keyName, &pReg->bufSize, NULL, NULL, NULL, NULL);
-				RegQueryValueEx(pReg->key,
-					pReg->keyName,
-					NULL,
-					&pReg->dataType,
-					(LPBYTE)pReg->keyValue,
-					&pReg->bufSize);
 				if (result == ERROR_SUCCESS)
 				{
 					if (1 <= target && target <= 4) {
@@ -834,11 +828,13 @@ BOOL __stdcall WriteRegToTxt(
 						}
 						if (mode == 0) {
 							TCHAR buffer[MAX_PATH] = { 0, };
+							TCHAR buffer2[MAX_PATH] = { 0, };
 							sqliteReg[i].time = time(0);
 							wcscpy_s(buffer, MAX_PATH, pReg->keyValue);
 							PathRemoveArgs(buffer);
+							ExpandEnvironmentStrings(buffer, buffer2, MAX_PATH);
 
-							wcscpy_s(sqliteReg[i].value, REGVALUE_MAX, pReg->keyValue);
+							wcscpy_s(sqliteReg[i].value, REGVALUE_MAX, buffer2);
 							wcscpy_s(sqliteReg[i].name, REGNAME_MAX, pReg->keyName);
 							if (target == 1) {
 								wcscpy_s(sqliteReg[i].path, 255, L"HKCU\\Microsoft\\Windows\\CurrentVersion\\Run");
@@ -856,6 +852,7 @@ BOOL __stdcall WriteRegToTxt(
 #ifdef _DEBUG
 							_tprintf_s(L"Register Name : %s, Value : %s\n", sqliteReg[i].name, sqliteReg[i].value);
 #endif
+
 						}
 						else if (mode == 1) {
 							PrintCUI(pReg->keyName);
@@ -872,9 +869,6 @@ BOOL __stdcall WriteRegToTxt(
 					}
 				}
 				else {
-					printf("%d\n", result);
-					RegCloseKey(pReg->key);
-					return NULL;
 				}
 			}
 			else {
