@@ -281,6 +281,7 @@ BOOL __stdcall isBlacklist(TWTL_DB_NETWORK* sqliteNet1, char szRemoteAddr[], CON
 #endif		
 			}
 		}
+		fclose(f);
 		return TRUE;
 	}
 	else {
