@@ -164,7 +164,6 @@ TWTL_DATABASE_API BOOL __stdcall DB_CreateTable(sqlite3 *db, DB_TABLE_TYPE type)
 		sql = L"CREATE TABLE IF NOT EXISTS snapshot_blacklist("
 			L"idx INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, "
 			L"time INTEGER, "
-			L"value TEXT NOT NULL, "
 			L"image_path TEXT NOT NULL);";
 		break;
 	default:
@@ -287,7 +286,7 @@ TWTL_DATABASE_API BOOL __stdcall DB_Insert(sqlite3 *db, DB_TABLE_TYPE type, void
 			break;
 		case DB_BLACKLIST:
 			black = (TWTL_DB_BLACKLIST*)data;
-			StringCchPrintfW(sql, MAX_SQL_BUF, L"INSERT OR REPLACE INTO snapshot_blacklist(value, image_path) VALUES('%s', '%s'); ", black[i].value, black[i].image_path);
+			StringCchPrintfW(sql, MAX_SQL_BUF, L"INSERT OR REPLACE INTO snapshot_blacklist(image_path) VALUES('%s'); ", black[i].image_path);
 			break;
 		default:
 			return FALSE;
@@ -468,8 +467,7 @@ TWTL_DATABASE_API BOOL __stdcall DB_Select(sqlite3 *db, DB_TABLE_TYPE type, void
 				black = (TWTL_DB_BLACKLIST*)data;
 				// sqlite3_column_int64(stmt, 0); is idx, nothing meaningless
 				// black[i].time = sqlite3_column_int64(stmt, 1);
-				StringCchCopyW(black[i].value, DB_MAX_FILE_PATH, (const WCHAR*)sqlite3_column_text16(stmt, 2));
-				StringCchCopyW(black[i].image_path, DB_MAX_FILE_PATH, (const WCHAR*)sqlite3_column_text16(stmt, 3));
+				StringCchCopyW(black[i].image_path, DB_MAX_FILE_PATH, (const WCHAR*)sqlite3_column_text16(stmt, 2));
 				break;
 			default:
 				break; // Do nothing

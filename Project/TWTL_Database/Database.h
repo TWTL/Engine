@@ -59,7 +59,6 @@ typedef struct twtl_db_network
 typedef struct twtl_db_blacklist
 {
 	int64_t time;
-	WCHAR value[DB_MAX_FILE_PATH];
 	WCHAR image_path[DB_MAX_FILE_PATH];
 } TWTL_DB_BLACKLIST;
 

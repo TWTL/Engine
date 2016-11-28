@@ -1131,7 +1131,6 @@ void JSON_ProtoReqPatchProc(TWTL_PROTO_NODE* req_node, json_t* root)
 	}
 }
 
-// "contents":[{"type":"request.patch","path":"/Reg/Short/GlobalServices/","value":{"value":[{"Name":".NET CLR Data","Value":null}],"accept":[false],"reject":[true]}}]
 void JSON_PatchProc_RegShort(TWTL_PROTO_NODE* req_node, json_t* root, TWTL_REG_SHORT_TYPE type)
 {
 	json_t* contentsArray = json_array(); // "contents": [  ]  // []
@@ -1141,7 +1140,6 @@ void JSON_PatchProc_RegShort(TWTL_PROTO_NODE* req_node, json_t* root, TWTL_REG_S
 
 	WCHAR wBuf[TWTL_JSON_MAX_BUF] = { 0 };
 	
-
 	switch (type)
 	{
 	case REG_SHORT_HKCU_RUN:
@@ -1177,7 +1175,19 @@ void JSON_PatchProc_RegShort(TWTL_PROTO_NODE* req_node, json_t* root, TWTL_REG_S
 		// Register to Blacklist
 		TWTL_DB_BLACKLIST black;
 		memset(&black, 0, sizeof(TWTL_DB_BLACKLIST));
-		black = ;
+		switch (type)
+		{
+		case REG_SHORT_HKCU_RUN:
+		case REG_SHORT_HKLM_RUN:
+		case REG_SHORT_HKCU_RUNONCE:
+		case REG_SHORT_HKLM_RUNONCE:
+			MultiByteToWideChar(CP_UTF8, 0, req_node->value_patch_object.value_Value.c_str(), -1, black.image_path, TWTL_JSON_MAX_BUF);
+			break;
+		case REG_SHORT_SERVICE:
+			MultiByteToWideChar(CP_UTF8, 0, req_node->value_patch_object.value_Name.c_str(), -1, black.image_path, TWTL_JSON_MAX_BUF);
+			break;
+		}
+		DB_Insert(g_db, DB_BLACKLIST, &black, 1);
 	}
 	else // Error
 	{ // Internal Server Error
