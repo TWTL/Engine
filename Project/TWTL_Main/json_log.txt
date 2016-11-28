@@ -17,7 +17,7 @@
 {"app": "TWTL-Engine", "name": "TWTL", "version": "1", "contents": [{"type": "response.object", "path": "/Engine/RequestPort/", "value": 5259}]}
 
 [E <- U] MainPort Receive
-{"app":"TWTL-GUI","name":"TWTL","version":"1","contents":[{"type":"request.set","path":"/Engine/TrapPort/","value":14188}]}
+{"app":"TWTL-GUI","name":"TWTL","version":"1","contents":[{"type":"request.set","path":"/Engine/TrapPort/","value":11715}]}
 
 [E -> U] MainPort Send
 {"app": "TWTL-Engine", "name": "TWTL", "version": "1", "contents": [{"type": "response.status", "path": "/Engine/TrapPort/", "value": 200}]}
@@ -44,11 +44,17 @@
 {"app":"TWTL-GUI","name":"TWTL","version":"1","contents":[{"type":"request.diff","path":"/Reg/Short/UserRun/"}]}
 
 [E -> U] MainPort Send
-{"app": "TWTL-Engine", "name": "TWTL", "version": "1", "contents": [{"type": "response.status", "path": "/Reg/Short/UserRun/", "value": 200}, {"type": "response.object", "path": "/Reg/Short/UserRun/", "value": []}]}
+{"app": "TWTL-Engine", "name": "TWTL", "version": "1", "contents": [{"type": "response.status", "path": "/Reg/Short/UserRun/", "value": 200}, {"type": "response.object", "path": "/Reg/Short/UserRun/", "value": [{"Name": "World9", "Value": "Hello"}]}]}
 
 [E <- U] MainPort Receive
 {"app":"TWTL-GUI","name":"TWTL","version":"1","contents":[{"type":"request.diff","path":"/Reg/Short/UserRunOnce/"}]}
 
 [E -> U] MainPort Send
 {"app": "TWTL-Engine", "name": "TWTL", "version": "1", "contents": [{"type": "response.status", "path": "/Reg/Short/UserRunOnce/", "value": 200}, {"type": "response.object", "path": "/Reg/Short/UserRunOnce/", "value": []}]}
+
+[E <- U] MainPort Receive
+{"app":"TWTL-GUI","name":"TWTL","version":"1","contents":[{"type":"request.patch","path":"/Reg/Short/UserRun/","value":{"value":[{"Name":"World9","Value":"Hello"}],"accept":[false],"reject":[true]}}]}
+
+[E -> U] MainPort Send
+{"app": "TWTL-Engine", "name": "TWTL", "version": "1", "contents": [{"type": "response.status", "path": "/Reg/Short/UserRun/", "value": 200}]}
 

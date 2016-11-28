@@ -74,6 +74,7 @@ typedef struct twtl_proto_node {
 	uint32_t value_uint32;
 	double value_real;
 	BOOL value_boolean;
+	BOOL value_patch;
 	TWTL_PROTO_PATCH_NODE value_patch_object;
 	struct twtl_proto_node* next;
 } TWTL_PROTO_NODE;
