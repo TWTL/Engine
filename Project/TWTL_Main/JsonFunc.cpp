@@ -249,20 +249,17 @@ void JSON_ProtoParse(json_t *element, const char *key, TWTL_PROTO_BUF* req, TWTL
 			fprintf(stderr, "unrecognized JSON type %d\n", json_typeof(element));
 		}
 	}
-	else if (2 <= depth)
-	{
+	else if (2 <= depth && depth < 4)
+	{ 
 		switch (json_typeof(element)) {
 		case JSON_OBJECT:
 			size = json_object_size(element);
 			json_object_foreach(element, foundKey, value) {
-				// TWTL_PROTO_NODE* new_node = JSON_ProtoAddNode(req);
-				// JSON_ProtoParse(value, foundKey, req, new_node, depth + 1);
 				JSON_ProtoParse(value, foundKey, req, node, depth + 1);
 			}
 			break;
 		case JSON_ARRAY:
 			size = json_array_size(element);
-
 			printf("JSON Array of %ld element\n", size);
 			for (i = 0; i < size; i++) {
 				value = json_array_get(element, i);
@@ -343,6 +340,70 @@ void JSON_ProtoParse(json_t *element, const char *key, TWTL_PROTO_BUF* req, TWTL
 			fprintf(stderr, "unrecognized JSON type %d\n", json_typeof(element));
 		}
 	}	
+	// "value":{"value":[{"Name":".NET CLR Data","Value":null}],"accept":[false],"reject":[true]}}
+	else
+	{
+		switch (json_typeof(element)) {
+		case JSON_OBJECT:
+			size = json_object_size(element);
+			json_object_foreach(element, foundKey, value) {
+				JSON_ProtoParse(value, foundKey, req, node, depth + 1);
+			}
+			break;
+		case JSON_ARRAY:
+			size = json_array_size(element);
+			printf("JSON Array of %ld element\n", size);
+			for (i = 0; i < size; i++) {
+				value = json_array_get(element, i);
+				JSON_ProtoParse(value, key, req, node, depth + 1);
+			}
+			break;
+		case JSON_STRING:
+			if (StrCmpA(key, "Name") == 0)
+			{
+				node->value_patch = TRUE;
+				node->value_patch_object.value_Name = json_string_value(element);
+			}
+			else if (StrCmpA(key, "Value") == 0)
+			{
+				node->value_patch = TRUE;
+				node->value_patch_object.value_Value = json_string_value(element);
+			}
+			break;
+		case JSON_INTEGER:
+			break;
+		case JSON_REAL:
+			break;
+		case JSON_TRUE:
+			if (StrCmpA(key, "accept") == 0)
+			{
+				node->value_patch = TRUE;
+				node->value_patch_object.accept = TRUE;
+			}
+			else if (StrCmpA(key, "reject") == 0)
+			{
+				node->value_patch = TRUE;
+				node->value_patch_object.reject = TRUE;
+			}
+			break;
+		case JSON_FALSE:
+			if (StrCmpA(key, "accept") == 0)
+			{
+				node->value_patch = TRUE;
+				node->value_patch_object.accept = FALSE;
+			}
+			else if (StrCmpA(key, "reject") == 0)
+			{
+				node->value_patch = TRUE;
+				node->value_patch_object.reject = FALSE;
+			}
+			break;
+		case JSON_NULL:
+			break;
+		default:
+			fprintf(stderr, "unrecognized JSON type %d\n", json_typeof(element));
+		}
+	}
 }
 
 char* JSON_ProtoMakeResponse(TWTL_PROTO_BUF* req)
@@ -374,7 +435,7 @@ char* JSON_ProtoMakeResponse(TWTL_PROTO_BUF* req)
 			JSON_ProtoReqDiffProc(req_node, root);
 			break;
 		case PROTO_REQ_PATCH:
-			// {"app":"TWTL-GUI","name":"TWTL","version":"1","contents":[{"type":"request.patch","path":"/Reg/Short/GlobalServices/","value":{"value":[{"Name":".NET CLR Data","Value":null}],"accept":[false],"reject":[true]}}]}
+			JSON_ProtoReqPatchProc(req_node, root);
 			break;
 		case PROTO_REQ_BETA:
 			break;
@@ -732,8 +793,6 @@ void JSON_ProtoReqDiffProc(TWTL_PROTO_NODE* req_node, json_t* root)
 	}
 }
 
-// BOOL onHkcuRun, onHklmRun, onHkcuRunOnce, onHklmRunOnce, onSerives
-// Only one of these value can be true
 void JSON_DiffProc_RegShort(TWTL_PROTO_NODE* req_node, json_t* root, TWTL_REG_SHORT_TYPE type)
 {
 	json_t* contentsArray = json_array(); // "contents": [  ]  // []
@@ -747,60 +806,131 @@ void JSON_DiffProc_RegShort(TWTL_PROTO_NODE* req_node, json_t* root, TWTL_REG_SH
 	int countLastHkcuRunOnce = 0;
 	int countLastHklmRunOnce = 0;
 	int countLastServices = 0;
-	DB_Select(g_db, DB_REG_HKCU_RUN, NULL, &countLastHkcuRun, NULL);
-	DB_Select(g_db, DB_REG_HKLM_RUN, NULL, &countLastHklmRun, NULL);
-	DB_Select(g_db, DB_REG_HKCU_RUNONCE, NULL, &countLastHkcuRunOnce, NULL);
-	DB_Select(g_db, DB_REG_HKCU_RUNONCE, NULL, &countLastHklmRunOnce, NULL);
-	DB_Select(g_db, DB_SERVICE, NULL, &countLastServices, NULL);
 
-	TWTL_DB_REGISTRY* lastHkcuRun = (TWTL_DB_REGISTRY*)calloc(countLastHkcuRun + 1, sizeof(TWTL_DB_REGISTRY));
-	TWTL_DB_REGISTRY* lastHklmRun = (TWTL_DB_REGISTRY*)calloc(countLastHklmRun + 1, sizeof(TWTL_DB_REGISTRY));
-	TWTL_DB_REGISTRY* lastHkcuRunOnce = (TWTL_DB_REGISTRY*)calloc(countLastHkcuRunOnce + 1, sizeof(TWTL_DB_REGISTRY));
-	TWTL_DB_REGISTRY* lastHklmRunOnce = (TWTL_DB_REGISTRY*)calloc(countLastHklmRunOnce + 1, sizeof(TWTL_DB_REGISTRY));
-	TWTL_DB_SERVICE* lastServices = (TWTL_DB_SERVICE*)calloc(countLastServices + 1, sizeof(TWTL_DB_SERVICE));
+	TWTL_DB_REGISTRY* lastHkcuRun = NULL;
+	TWTL_DB_REGISTRY* lastHklmRun = NULL;
+	TWTL_DB_REGISTRY* lastHkcuRunOnce = NULL;
+	TWTL_DB_REGISTRY* lastHklmRunOnce = NULL;
+	TWTL_DB_SERVICE* lastServices = NULL;
 
-	if (!(lastHkcuRun && lastHklmRun && lastHkcuRunOnce && lastHklmRunOnce && lastServices))
-	{ // DynAlloc Failure
-		failure = TRUE;
+	switch (type)
+	{
+	case REG_SHORT_HKCU_RUN:
+		DB_Select(g_db, DB_REG_HKCU_RUN, NULL, &countLastHkcuRun, NULL);
+		lastHkcuRun = (TWTL_DB_REGISTRY*)calloc(countLastHkcuRun + 1, sizeof(TWTL_DB_REGISTRY));
+		DB_Select(g_db, DB_REG_HKCU_RUN, lastHkcuRun, &countLastHkcuRun, NULL);
+		break;
+	case REG_SHORT_HKLM_RUN:
+		DB_Select(g_db, DB_REG_HKLM_RUN, NULL, &countLastHklmRun, NULL);
+		lastHklmRun = (TWTL_DB_REGISTRY*)calloc(countLastHklmRun + 1, sizeof(TWTL_DB_REGISTRY));
+		DB_Select(g_db, DB_REG_HKLM_RUN, lastHklmRun, &countLastHklmRun, NULL);
+		break;
+	case REG_SHORT_HKCU_RUNONCE:
+		DB_Select(g_db, DB_REG_HKCU_RUNONCE, NULL, &countLastHkcuRunOnce, NULL);
+		lastHkcuRunOnce = (TWTL_DB_REGISTRY*)calloc(countLastHkcuRunOnce + 1, sizeof(TWTL_DB_REGISTRY));
+		DB_Select(g_db, DB_REG_HKCU_RUNONCE, lastHkcuRunOnce, &countLastHkcuRunOnce, NULL);
+		break;
+	case REG_SHORT_HKLM_RUNONCE:
+		DB_Select(g_db, DB_REG_HKLM_RUNONCE, NULL, &countLastHklmRunOnce, NULL);
+		lastHklmRunOnce = (TWTL_DB_REGISTRY*)calloc(countLastHklmRunOnce + 1, sizeof(TWTL_DB_REGISTRY));
+		DB_Select(g_db, DB_REG_HKLM_RUNONCE, lastHklmRunOnce, &countLastHklmRunOnce, NULL);
+		break;
+	case REG_SHORT_SERVICE:
+		DB_Select(g_db, DB_SERVICE, NULL, &countLastServices, NULL);
+		lastServices = (TWTL_DB_SERVICE*)calloc(countLastServices + 1, sizeof(TWTL_DB_SERVICE));
+		DB_Select(g_db, DB_SERVICE, lastServices, &countLastServices, NULL);
+		break;
 	}
-
-	// Query Last Data
-	DB_Select(g_db, DB_REG_HKCU_RUN, lastHkcuRun, &countLastHkcuRun, NULL);
-	DB_Select(g_db, DB_REG_HKLM_RUN, lastHklmRun, &countLastHklmRun, NULL);
-	DB_Select(g_db, DB_REG_HKCU_RUNONCE, lastHkcuRunOnce, &countLastHkcuRunOnce, NULL);
-	DB_Select(g_db, DB_REG_HKCU_RUNONCE, lastHklmRunOnce, &countLastHklmRunOnce, NULL);
-	DB_Select(g_db, DB_SERVICE, lastServices, &countLastServices, NULL);
-
 
 	// Query Current Data
-	TWTL_DB_REGISTRY* nowHkcuRun = (TWTL_DB_REGISTRY*)calloc(1, sizeof(TWTL_DB_REGISTRY));
-	TWTL_DB_REGISTRY* nowHklmRun = (TWTL_DB_REGISTRY*)calloc(1, sizeof(TWTL_DB_REGISTRY));
-	TWTL_DB_REGISTRY* nowHkcuRunOnce = (TWTL_DB_REGISTRY*)calloc(1, sizeof(TWTL_DB_REGISTRY));
-	TWTL_DB_REGISTRY* nowHklmRunOnce = (TWTL_DB_REGISTRY*)calloc(1, sizeof(TWTL_DB_REGISTRY));
-	TWTL_DB_SERVICE* nowServices = (TWTL_DB_SERVICE*)calloc(1, sizeof(TWTL_DB_SERVICE));
 	// Query struct size
-	DWORD structSize[8] = { 0 };
-	if (!(nowHkcuRun && nowHklmRun && nowHkcuRunOnce && nowHklmRunOnce && nowServices))
-	{ // DynAlloc Failure
-		failure = TRUE;
+	TWTL_DB_REGISTRY* nowHkcuRun = NULL;
+	TWTL_DB_REGISTRY* nowHklmRun = NULL;
+	TWTL_DB_REGISTRY* nowHkcuRunOnce = NULL;
+	TWTL_DB_REGISTRY* nowHklmRunOnce = NULL;
+	TWTL_DB_SERVICE* nowServices = NULL;
+	switch (type)
+	{
+	case REG_SHORT_HKCU_RUN:
+		nowHkcuRun = (TWTL_DB_REGISTRY*)calloc(1, sizeof(TWTL_DB_REGISTRY));
+		break;
+	case REG_SHORT_HKLM_RUN:
+		nowHklmRun = (TWTL_DB_REGISTRY*)calloc(1, sizeof(TWTL_DB_REGISTRY));
+		break;
+	case REG_SHORT_HKCU_RUNONCE:
+		nowHkcuRunOnce = (TWTL_DB_REGISTRY*)calloc(1, sizeof(TWTL_DB_REGISTRY));
+		break;
+	case REG_SHORT_HKLM_RUNONCE:
+		nowHklmRunOnce = (TWTL_DB_REGISTRY*)calloc(1, sizeof(TWTL_DB_REGISTRY));
+		break;
+	case REG_SHORT_SERVICE:
+		nowServices = (TWTL_DB_SERVICE*)calloc(1, sizeof(TWTL_DB_SERVICE));
+		break;
 	}
+	DWORD structSize[8] = { 0 };
 	if (!SnapCurrentStatus(NULL, nowHkcuRun, nowHklmRun, nowHkcuRunOnce, nowHklmRunOnce, nowServices, NULL, NULL, structSize, 2))
 	{ // Snapshot Failure
 		failure = TRUE;
 	}
-	nowHkcuRun = (TWTL_DB_REGISTRY*)realloc(nowHkcuRun, sizeof(TWTL_DB_REGISTRY)*(structSize[1] + 1));
-	memset(nowHkcuRun, 0x00, sizeof(TWTL_DB_REGISTRY)*(structSize[1] + 1));
-	nowHklmRun = (TWTL_DB_REGISTRY*)realloc(nowHklmRun, sizeof(TWTL_DB_REGISTRY)*(structSize[2] + 1));
-	memset(nowHklmRun, 0x00, sizeof(TWTL_DB_REGISTRY)*(structSize[2] + 1));
-	nowHkcuRunOnce = (TWTL_DB_REGISTRY*)realloc(nowHkcuRunOnce, sizeof(TWTL_DB_REGISTRY)*(structSize[3] + 1));
-	memset(nowHkcuRunOnce, 0x00, sizeof(TWTL_DB_REGISTRY)*(structSize[3] + 1));
-	nowHklmRunOnce = (TWTL_DB_REGISTRY*)realloc(nowHklmRunOnce, sizeof(TWTL_DB_REGISTRY)*(structSize[4] + 1));
-	memset(nowHklmRunOnce, 0x00, sizeof(TWTL_DB_REGISTRY)*(structSize[4] + 1));
-	nowServices = (TWTL_DB_SERVICE*)realloc(nowServices, sizeof(TWTL_DB_SERVICE)*(structSize[5] + 1));
-	memset(nowServices, 0x00, sizeof(TWTL_DB_SERVICE)*(structSize[5] + 1));
+
+	switch (type)
+	{
+	case REG_SHORT_HKCU_RUN:
+		nowHkcuRun = (TWTL_DB_REGISTRY*)realloc(nowHkcuRun, sizeof(TWTL_DB_REGISTRY)*(structSize[1] + 1));
+		memset(nowHkcuRun, 0x00, sizeof(TWTL_DB_REGISTRY)*(structSize[1] + 1));
+		break;
+	case REG_SHORT_HKLM_RUN:
+		nowHklmRun = (TWTL_DB_REGISTRY*)realloc(nowHklmRun, sizeof(TWTL_DB_REGISTRY)*(structSize[2] + 1));
+		memset(nowHklmRun, 0x00, sizeof(TWTL_DB_REGISTRY)*(structSize[2] + 1));
+		break;
+	case REG_SHORT_HKCU_RUNONCE:
+		nowHkcuRunOnce = (TWTL_DB_REGISTRY*)realloc(nowHkcuRunOnce, sizeof(TWTL_DB_REGISTRY)*(structSize[3] + 1));
+		memset(nowHkcuRunOnce, 0x00, sizeof(TWTL_DB_REGISTRY)*(structSize[3] + 1));
+		break;
+	case REG_SHORT_HKLM_RUNONCE:
+		nowHklmRunOnce = (TWTL_DB_REGISTRY*)realloc(nowHklmRunOnce, sizeof(TWTL_DB_REGISTRY)*(structSize[4] + 1));
+		memset(nowHklmRunOnce, 0x00, sizeof(TWTL_DB_REGISTRY)*(structSize[4] + 1));
+		break;
+	case REG_SHORT_SERVICE:
+		nowServices = (TWTL_DB_SERVICE*)realloc(nowServices, sizeof(TWTL_DB_SERVICE)*(structSize[5] + 1));
+		memset(nowServices, 0x00, sizeof(TWTL_DB_SERVICE)*(structSize[5] + 1));
+		break;
+	}
 	if (!SnapCurrentStatus(NULL, nowHkcuRun, nowHklmRun, nowHkcuRunOnce, nowHklmRunOnce, nowServices, NULL, NULL, NULL, 0))
 	{ // Snapshot Failure
 		failure = TRUE;
+	}
+	/*
+	// Put data into database
+	g_dbLock = TRUE;
+	DB_Insert(g_db, DB_PROCESS, sqlitePrc, structSize[0]);
+	DB_Insert(g_db, DB_REG_HKCU_RUN, sqliteReg1, structSize[1]);
+	DB_Insert(g_db, DB_REG_HKLM_RUN, sqliteReg2, structSize[2]);
+	DB_Insert(g_db, DB_REG_HKCU_RUNONCE, sqliteReg3, structSize[3]);
+	DB_Insert(g_db, DB_REG_HKLM_RUNONCE, sqliteReg4, structSize[4]);
+	DB_Insert(g_db, DB_SERVICE, sqliteSvc, structSize[5]);
+	DB_Insert(g_db, DB_NETWORK, sqliteNet1, structSize[6]);
+	DB_Insert(g_db, DB_NETWORK, sqliteNet2, structSize[7]);
+	g_dbLock = FALSE;
+	*/
+
+	switch (type)
+	{
+	case REG_SHORT_HKCU_RUN:
+		DB_Insert(g_db, DB_REG_HKCU_RUN, nowHkcuRun, structSize[1]);
+		break;
+	case REG_SHORT_HKLM_RUN:
+		DB_Insert(g_db, DB_REG_HKLM_RUN, nowHklmRun, structSize[2]);
+		break;
+	case REG_SHORT_HKCU_RUNONCE:
+		DB_Insert(g_db, DB_REG_HKCU_RUNONCE, nowHkcuRunOnce, structSize[3]);
+		break;
+	case REG_SHORT_HKLM_RUNONCE:
+		DB_Insert(g_db, DB_REG_HKLM_RUNONCE, nowHklmRunOnce, structSize[4]);
+		break;
+	case REG_SHORT_SERVICE:
+		DB_Insert(g_db, DB_SERVICE, nowServices, structSize[5]);
+		break;
 	}
 
 	if (failure)
@@ -844,14 +974,13 @@ void JSON_DiffProc_RegShort(TWTL_PROTO_NODE* req_node, json_t* root, TWTL_REG_SH
 		json_array_append(contentsArray, contentNode);
 		json_object_set(contentNode, "type", json_string(PROTO_STR_RES_OBJECT));
 		json_object_set(contentNode, "path", json_string(path));
-		
+
 
 		// Services
 		if (type == REG_SHORT_SERVICE)
 		{ // ArraySize == structSize[5]
 			json_t* serviceRoot = json_array();
-
-			BOOL first = TRUE;
+			json_object_set(contentNode, "value", serviceRoot);
 
 			// Find new entries
 			for (DWORD idx_n = 0; idx_n < structSize[5]; idx_n++)
@@ -868,12 +997,6 @@ void JSON_DiffProc_RegShort(TWTL_PROTO_NODE* req_node, json_t* root, TWTL_REG_SH
 
 				if (found == FALSE)
 				{ // Newly created!
-					if (first)
-					{
-						json_object_set(contentNode, "value", serviceRoot);
-						first = FALSE;
-					}
-
 					json_t* serviceNode = json_object();
 					json_array_append(serviceRoot, serviceNode);
 
@@ -931,7 +1054,6 @@ void JSON_DiffProc_RegShort(TWTL_PROTO_NODE* req_node, json_t* root, TWTL_REG_SH
 
 			json_t* regRoot = json_array();
 			json_object_set(contentNode, "value", regRoot);
-			// BOOL first = TRUE;
 			// Find new entries
 			for (DWORD idx_n = 0; idx_n < countNow; idx_n++)
 			{
@@ -944,18 +1066,10 @@ void JSON_DiffProc_RegShort(TWTL_PROTO_NODE* req_node, json_t* root, TWTL_REG_SH
 						break;
 					}
 				}
-				
+
 
 				if (found == FALSE)
 				{ // Newly created!
-					/*
-					if (first)
-					{
-						json_object_set(contentNode, "value", regRoot);
-						first = FALSE;
-					}
-					*/
-
 					json_t* regNode = json_object();
 					json_array_append(regRoot, regNode);
 
@@ -992,6 +1106,100 @@ void JSON_DiffProc_RegShort(TWTL_PROTO_NODE* req_node, json_t* root, TWTL_REG_SH
 	nowHklmRunOnce = NULL;
 	nowServices = NULL;
 }
+
+void JSON_ProtoReqPatchProc(TWTL_PROTO_NODE* req_node, json_t* root)
+{
+	if (req_node->path.compare("/Reg/Short/GlobalServices/") == 0)
+	{
+		JSON_PatchProc_RegShort(req_node, root, REG_SHORT_SERVICE);
+	}
+	else if (req_node->path.compare("/Reg/Short/GlobalRun/") == 0)
+	{
+		JSON_PatchProc_RegShort(req_node, root, REG_SHORT_HKLM_RUN);
+	}
+	else if (req_node->path.compare("/Reg/Short/GlobalRunOnce/") == 0)
+	{
+		JSON_PatchProc_RegShort(req_node, root, REG_SHORT_HKLM_RUNONCE);
+	}
+	else if (req_node->path.compare("/Reg/Short/UserRun/") == 0)
+	{
+		JSON_PatchProc_RegShort(req_node, root, REG_SHORT_HKCU_RUN);
+	}
+	else if (req_node->path.compare("/Reg/Short/UserRunOnce/") == 0)
+	{
+		JSON_PatchProc_RegShort(req_node, root, REG_SHORT_HKCU_RUNONCE);
+	}
+}
+
+void JSON_PatchProc_RegShort(TWTL_PROTO_NODE* req_node, json_t* root, TWTL_REG_SHORT_TYPE type)
+{
+	json_t* contentsArray = json_array(); // "contents": [  ]  // []
+	json_object_set(root, "contents", contentsArray);
+
+	BOOL result = FALSE;
+
+	WCHAR wBuf[TWTL_JSON_MAX_BUF] = { 0 };
+	
+	switch (type)
+	{
+	case REG_SHORT_HKCU_RUN:
+		MultiByteToWideChar(CP_UTF8, 0, req_node->value_patch_object.value_Value.c_str(), -1, wBuf, TWTL_JSON_MAX_BUF);
+		result = DeleteKeyOrKeyValue(wBuf, 1);
+		break;
+	case REG_SHORT_HKLM_RUN:
+		MultiByteToWideChar(CP_UTF8, 0, req_node->value_patch_object.value_Value.c_str(), -1, wBuf, TWTL_JSON_MAX_BUF);
+		result = DeleteKeyOrKeyValue(wBuf, 2);
+		break;
+	case REG_SHORT_HKCU_RUNONCE:
+		MultiByteToWideChar(CP_UTF8, 0, req_node->value_patch_object.value_Value.c_str(), -1, wBuf, TWTL_JSON_MAX_BUF);
+		result = DeleteKeyOrKeyValue(wBuf, 3);
+		break;
+	case REG_SHORT_HKLM_RUNONCE:
+		MultiByteToWideChar(CP_UTF8, 0, req_node->value_patch_object.value_Value.c_str(), -1, wBuf, TWTL_JSON_MAX_BUF);
+		result = DeleteKeyOrKeyValue(wBuf, 4);
+		break;
+	case REG_SHORT_SERVICE:
+		MultiByteToWideChar(CP_UTF8, 0, req_node->value_patch_object.value_Name.c_str(), -1, wBuf, TWTL_JSON_MAX_BUF);
+		result = DeleteKeyOrKeyValue(wBuf, 5);
+		break;
+	}
+
+	if (result) // Success
+	{
+		json_t* contentStatus = json_object(); // [ { } , { } , { }, ] // {}
+		json_array_append(contentsArray, contentStatus);
+		json_object_set(contentStatus, "type", json_string(PROTO_STR_RES_STATUS));
+		json_object_set(contentStatus, "path", json_string(req_node->path.c_str()));
+		json_object_set(contentStatus, "value", json_integer(PROTO_STATUS_SUCCESS));
+
+		// Register to Blacklist
+		TWTL_DB_BLACKLIST black;
+		memset(&black, 0, sizeof(TWTL_DB_BLACKLIST));
+		switch (type)
+		{
+		case REG_SHORT_HKCU_RUN:
+		case REG_SHORT_HKLM_RUN:
+		case REG_SHORT_HKCU_RUNONCE:
+		case REG_SHORT_HKLM_RUNONCE:
+			MultiByteToWideChar(CP_UTF8, 0, req_node->value_patch_object.value_Value.c_str(), -1, black.image_path, TWTL_JSON_MAX_BUF);
+			break;
+		case REG_SHORT_SERVICE:
+			MultiByteToWideChar(CP_UTF8, 0, req_node->value_patch_object.value_Name.c_str(), -1, black.image_path, TWTL_JSON_MAX_BUF);
+			break;
+		}
+		DB_Insert(g_db, DB_BLACKLIST, &black, 1);
+	}
+	else // Error
+	{ // Internal Server Error
+		json_t* contentNode = json_object(); // [ { } , { } , { }, ] // {}
+		json_array_append(contentsArray, contentNode);
+
+		json_object_set(contentNode, "type", json_string(PROTO_STR_RES_STATUS));
+		json_object_set(contentNode, "path", json_string(req_node->path.c_str()));
+		json_object_set(contentNode, "value", json_integer(PROTO_STATUS_SERVER_ERROR));
+	}
+}
+
 
 BOOL JSON_SendTrap(SOCKET sock, std::string path)
 {

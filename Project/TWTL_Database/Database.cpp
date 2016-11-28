@@ -16,6 +16,7 @@ Return value :
 TWTL_DATABASE_API sqlite3* __stdcall DB_Connect(LPCWSTR dbFilePath) {
 	sqlite3 *db;
 	int ret;
+	// ret = sqlite3_config(SQLITE_CONFIG_SERIALIZED);
 	ret = sqlite3_config(SQLITE_CONFIG_MULTITHREAD);
 	if (ret) {
 #ifdef _DEBUG
@@ -99,7 +100,7 @@ TWTL_DATABASE_API BOOL __stdcall DB_CreateTable(sqlite3 *db, DB_TABLE_TYPE type)
 	case DB_PROCESS:
 		sql = L"CREATE TABLE IF NOT EXISTS snapshot_process( "
 			L"idx INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, "
-			L"time INTEGER NOT NULL, "
+			L"time INTEGER, "
 			L"pid INTEGER, "
 			L"ppid INTEGER, "
 			L"process_name TEXT NOT NULL, "
@@ -108,7 +109,7 @@ TWTL_DATABASE_API BOOL __stdcall DB_CreateTable(sqlite3 *db, DB_TABLE_TYPE type)
 	case DB_REG_HKLM_RUN:
 		sql = L"CREATE TABLE IF NOT EXISTS snapshot_reg_hklm_run( "
 			L"idx INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, "
-			L"time INTEGER NOT NULL, "
+			L"time INTEGER, "
 			L"path TEXT NOT NULL, "
 			L"value TEXT NOT NULL, "
 			L"type INTEGER NOT NULL, "
@@ -117,7 +118,7 @@ TWTL_DATABASE_API BOOL __stdcall DB_CreateTable(sqlite3 *db, DB_TABLE_TYPE type)
 	case DB_REG_HKLM_RUNONCE:
 		sql = L"CREATE TABLE IF NOT EXISTS snapshot_reg_hklm_runonce( "
 			L"idx INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, "
-			L"time INTEGER NOT NULL, "
+			L"time INTEGER, "
 			L"path TEXT NOT NULL, "
 			L"value TEXT NOT NULL, "
 			L"type INTEGER NOT NULL, "
@@ -126,7 +127,7 @@ TWTL_DATABASE_API BOOL __stdcall DB_CreateTable(sqlite3 *db, DB_TABLE_TYPE type)
 	case DB_REG_HKCU_RUN:
 		sql = L"CREATE TABLE IF NOT EXISTS snapshot_reg_hkcu_run( "
 			L"idx INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, "
-			L"time INTEGER NOT NULL, "
+			L"time INTEGER, "
 			L"path TEXT NOT NULL, "
 			L"value TEXT NOT NULL, "
 			L"type INTEGER NOT NULL, "
@@ -135,7 +136,7 @@ TWTL_DATABASE_API BOOL __stdcall DB_CreateTable(sqlite3 *db, DB_TABLE_TYPE type)
 	case DB_REG_HKCU_RUNONCE:
 		sql = L"CREATE TABLE IF NOT EXISTS snapshot_reg_hkcu_runonce("
 			L"idx INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, "
-			L"time INTEGER NOT NULL, "
+			L"time INTEGER, "
 			L"path TEXT NOT NULL, "
 			L"value TEXT NOT NULL, "
 			L"type INTEGER NOT NULL, "
@@ -144,14 +145,14 @@ TWTL_DATABASE_API BOOL __stdcall DB_CreateTable(sqlite3 *db, DB_TABLE_TYPE type)
 	case DB_SERVICE:
 		sql = L"CREATE TABLE IF NOT EXISTS snapshot_service("
 			L"idx INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, "
-			L"time INTEGER NOT NULL, "
+			L"time INTEGER, "
 			L"key TEXT NOT NULL, "
 			L"image_path TEXT NOT NULL);";
 		break;
 	case DB_NETWORK:
 		sql = L"CREATE TABLE IF NOT EXISTS snapshot_network("
 			L"idx INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, "
-			L"time INTEGER NOT NULL, "
+			L"time INTEGER, "
 			L"src_ipv4 INTEGER, "
 			L"dest_ipv4 INTEGER, "
 			L"src_port INTEGER, "
@@ -162,7 +163,7 @@ TWTL_DATABASE_API BOOL __stdcall DB_CreateTable(sqlite3 *db, DB_TABLE_TYPE type)
 	case DB_BLACKLIST:
 		sql = L"CREATE TABLE IF NOT EXISTS snapshot_blacklist("
 			L"idx INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, "
-			L"time INTEGER NOT NULL, "
+			L"time INTEGER, "
 			L"image_path TEXT NOT NULL);";
 		break;
 	default:
@@ -255,37 +256,37 @@ TWTL_DATABASE_API BOOL __stdcall DB_Insert(sqlite3 *db, DB_TABLE_TYPE type, void
 		case DB_PROCESS:
 			proc = (TWTL_DB_PROCESS*)data;
 			if (proc->pid && proc->ppid) // PID and PPID is valid
-				StringCchPrintfW(sql, MAX_SQL_BUF, L"INSERT INTO snapshot_process(time, pid, ppid, process_name, process_path) VALUES(%lld, %ld, %ld, '%s', '%s'); ", proc[i].time, proc[i].pid, proc[i].ppid, proc[i].process_name, proc[i].process_path);
+				StringCchPrintfW(sql, MAX_SQL_BUF, L"INSERT OR REPLACE INTO snapshot_process(pid, ppid, process_name, process_path) VALUES(%ld, %ld, '%s', '%s'); ", proc[i].pid, proc[i].ppid, proc[i].process_name, proc[i].process_path);
 			else // No PID and PPID
-				StringCchPrintfW(sql, MAX_SQL_BUF, L"INSERT INTO snapshot_process(time, process_name, process_path) VALUES(%lld, '%s', '%s'); ", proc[i].time, proc[i].process_name, proc[i].process_path);
+				StringCchPrintfW(sql, MAX_SQL_BUF, L"INSERT OR REPLACE INTO snapshot_process(process_name, process_path) VALUES('%s', '%s'); ", proc[i].process_name, proc[i].process_path);
 			break;
 		case DB_REG_HKLM_RUN:
 			reg = (TWTL_DB_REGISTRY*)data;
-			StringCchPrintfW(sql, MAX_SQL_BUF, L"INSERT INTO snapshot_reg_hklm_run(time, path, value, type, name) VALUES(%lld, '%s', '%s', %ld, '%s'); ", reg[i].time, reg[i].path, reg[i].value, reg[i].type, reg[i].name);
+			StringCchPrintfW(sql, MAX_SQL_BUF, L"INSERT OR REPLACE INTO snapshot_reg_hklm_run(path, value, type, name) VALUES('%s', '%s', %ld, '%s'); ", reg[i].path, reg[i].value, reg[i].type, reg[i].name);
 			break;
 		case DB_REG_HKLM_RUNONCE:
 			reg = (TWTL_DB_REGISTRY*)data;
-			StringCchPrintfW(sql, MAX_SQL_BUF, L"INSERT INTO snapshot_reg_hklm_runonce(time, path, value, type, name) VALUES(%lld, '%s', '%s', %ld, '%s'); ", reg[i].time, reg[i].path, reg[i].value, reg[i].type, reg[i].name);
+			StringCchPrintfW(sql, MAX_SQL_BUF, L"INSERT OR REPLACE INTO snapshot_reg_hklm_runonce(path, value, type, name) VALUES('%s', '%s', %ld, '%s'); ", reg[i].path, reg[i].value, reg[i].type, reg[i].name);
 			break;
 		case DB_REG_HKCU_RUN:
 			reg = (TWTL_DB_REGISTRY*)data;
-			StringCchPrintfW(sql, MAX_SQL_BUF, L"INSERT INTO snapshot_reg_hkcu_run(time, path, value, type, name) VALUES(%lld, '%s', '%s', %ld, '%s'); ", reg[i].time, reg[i].path, reg[i].value, reg[i].type, reg[i].name);
+			StringCchPrintfW(sql, MAX_SQL_BUF, L"INSERT OR REPLACE INTO snapshot_reg_hkcu_run(path, value, type, name) VALUES('%s', '%s', %ld, '%s'); ", reg[i].path, reg[i].value, reg[i].type, reg[i].name);
 			break;
 		case DB_REG_HKCU_RUNONCE:
 			reg = (TWTL_DB_REGISTRY*)data;
-			StringCchPrintfW(sql, MAX_SQL_BUF, L"INSERT INTO snapshot_reg_hkcu_runonce(time, path, value, type, name) VALUES(%lld, '%s', '%s', %ld, '%s'); ", reg[i].time, reg[i].path, reg[i].value, reg[i].type, reg[i].name);
+			StringCchPrintfW(sql, MAX_SQL_BUF, L"INSERT OR REPLACE INTO snapshot_reg_hkcu_runonce(path, value, type, name) VALUES('%s', '%s', %ld, '%s'); ", reg[i].path, reg[i].value, reg[i].type, reg[i].name);
 			break;
 		case DB_SERVICE:
 			srv = (TWTL_DB_SERVICE*)data;
-			StringCchPrintfW(sql, MAX_SQL_BUF, L"INSERT INTO snapshot_service(time, key, image_path) VALUES(%lld, '%s', '%s'); ", srv[i].time, srv[i].key, srv[i].image_path);
+			StringCchPrintfW(sql, MAX_SQL_BUF, L"INSERT OR REPLACE INTO snapshot_service(key, image_path) VALUES('%s', '%s'); ", srv[i].key, srv[i].image_path);
 			break;
 		case DB_NETWORK:
 			net = (TWTL_DB_NETWORK*)data;
-			StringCchPrintfW(sql, MAX_SQL_BUF, L"INSERT INTO snapshot_network(time, src_ipv4, dest_ipv4, src_port, dest_port, pid, is_dangerous) VALUES(%lld, %lu, %lu, %hu, %hu, %hu, %hu); ", net[i].time, net[i].src_ipv4, net[i].dest_ipv4, net[i].src_port, net[i].dest_port, net[i].pid, net[i].is_dangerous);
+			StringCchPrintfW(sql, MAX_SQL_BUF, L"INSERT OR REPLACE INTO snapshot_network(src_ipv4, dest_ipv4, src_port, dest_port, pid, is_dangerous) VALUES(%lu, %lu, %hu, %hu, %hu, %hu); ", net[i].src_ipv4, net[i].dest_ipv4, net[i].src_port, net[i].dest_port, net[i].pid, net[i].is_dangerous);
 			break;
 		case DB_BLACKLIST:
 			black = (TWTL_DB_BLACKLIST*)data;
-			StringCchPrintfW(sql, MAX_SQL_BUF, L"INSERT INTO snapshot_blacklist(time, image_path) VALUES(%lld, '%s'); ", black[i].time, black[i].image_path);
+			StringCchPrintfW(sql, MAX_SQL_BUF, L"INSERT OR REPLACE INTO snapshot_blacklist(image_path) VALUES('%s'); ", black[i].image_path);
 			break;
 		default:
 			return FALSE;
@@ -360,27 +361,27 @@ TWTL_DATABASE_API BOOL __stdcall DB_Select(sqlite3 *db, DB_TABLE_TYPE type, void
 		break;
 	case DB_REG_HKLM_RUN:
 		if (sql_where)
-			StringCchPrintfW(sql, MAX_SQL_BUF, L"SELECT * from snapshot_reg_khlm_run WHERE %s;", sql_where);
+			StringCchPrintfW(sql, MAX_SQL_BUF, L"SELECT * from snapshot_reg_hklm_run WHERE %s;", sql_where);
 		else
-			StringCchCopyW(sql, MAX_SQL_BUF, L"SELECT * from snapshot_reg_khlm_runonce;");
+			StringCchCopyW(sql, MAX_SQL_BUF, L"SELECT * from snapshot_reg_hklm_run;");
 		break;
 	case DB_REG_HKLM_RUNONCE:
 		if (sql_where)
-			StringCchPrintfW(sql, MAX_SQL_BUF, L"SELECT * from snapshot_reg_khlm_runonce WHERE %s;", sql_where);
+			StringCchPrintfW(sql, MAX_SQL_BUF, L"SELECT * from snapshot_reg_hklm_runonce WHERE %s;", sql_where);
 		else
-			StringCchCopyW(sql, MAX_SQL_BUF, L"SELECT * from snapshot_reg_khlm_runonce;");
+			StringCchCopyW(sql, MAX_SQL_BUF, L"SELECT * from snapshot_reg_hklm_runonce;");
 		break;
 	case DB_REG_HKCU_RUN:
 		if (sql_where)
-			StringCchPrintfW(sql, MAX_SQL_BUF, L"SELECT * from snapshot_reg_khcu_run WHERE %s;", sql_where);
+			StringCchPrintfW(sql, MAX_SQL_BUF, L"SELECT * from snapshot_reg_hkcu_run WHERE %s;", sql_where);
 		else
-			StringCchCopyW(sql, MAX_SQL_BUF, L"SELECT * from snapshot_reg_khcu_run;");
+			StringCchCopyW(sql, MAX_SQL_BUF, L"SELECT * from snapshot_reg_hkcu_run;");
 		break;
 	case DB_REG_HKCU_RUNONCE:
 		if (sql_where)
-			StringCchPrintfW(sql, MAX_SQL_BUF, L"SELECT * from snapshot_reg_khcu_runonce WHERE %s;", sql_where);
+			StringCchPrintfW(sql, MAX_SQL_BUF, L"SELECT * from snapshot_reg_hkcu_runonce WHERE %s;", sql_where);
 		else
-			StringCchCopyW(sql, MAX_SQL_BUF, L"SELECT * from snapshot_reg_khcu_runonce;");
+			StringCchCopyW(sql, MAX_SQL_BUF, L"SELECT * from snapshot_reg_hkcu_runonce;");
 		break;
 	case DB_SERVICE:
 		if (sql_where)
@@ -415,7 +416,7 @@ TWTL_DATABASE_API BOOL __stdcall DB_Select(sqlite3 *db, DB_TABLE_TYPE type, void
 
 	// Run SQL
 	int i = 0;
-	while ((ret = sqlite3_step(stmt)) != SQLITE_ROW)
+	while ((ret = sqlite3_step(stmt)) == SQLITE_ROW)
 	{
 		if (countRow)
 		{
@@ -427,7 +428,7 @@ TWTL_DATABASE_API BOOL __stdcall DB_Select(sqlite3 *db, DB_TABLE_TYPE type, void
 			case DB_PROCESS:
 				proc = (TWTL_DB_PROCESS*)data;
 				// sqlite3_column_int64(stmt, 0); is idx, nothing meaningless
-				proc[i].time = sqlite3_column_int64(stmt, 1);
+				// proc[i].time = sqlite3_column_int64(stmt, 1);
 				proc[i].pid = sqlite3_column_int(stmt, 2);
 				proc[i].ppid = sqlite3_column_int(stmt, 3);
 				StringCchCopyW(proc[i].process_name, DB_MAX_PROC_NAME, (const WCHAR*)sqlite3_column_text16(stmt, 4));
@@ -439,7 +440,7 @@ TWTL_DATABASE_API BOOL __stdcall DB_Select(sqlite3 *db, DB_TABLE_TYPE type, void
 			case DB_REG_HKCU_RUNONCE:
 				reg = (TWTL_DB_REGISTRY*)data;
 				// sqlite3_column_int64(stmt, 0); is idx, nothing meaningless
-				reg[i].time = sqlite3_column_int64(stmt, 1);
+				// reg[i].time = sqlite3_column_int64(stmt, 1);
 				StringCchCopyW(reg[i].path, DB_MAX_REG_PATH, (const WCHAR*)sqlite3_column_text16(stmt, 2));
 				StringCchCopyW(reg[i].value, DB_MAX_REG_VALUE, (const WCHAR*)sqlite3_column_text16(stmt, 3));
 				reg[i].type = sqlite3_column_int(stmt, 4);
@@ -448,13 +449,13 @@ TWTL_DATABASE_API BOOL __stdcall DB_Select(sqlite3 *db, DB_TABLE_TYPE type, void
 			case DB_SERVICE:
 				srv = (TWTL_DB_SERVICE*)data;
 				// sqlite3_column_int64(stmt, 0); is idx, nothing meaningless
-				srv[i].time = sqlite3_column_int64(stmt, 1);
+				// srv[i].time = sqlite3_column_int64(stmt, 1);
 				StringCchCopyW(srv[i].key, DB_MAX_REG_PATH, (const WCHAR*)sqlite3_column_text16(stmt, 2));
 				break;
 			case DB_NETWORK:
 				net = (TWTL_DB_NETWORK*)data;
 				// sqlite3_column_int64(stmt, 0); is idx, nothing meaningless
-				net[i].time = sqlite3_column_int64(stmt, 1);
+				// net[i].time = sqlite3_column_int64(stmt, 1);
 				net[i].src_ipv4 = (uint32_t)sqlite3_column_int(stmt, 2);
 				net[i].dest_ipv4 = (uint32_t)sqlite3_column_int(stmt, 3);
 				net[i].src_port = (uint16_t)sqlite3_column_int(stmt, 4);
@@ -465,7 +466,7 @@ TWTL_DATABASE_API BOOL __stdcall DB_Select(sqlite3 *db, DB_TABLE_TYPE type, void
 			case DB_BLACKLIST:
 				black = (TWTL_DB_BLACKLIST*)data;
 				// sqlite3_column_int64(stmt, 0); is idx, nothing meaningless
-				black[i].time = sqlite3_column_int64(stmt, 1);
+				// black[i].time = sqlite3_column_int64(stmt, 1);
 				StringCchCopyW(black[i].image_path, DB_MAX_FILE_PATH, (const WCHAR*)sqlite3_column_text16(stmt, 2));
 				break;
 			default:
