@@ -31,9 +31,9 @@ typedef struct twtl_db_registry
 {
 	int64_t time; // Unix Epoch
 	WCHAR path[DB_MAX_REG_PATH]; // Ex) HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run
-	WCHAR value[DB_MAX_REG_VALUE]; // Ex) V3 Application
+	WCHAR value[DB_MAX_REG_VALUE]; // Ex) "C:\\Program Files\\AhnLab\\V3Lite30\\V3Lite.exe" /tray
 	int32_t type; // Ex) REG_SZ
-	WCHAR name[DB_MAX_REG_NAME]; // Ex) "C:\\Program Files\\AhnLab\\V3Lite30\\V3Lite.exe" /tray
+	WCHAR name[DB_MAX_REG_NAME]; // Ex) V3 Application
 } TWTL_DB_REGISTRY;
 
 typedef struct twtl_service
@@ -62,10 +62,12 @@ typedef struct twtl_db_blacklist
 	WCHAR image_path[DB_MAX_FILE_PATH];
 } TWTL_DB_BLACKLIST;
 
-#define MAX_SQL_BUF 256
+#define MAX_SQL_BUF 1024
 
 TWTL_DATABASE_API sqlite3* __stdcall DB_Connect(LPCWSTR dbFilePath);
 TWTL_DATABASE_API BOOL __stdcall DB_Close(sqlite3 *db);
 TWTL_DATABASE_API BOOL __stdcall DB_CreateTable(sqlite3 *db, DB_TABLE_TYPE type);
-TWTL_DATABASE_API BOOL __stdcall DB_Insert(sqlite3 *db, DB_TABLE_TYPE type, void* data);
-TWTL_DATABASE_API BOOL __stdcall DB_SelectQuery(sqlite3 *db, DB_TABLE_TYPE type, void* data, int* count, WCHAR* sql_where);
+TWTL_DATABASE_API BOOL __stdcall DB_Insert(sqlite3 *db, DB_TABLE_TYPE type, void* data, int count);
+TWTL_DATABASE_API BOOL __stdcall DB_Select(sqlite3 *db, DB_TABLE_TYPE type, void* data, int* count, WCHAR* sql_where);
+TWTL_DATABASE_API BOOL __stdcall DB_Delete(sqlite3 *db, DB_TABLE_TYPE type, WCHAR* sql_where);
+
