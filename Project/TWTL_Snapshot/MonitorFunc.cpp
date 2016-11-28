@@ -145,6 +145,7 @@ TWTL_SNAPSHOT_API BOOL __stdcall SnapCurrentStatus(
 									sqlitePrc[i].ppid = currentProcessInfo.proc32.th32ParentProcessID;
 
 									if (mode == 0) {
+										
 #ifdef _DEBUG
 										_tprintf_s(L"%s ", sqlitePrc[i].process_path);
 										_tprintf_s(L"Process name : %s, PID : %d, PPID :%d\n",
@@ -152,6 +153,7 @@ TWTL_SNAPSHOT_API BOOL __stdcall SnapCurrentStatus(
 											currentProcessInfo.proc32.th32ProcessID,
 											currentProcessInfo.proc32.th32ParentProcessID);
 #endif
+
 									}
 									else if (mode == 1) {
 										if (_itow_s(currentProcessInfo.proc32.th32ProcessID, curPID, 5, 10)) {
@@ -218,10 +220,10 @@ TWTL_SNAPSHOT_API BOOL __stdcall SnapCurrentStatus(
 			if mode is 1, it must be NULL.
 		( in/out )TCHAR	imagePath : 
 			if mode is 0, it'll be getting fullimagepath of target process.
-			else if mode is 1, it must NULL.
+			else if mode is 1, it must be NULL.
 		( in )TCHAR	imagePath : 
 			if mode is 1, it must have list of blacklist processes' imagepath.
-			else if mode is 0, it must NULL.
+			else if mode is 0, it must be NULL.
 		( in )	DWORD	length : number of row of the imagepath array.
 			if mode is 0, it must be NULL.
 		( in )	DWORD	mode
@@ -308,7 +310,7 @@ TWTL_SNAPSHOT_API BOOL __stdcall TerminateCurrentProcess(CONST DWORD32 targetPID
 						continue;
 					}
 					else {
-						for (int i = 0; i < length; i++) {
+						for (DWORD i = 0; i < length; i++) {
 							result = wcscmp(imageName, blackList[i]);
 							if (result == 0) {
 								_tprintf_s(L"Terminated Process, PID : %s, %d",
@@ -628,7 +630,6 @@ BOOL __stdcall WriteRegToTxt(
 	CONST DWORD32 target)
 {
 	DWORD result = 0;
-
 	if (target == 5) {
 		TCHAR    achKey[REGNAME_MAX];		// buffer for subkey name
 		DWORD    cbName;					// size of name string 
@@ -694,6 +695,7 @@ BOOL __stdcall WriteRegToTxt(
 				{
 					sqliteSvc[i].time = time(0);
 					wcscpy_s(sqliteSvc[i].key, REGNAME_MAX, achKey);
+
 #ifdef _DEBUG
 					_tprintf(TEXT("(%d) %s"), i + 1, sqliteSvc[i].key);
 #endif
@@ -744,9 +746,11 @@ BOOL __stdcall WriteRegToTxt(
 										PathRemoveArgs(buffer);
 										ExpandEnvironmentStrings(buffer, buffer2, MAX_PATH);
 										wcscpy_s(sqliteSvc[i].image_path, 255, buffer2);
+										
 #ifdef _DEBUG
 										_tprintf_s(L" %s\n", sqliteSvc[i].image_path);
 #endif
+
 									}
 								}
 							}
@@ -757,11 +761,23 @@ BOOL __stdcall WriteRegToTxt(
 		}
 	}
 	else {
+		if (!InitRegSize(pReg, 1)) {
+			return NULL;
+		}
+		if (!InitRegSize(pReg, 2)) {
+			return NULL;
+		}
 		int regIndex = 0;
 		for (int i = 0; result == ERROR_SUCCESS; i++) {
 			result = RegEnumValue(pReg->key, i, pReg->keyName, &pReg->bufSize, NULL, NULL, NULL, NULL);
 			if (result == ERROR_SUCCESS) {
+				if (!InitRegSize(pReg, 2)) {
+							return NULL;
+				}
 				regIndex++;
+				if (!InitRegSize(pReg, 1)) {
+							return NULL;
+				}
 			}
 		}
 		if (mode == 2) {
@@ -778,15 +794,14 @@ BOOL __stdcall WriteRegToTxt(
 				structSize[4] = regIndex;
 			}
 		}
+		result = ERROR_SUCCESS;
 		for (int i = 0; result == ERROR_SUCCESS; i++)
 		{
 			if (mode == 2) {
 				break;
 			}
 			if (1 <= target && target <= 4) {
-
 				result = RegEnumValue(pReg->key, i, pReg->keyName, &pReg->bufSize, NULL, NULL, NULL, NULL);
-
 				if (result == ERROR_SUCCESS)
 				{
 					if (1 <= target && target <= 4) {
@@ -813,12 +828,13 @@ BOOL __stdcall WriteRegToTxt(
 						}
 						if (mode == 0) {
 							TCHAR buffer[MAX_PATH] = { 0, };
-							TCHAR *trash = NULL;
+							TCHAR buffer2[MAX_PATH] = { 0, };
 							sqliteReg[i].time = time(0);
 							wcscpy_s(buffer, MAX_PATH, pReg->keyValue);
-							wcstok_s(buffer, L" ", &trash);
+							PathRemoveArgs(buffer);
+							ExpandEnvironmentStrings(buffer, buffer2, MAX_PATH);
 
-							wcscpy_s(sqliteReg[i].value, REGVALUE_MAX, pReg->keyValue);
+							wcscpy_s(sqliteReg[i].value, REGVALUE_MAX, buffer2);
 							wcscpy_s(sqliteReg[i].name, REGNAME_MAX, pReg->keyName);
 							if (target == 1) {
 								wcscpy_s(sqliteReg[i].path, 255, L"HKCU\\Microsoft\\Windows\\CurrentVersion\\Run");
@@ -836,6 +852,7 @@ BOOL __stdcall WriteRegToTxt(
 #ifdef _DEBUG
 							_tprintf_s(L"Register Name : %s, Value : %s\n", sqliteReg[i].name, sqliteReg[i].value);
 #endif
+
 						}
 						else if (mode == 1) {
 							PrintCUI(pReg->keyName);
@@ -850,6 +867,8 @@ BOOL __stdcall WriteRegToTxt(
 					else {
 						return NULL;
 					}
+				}
+				else {
 				}
 			}
 			else {

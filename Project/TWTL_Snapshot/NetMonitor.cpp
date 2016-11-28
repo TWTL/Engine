@@ -115,7 +115,7 @@ BOOL __stdcall ParseNetstat(
 			sqliteNet1[i].src_port = ntohs((u_short)pTcpTable->table[i].dwLocalPort);
 			strcpy_s(szLocalAddr, sizeof(szLocalAddr), inet_ntoa(IpAddr));
 #ifdef _DEBUG
-			printf("TCP[%d] Local Addr: %s\n", i, szLocalAddr);
+			printf("TCP[%d] Local Addr: %s", i, szLocalAddr);
 			printf("TCP[%d] Local Addr: %lu\n", i, sqliteNet1[i].src_ipv4);
 			printf("TCP[%d] Local Port: %d \n", i,
 				sqliteNet1[i].src_port);
@@ -127,17 +127,14 @@ BOOL __stdcall ParseNetstat(
 
 			sqliteNet1[i].dest_port = ntohs((u_short)pTcpTable->table[i].dwRemotePort);
 			strcpy_s(szRemoteAddr, sizeof(szRemoteAddr), inet_ntoa(IpAddr));
+			sqliteNet1[i].pid = (uint16_t)pTcpTable->table[i].dwOwningPid;
 			isBlacklist(sqliteNet1, szRemoteAddr, i);
 #ifdef _DEBUG
-			printf("TCP[%d] Remote Addr: %s\n", i, szRemoteAddr);
+			printf("TCP[%d] Remote Addr: %s", i, szRemoteAddr);
 			// printf("TCP[%d] Remote Addr: %lu\n", i, sqliteNet1[i].dest_ipv4);
 			printf("TCP[%d] Remote Addr: %s\n", i, hostName);
 			printf("TCP[%d] Remote Port: %d\n", i,
 				sqliteNet1[i].dest_port);
-#endif
-
-			sqliteNet1[i].pid = (uint16_t) pTcpTable->table[i].dwOwningPid;
-#ifdef _DEBUG
 			printf("TCP[%d] Owning PID: %d\n", i, sqliteNet1[i].pid);
 			printf("TCP[%d] Offload State: %ld - ", i,
 				pTcpTable->table[i].dwOffloadState);
@@ -264,20 +261,23 @@ char* __stdcall GetDomainName(uint32_t ip) {
 BOOL __stdcall isBlacklist(TWTL_DB_NETWORK* sqliteNet1, char szRemoteAddr[], CONST DWORD32 index) {
 	FILE *f;
 	fopen_s(&f, "Blacklist.dat", "r");
-
+	strcat_s(szRemoteAddr, 128, "\n");
 	if (f != NULL) {
 		char comparedIP[17] = { 0, };
 		while (!feof(f))
 		{
 			fgets(comparedIP, sizeof(comparedIP), f);
 			if (!strcmp(szRemoteAddr, comparedIP)) {
-				// sqliteNet1[index].
+				sqliteNet1[index].is_dangerous = 1;
+
+				printf("%d is dangerous!!! PID : %d, IP : %s", index, sqliteNet1[index].pid, szRemoteAddr);
+
 			}
 		}
 		return TRUE;
 	}
 	else {
-		printf("Error\n");
+		printf("Error Opening Blacklist Database.\n");
 		return NULL;
 	}
 }
