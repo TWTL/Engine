@@ -149,7 +149,3 @@ void JSON_PatchProc_RegShort(TWTL_PROTO_NODE* req_node, json_t* root, TWTL_REG_S
 BOOL JSON_SendTrap(SOCKET sock, std::string path);
 
 void JSON_Init_TWTL_INFO_DATA();
-void JSON_Init_TWTL_INFO_ENGINE_NODE(TWTL_INFO_ENGINE_NODE* node);
-
-void JSON_Init_ProtoBufHeader(TWTL_PROTO_BUF* buf);
-

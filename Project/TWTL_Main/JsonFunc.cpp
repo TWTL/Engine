@@ -1,14 +1,7 @@
-// TWTL_JSON.cpp : DLL 응용 프로그램을 위해 내보낸 함수를 정의합니다.
-//
-
 #include "stdafx.h"
 
 #include "JsonFunc.h"
 
-/*
-* Parse text into a JSON object. If text is valid JSON, returns a
-* json_t structure, otherwise prints and error and returns null.
-*/
 #define MAX_CHARS 4096
 
 extern BOOL g_runJsonMainThread;
@@ -20,16 +13,14 @@ extern SHORT trapPort;
 extern sqlite3 *g_db;
 extern BOOL g_dbLock;
 
-// Must call JSON_ClearNode outside
+// Handler to parse, interprete, response raw JSON sent from GUI
 DWORD JSON_Parse(const char buf[], size_t buflen, TWTL_PROTO_BUF* req)
 {
-	/* parse text into JSON structure */
 	json_t *root;
 	json_error_t error;
 	memset(req, 0, sizeof(TWTL_PROTO_BUF));
 
 	root = json_loads(buf, 0, &error);
-	// root = json_loadb(buf, buflen, 0, &error); // Why this function explodes?
 
 	if (!root) { // Not valid JSON text
 		fprintf(stderr, "json error on line %d: %s\n", error.line, error.text);
@@ -42,6 +33,7 @@ DWORD JSON_Parse(const char buf[], size_t buflen, TWTL_PROTO_BUF* req)
 	return FALSE;
 }
 
+// Add a content into TWTL_PROTO_NODE's content linked list
 TWTL_PROTO_NODE* JSON_AddProtoNode(TWTL_PROTO_BUF* req)
 {
 	TWTL_PROTO_NODE** now = &req->contents;
@@ -57,6 +49,7 @@ TWTL_PROTO_NODE* JSON_AddProtoNode(TWTL_PROTO_BUF* req)
 	return (*now);
 }
 
+// Remove TWTL_PROTO_NODE's content linked list
 void JSON_ClearProtoNode(TWTL_PROTO_BUF* buf)
 {
 	if (buf)
@@ -76,6 +69,7 @@ void JSON_ClearProtoNode(TWTL_PROTO_BUF* buf)
 	return;
 }
 
+// Dynamically allocate TraoQueue
 TWTL_TRAP_QUEUE* JSON_InitTrapQueue(TWTL_TRAP_QUEUE* queue)
 {
 	memset(queue, 0, sizeof(TWTL_TRAP_QUEUE));
@@ -96,6 +90,7 @@ TWTL_TRAP_QUEUE* JSON_InitTrapQueue(TWTL_TRAP_QUEUE* queue)
 	return queue;
 }
 
+// Enqueue one trap into trapQueue
 BOOL JSON_EnqTrapQueue(TWTL_TRAP_QUEUE* queue, char* inPath)
 {
 	DWORD dwWaitResult = WaitForSingleObject(g_hMutex, INFINITE);
@@ -139,6 +134,7 @@ BOOL JSON_EnqTrapQueue(TWTL_TRAP_QUEUE* queue, char* inPath)
 	return FALSE;
 }
 
+// Dequeue one trap from trapQueue
 BOOL JSON_DeqTrapQueue(TWTL_TRAP_QUEUE* queue, char* outPath)
 {
 	DWORD dwWaitResult = WaitForSingleObject(g_hMutex, INFINITE);
@@ -179,6 +175,7 @@ BOOL JSON_DeqTrapQueue(TWTL_TRAP_QUEUE* queue, char* outPath)
 	return FALSE;
 }
 
+// Clear TraoQueue
 void JSON_ClearTrapQueue(TWTL_TRAP_QUEUE* queue)
 {
 	if (0 < queue->count)
@@ -192,6 +189,7 @@ void JSON_ClearTrapQueue(TWTL_TRAP_QUEUE* queue)
 	CloseHandle(g_hMutex);
 }
 
+// Parse raw JSON string into TWTL_PROTO_BUF data structure using jansson library
 void JSON_ProtoParse(json_t *element, const char *key, TWTL_PROTO_BUF* req, TWTL_PROTO_NODE* node, int depth)
 {
 	size_t i;
@@ -413,6 +411,7 @@ void JSON_ProtoParse(json_t *element, const char *key, TWTL_PROTO_BUF* req, TWTL
 	}
 }
 
+// Interprete TWTL_PROTO_BUF data structure, and make response JSON
 char* JSON_ProtoMakeResponse(TWTL_PROTO_BUF* req)
 {
 	TWTL_PROTO_NODE* req_node = req->contents;
@@ -458,6 +457,7 @@ char* JSON_ProtoMakeResponse(TWTL_PROTO_BUF* req)
 	return res;
 }
 
+// Inteprete request.get
 void JSON_ProtoReqGetProc(TWTL_PROTO_NODE* req_node, json_t* root)
 {
 	json_t* contentsArray = json_array(); // "contents": [  ]  // []
@@ -598,6 +598,7 @@ void JSON_ProtoReqGetProc(TWTL_PROTO_NODE* req_node, json_t* root)
 
 }
 
+// Inteprete request.set
 void JSON_ProtoReqSetProc(TWTL_PROTO_NODE* req_node, json_t* root)
 {
 	json_t* contentsArray = json_array(); // "contents": [  ]  // []
@@ -679,6 +680,7 @@ void JSON_ProtoReqSetProc(TWTL_PROTO_NODE* req_node, json_t* root)
 	}
 }
 
+// Inteprete request.diff
 void JSON_ProtoReqDiffProc(TWTL_PROTO_NODE* req_node, json_t* root)
 {
 	if (req_node->path.compare("/Reg/Short/GlobalServices/") == 0)
@@ -703,6 +705,7 @@ void JSON_ProtoReqDiffProc(TWTL_PROTO_NODE* req_node, json_t* root)
 	}
 }
 
+// Inteprete request.diff, registry operations
 void JSON_DiffProc_RegShort(TWTL_PROTO_NODE* req_node, json_t* root, TWTL_REG_SHORT_TYPE type)
 {
 	json_t* contentsArray = json_array(); // "contents": [  ]  // []
@@ -1004,6 +1007,7 @@ void JSON_DiffProc_RegShort(TWTL_PROTO_NODE* req_node, json_t* root, TWTL_REG_SH
 	nowServices = NULL;
 }
 
+// Inteprete request.patch
 void JSON_ProtoReqPatchProc(TWTL_PROTO_NODE* req_node, json_t* root)
 {
 	if (req_node->path.compare("/Reg/Short/GlobalServices/") == 0)
@@ -1028,6 +1032,7 @@ void JSON_ProtoReqPatchProc(TWTL_PROTO_NODE* req_node, json_t* root)
 	}
 }
 
+// Inteprete request.path, registry operations
 void JSON_PatchProc_RegShort(TWTL_PROTO_NODE* req_node, json_t* root, TWTL_REG_SHORT_TYPE type)
 {
 	json_t* contentsArray = json_array(); // "contents": [  ]  // []
@@ -1097,6 +1102,7 @@ void JSON_PatchProc_RegShort(TWTL_PROTO_NODE* req_node, json_t* root, TWTL_REG_S
 	}
 }
 
+// Inteprete request.beta
 void JSON_ProtoReqBetaProc(TWTL_PROTO_NODE* req_node, json_t* root)
 {
 	json_t* contentsArray = json_array(); // "contents": [  ]  // []
@@ -1118,6 +1124,7 @@ void JSON_ProtoReqBetaProc(TWTL_PROTO_NODE* req_node, json_t* root)
 	}
 }
 
+// Inteprete request.put
 void JSON_ProtoReqPutProc(TWTL_PROTO_NODE* req_node, json_t* root)
 {
 	json_t* contentsArray = json_array(); // "contents": [  ]  // []
@@ -1149,6 +1156,7 @@ void JSON_ProtoReqPutProc(TWTL_PROTO_NODE* req_node, json_t* root)
 	}
 }
 
+// Send Trap data dequeued from TrapQueue
 BOOL JSON_SendTrap(SOCKET sock, std::string path)
 {
 	json_t* root = json_object();
@@ -1184,24 +1192,13 @@ BOOL JSON_SendTrap(SOCKET sock, std::string path)
 	return FALSE;
 }
 
+// Initialize global TWTL-Engine JSON variables
 void JSON_Init_TWTL_INFO_DATA()
 {
-	JSON_Init_TWTL_INFO_ENGINE_NODE(&(g_twtlInfo.engine));
-}
-
-void JSON_Init_TWTL_INFO_ENGINE_NODE(TWTL_INFO_ENGINE_NODE* node)
-{
+	TWTL_INFO_ENGINE_NODE* node = &(g_twtlInfo.engine);
 	node->name = "TWTL";
 	node->app = "TWTL-Engine";
 	node->version = "1";
 	node->reqPort = 5259;
 	node->trapPort = INVALID_PORT_VALUE; // Invalid value
-}
-
-
-void JSON_Init_ProtoBufHeader(TWTL_PROTO_BUF* buf)
-{
-	buf->name = g_twtlInfo.engine.name;
-	buf->app = g_twtlInfo.engine.app;
-	buf->version = g_twtlInfo.engine.version;
 }
