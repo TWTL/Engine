@@ -27,17 +27,6 @@ DWORD JSON_Parse(const char buf[], size_t buflen, TWTL_PROTO_BUF* req)
 	json_error_t error;
 	memset(req, 0, sizeof(TWTL_PROTO_BUF));
 
-	// For debug
-#ifdef _DEBUG
-	FILE* fp = NULL;
-	fopen_s(&fp, "json_log.txt", "a");
-	fprintf(fp, "[E <- U] MainPort Receive\n%s\n\n", buf);
-	fclose(fp);
-#endif
-
-	printf("[E <- U] MainPort Receive\n");
-	BinaryDump((uint8_t*)buf, buflen);
-
 	root = json_loads(buf, 0, &error);
 	// root = json_loadb(buf, buflen, 0, &error); // Why this function explodes?
 
@@ -349,6 +338,7 @@ void JSON_ProtoParse(json_t *element, const char *key, TWTL_PROTO_BUF* req, TWTL
 		}
 	}	
 	// "value":{"value":[{"Name":".NET CLR Data","Value":null}],"accept":[false],"reject":[true]}}
+	// {"app":"TWTL-GUI","name":"TWTL","version":"1","contents":[{"type":"request.beta","path":"/Perf/ResolveImagePath/","value":{"ImagePath":""}}]}
 	else
 	{
 		switch (json_typeof(element)) {
@@ -376,6 +366,10 @@ void JSON_ProtoParse(json_t *element, const char *key, TWTL_PROTO_BUF* req, TWTL
 			{
 				node->value_patch = TRUE;
 				node->value_patch_object.value_Value = json_string_value(element);
+			}
+			else if (StrCmpA(key, "ImagePath") == 0)
+			{
+				node->value_string = json_string_value(element);
 			}
 			break;
 		case JSON_INTEGER:
@@ -446,6 +440,7 @@ char* JSON_ProtoMakeResponse(TWTL_PROTO_BUF* req)
 			JSON_ProtoReqPatchProc(req_node, root);
 			break;
 		case PROTO_REQ_BETA:
+			JSON_ProtoReqBetaProc(req_node, root);
 			break;
 		}
 
@@ -565,20 +560,18 @@ void JSON_ProtoReqGetProc(TWTL_PROTO_NODE* req_node, json_t* root)
 		DB_Insert(g_db, DB_NETWORK, dbNetUdp, structSize[7]);
 		g_dbLock = FALSE;
 
-		for (int i = 0; i < structSize[6]; i++)
+		for (DWORD i = 0; i < structSize[6]; i++)
 		{
 			json_t* netNode = json_object();
 			json_array_append(netRoot, netNode);
 
 			char buf[TWTL_JSON_MAX_BUF] = { 0 };
 			uint32_t ip = dbNetTcp[i].src_ipv4;
-			StringCchPrintfA(buf, TWTL_JSON_MAX_BUF, "%d.%d.%d.%d", (ip / 0x1000000) % 0x100, (ip / 0x10000) % 0x100, (ip / 0x100) % 0x100, ip % 0x100);
+			StringCchPrintfA(buf, TWTL_JSON_MAX_BUF, "%d.%d.%d.%d", ip % 0x100, (ip / 0x100) % 0x100, (ip / 0x10000) % 0x100, (ip / 0x1000000) % 0x100);
 			json_object_set(netNode, "SrcIP", json_string(buf));
-			// json_object_set(netNode, "SrcIP", json_integer(dbNetTcp[i].src_ipv4));
 			json_object_set(netNode, "SrcPort", json_integer(dbNetTcp[i].src_port));
-			// json_object_set(netNode, "DestIP", json_integer(dbNetTcp[i].dest_ipv4));
 			ip = dbNetTcp[i].dest_ipv4;
-			StringCchPrintfA(buf, TWTL_JSON_MAX_BUF, "%d.%d.%d.%d", (ip / 0x1000000) % 0x100, (ip / 0x10000) % 0x100, (ip / 0x100) % 0x100, ip % 0x100);
+			StringCchPrintfA(buf, TWTL_JSON_MAX_BUF, "%d.%d.%d.%d", ip % 0x100, (ip / 0x100) % 0x100, (ip / 0x10000) % 0x100, (ip / 0x1000000) % 0x100);
 			json_object_set(netNode, "DestIP", json_string(buf));
 			json_object_set(netNode, "DestPort", json_integer(dbNetTcp[i].dest_port));
 			json_object_set(netNode, "PID", json_integer(dbNetTcp[i].pid));
@@ -773,19 +766,6 @@ void JSON_DiffProc_RegShort(TWTL_PROTO_NODE* req_node, json_t* root, TWTL_REG_SH
 	{ // Snapshot Failure
 		failure = TRUE;
 	}
-	/*
-	// Put data into database
-	g_dbLock = TRUE;
-	DB_Insert(g_db, DB_PROCESS, sqlitePrc, structSize[0]);
-	DB_Insert(g_db, DB_REG_HKCU_RUN, sqliteReg1, structSize[1]);
-	DB_Insert(g_db, DB_REG_HKLM_RUN, sqliteReg2, structSize[2]);
-	DB_Insert(g_db, DB_REG_HKCU_RUNONCE, sqliteReg3, structSize[3]);
-	DB_Insert(g_db, DB_REG_HKLM_RUNONCE, sqliteReg4, structSize[4]);
-	DB_Insert(g_db, DB_SERVICE, sqliteSvc, structSize[5]);
-	DB_Insert(g_db, DB_NETWORK, sqliteNet1, structSize[6]);
-	DB_Insert(g_db, DB_NETWORK, sqliteNet2, structSize[7]);
-	g_dbLock = FALSE;
-	*/
 
 	switch (type)
 	{
@@ -1073,6 +1053,45 @@ void JSON_PatchProc_RegShort(TWTL_PROTO_NODE* req_node, json_t* root, TWTL_REG_S
 	}
 }
 
+void JSON_ProtoReqBetaProc(TWTL_PROTO_NODE* req_node, json_t* root)
+{
+	json_t* contentsArray = json_array(); // "contents": [  ]  // []
+	json_object_set(root, "contents", contentsArray);
+
+	if (req_node->path.compare("/Perf/ResolveImagePath/") == 0)
+	{
+		if (1) // Success
+		{
+			json_t* contentStatus = json_object(); // [ { } , { } , { }, ] // {}
+			json_array_append(contentsArray, contentStatus);
+			json_object_set(contentStatus, "type", json_string(PROTO_STR_RES_STATUS));
+			json_object_set(contentStatus, "path", json_string(req_node->path.c_str()));
+			json_object_set(contentStatus, "value", json_integer(PROTO_STATUS_SUCCESS));
+
+			json_t* contentNode = json_object(); // [ { } , { } , { }, ] // {}
+			json_array_append(contentsArray, contentNode);
+			json_object_set(contentNode, "type", json_string(PROTO_STR_RES_OBJECT));
+			json_object_set(contentNode, "path", json_string(req_node->path.c_str()));
+			req_node->value_string;
+
+			json_object_set(contentNode, "value", json_integer(PROTO_STATUS_SUCCESS));
+		}
+		else // Error
+		{ // Internal Server Error
+			json_t* contentNode = json_object(); // [ { } , { } , { }, ] // {}
+			json_array_append(contentsArray, contentNode);
+
+			json_object_set(contentNode, "type", json_string(PROTO_STR_RES_STATUS));
+			json_object_set(contentNode, "path", json_string(req_node->path.c_str()));
+			json_object_set(contentNode, "value", json_integer(PROTO_STATUS_SERVER_ERROR));
+		}
+	}
+	else if (req_node->path.compare("/Perf/RegisterAutoKill/") == 0)
+	{
+		JSON_PatchProc_RegShort(req_node, root, REG_SHORT_HKLM_RUN);
+	}
+}
+
 
 BOOL JSON_SendTrap(SOCKET sock, std::string path)
 {
@@ -1093,7 +1112,7 @@ BOOL JSON_SendTrap(SOCKET sock, std::string path)
 #ifdef _DEBUG
 	FILE* fp = NULL;
 	fopen_s(&fp, "json_log.txt", "a");
-	fprintf(fp, "[E -> U] Trap Send\n%s\n", sendbuf);
+	fprintf(fp, "[E -> U] Trap Send\n%s\n\n", sendbuf);
 	fclose(fp);
 #endif
 	printf("[E -> U] Trap Send\n%s\n", sendbuf);
@@ -1113,7 +1132,6 @@ void JSON_Init_TWTL_INFO_DATA()
 {
 	JSON_Init_TWTL_INFO_ENGINE_NODE(&(g_twtlInfo.engine));
 }
-
 
 void JSON_Init_TWTL_INFO_ENGINE_NODE(TWTL_INFO_ENGINE_NODE* node)
 {

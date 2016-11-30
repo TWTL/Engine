@@ -99,72 +99,57 @@ TWTL_DATABASE_API BOOL __stdcall DB_CreateTable(sqlite3 *db, DB_TABLE_TYPE type)
 	switch (type) {
 	case DB_PROCESS:
 		sql = L"CREATE TABLE IF NOT EXISTS snapshot_process( "
-			L"idx INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, "
-			L"time INTEGER, "
-			L"pid INTEGER, "
+			L"pid INTEGER PRIMARY KEY, "
 			L"ppid INTEGER, "
 			L"process_name TEXT NOT NULL, "
-			L"process_path TEXT NOT NULL);";
+			L"process_path TEXT NOT NULL PRIMARY KEY);";
 		break;
 	case DB_REG_HKLM_RUN:
 		sql = L"CREATE TABLE IF NOT EXISTS snapshot_reg_hklm_run( "
-			L"idx INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, "
-			L"time INTEGER, "
 			L"path TEXT NOT NULL, "
-			L"value TEXT NOT NULL, "
+			L"value TEXT NOT NULL PRIMARY KEY, "
 			L"type INTEGER NOT NULL, "
 			L"name TEXT NOT NULL);";
 		break;
 	case DB_REG_HKLM_RUNONCE:
 		sql = L"CREATE TABLE IF NOT EXISTS snapshot_reg_hklm_runonce( "
-			L"idx INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, "
-			L"time INTEGER, "
 			L"path TEXT NOT NULL, "
-			L"value TEXT NOT NULL, "
+			L"value TEXT NOT NULL PRIMARY KEY, "
 			L"type INTEGER NOT NULL, "
 			L"name TEXT NOT NULL);";
 		break;
 	case DB_REG_HKCU_RUN:
 		sql = L"CREATE TABLE IF NOT EXISTS snapshot_reg_hkcu_run( "
-			L"idx INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, "
-			L"time INTEGER, "
 			L"path TEXT NOT NULL, "
-			L"value TEXT NOT NULL, "
+			L"value TEXT NOT NULL PRIMARY KEY, "
 			L"type INTEGER NOT NULL, "
 			L"name TEXT NOT NULL);";
 		break;
 	case DB_REG_HKCU_RUNONCE:
 		sql = L"CREATE TABLE IF NOT EXISTS snapshot_reg_hkcu_runonce("
-			L"idx INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, "
-			L"time INTEGER, "
 			L"path TEXT NOT NULL, "
-			L"value TEXT NOT NULL, "
+			L"value TEXT NOT NULL PRIMARY KEY, "
 			L"type INTEGER NOT NULL, "
 			L"name TEXT NOT NULL);";
 		break;
 	case DB_SERVICE:
 		sql = L"CREATE TABLE IF NOT EXISTS snapshot_service("
-			L"idx INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, "
-			L"time INTEGER, "
-			L"key TEXT NOT NULL, "
+			L"key TEXT NOT NULL PRIMARY KEY, "
 			L"image_path TEXT NOT NULL);";
 		break;
 	case DB_NETWORK:
 		sql = L"CREATE TABLE IF NOT EXISTS snapshot_network("
-			L"idx INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, "
-			L"time INTEGER, "
 			L"src_ipv4 INTEGER, "
 			L"dest_ipv4 INTEGER, "
 			L"src_port INTEGER, "
 			L"dest_port INTEGER, "
 			L"pid INTEGER NOT NULL, "
-			L"is_dangerous INTEGER NOT NULL);";
+			L"is_dangerous INTEGER NOT NULL, "
+			L"PRIMARY KEY(src_ipv4, dest_ipv4, src_port, dest_port, pid));"; 
 		break;
 	case DB_BLACKLIST:
 		sql = L"CREATE TABLE IF NOT EXISTS snapshot_blacklist("
-			L"idx INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, "
-			L"time INTEGER, "
-			L"image_path TEXT NOT NULL);";
+			L"image_path TEXT PRIMARY KEY NOT NULL);";
 		break;
 	default:
 #ifdef _DEBUG
@@ -427,47 +412,38 @@ TWTL_DATABASE_API BOOL __stdcall DB_Select(sqlite3 *db, DB_TABLE_TYPE type, void
 			switch (type) {
 			case DB_PROCESS:
 				proc = (TWTL_DB_PROCESS*)data;
-				// sqlite3_column_int64(stmt, 0); is idx, nothing meaningless
-				// proc[i].time = sqlite3_column_int64(stmt, 1);
-				proc[i].pid = sqlite3_column_int(stmt, 2);
-				proc[i].ppid = sqlite3_column_int(stmt, 3);
-				StringCchCopyW(proc[i].process_name, DB_MAX_PROC_NAME, (const WCHAR*)sqlite3_column_text16(stmt, 4));
-				StringCchCopyW(proc[i].process_path, MAX_PATH, (const WCHAR*)sqlite3_column_text16(stmt, 5));
+				proc[i].pid = sqlite3_column_int(stmt, 0);
+				proc[i].ppid = sqlite3_column_int(stmt, 1);
+				StringCchCopyW(proc[i].process_name, DB_MAX_PROC_NAME, (const WCHAR*)sqlite3_column_text16(stmt, 2));
+				StringCchCopyW(proc[i].process_path, MAX_PATH, (const WCHAR*)sqlite3_column_text16(stmt, 3));
 				break;
 			case DB_REG_HKLM_RUN:
 			case DB_REG_HKLM_RUNONCE:
 			case DB_REG_HKCU_RUN:
 			case DB_REG_HKCU_RUNONCE:
 				reg = (TWTL_DB_REGISTRY*)data;
-				// sqlite3_column_int64(stmt, 0); is idx, nothing meaningless
-				// reg[i].time = sqlite3_column_int64(stmt, 1);
-				StringCchCopyW(reg[i].path, DB_MAX_REG_PATH, (const WCHAR*)sqlite3_column_text16(stmt, 2));
-				StringCchCopyW(reg[i].value, DB_MAX_REG_VALUE, (const WCHAR*)sqlite3_column_text16(stmt, 3));
-				reg[i].type = sqlite3_column_int(stmt, 4);
-				StringCchCopyW(reg[i].name, DB_MAX_REG_NAME, (const WCHAR*)sqlite3_column_text16(stmt, 5));
+				StringCchCopyW(reg[i].path, DB_MAX_REG_PATH, (const WCHAR*)sqlite3_column_text16(stmt, 0));
+				StringCchCopyW(reg[i].value, DB_MAX_REG_VALUE, (const WCHAR*)sqlite3_column_text16(stmt, 1));
+				reg[i].type = sqlite3_column_int(stmt, 2);
+				StringCchCopyW(reg[i].name, DB_MAX_REG_NAME, (const WCHAR*)sqlite3_column_text16(stmt, 3));
 				break;
 			case DB_SERVICE:
 				srv = (TWTL_DB_SERVICE*)data;
-				// sqlite3_column_int64(stmt, 0); is idx, nothing meaningless
-				// srv[i].time = sqlite3_column_int64(stmt, 1);
-				StringCchCopyW(srv[i].key, DB_MAX_REG_PATH, (const WCHAR*)sqlite3_column_text16(stmt, 2));
+				StringCchCopyW(srv[i].key, DB_MAX_REG_PATH, (const WCHAR*)sqlite3_column_text16(stmt, 0));
+				StringCchCopyW(srv[i].image_path, DB_MAX_REG_PATH, (const WCHAR*)sqlite3_column_text16(stmt, 1));
 				break;
 			case DB_NETWORK:
 				net = (TWTL_DB_NETWORK*)data;
-				// sqlite3_column_int64(stmt, 0); is idx, nothing meaningless
-				// net[i].time = sqlite3_column_int64(stmt, 1);
-				net[i].src_ipv4 = (uint32_t)sqlite3_column_int(stmt, 2);
-				net[i].dest_ipv4 = (uint32_t)sqlite3_column_int(stmt, 3);
-				net[i].src_port = (uint16_t)sqlite3_column_int(stmt, 4);
-				net[i].dest_port = (uint16_t)sqlite3_column_int(stmt, 5);
-				net[i].pid = (uint16_t)sqlite3_column_int(stmt, 6);
-				net[i].is_dangerous = (uint16_t)sqlite3_column_int(stmt, 7);
+				net[i].src_ipv4 = (uint32_t)sqlite3_column_int(stmt, 0);
+				net[i].dest_ipv4 = (uint32_t)sqlite3_column_int(stmt, 1);
+				net[i].src_port = (uint16_t)sqlite3_column_int(stmt, 2);
+				net[i].dest_port = (uint16_t)sqlite3_column_int(stmt, 3);
+				net[i].pid = (uint16_t)sqlite3_column_int(stmt, 4);
+				net[i].is_dangerous = (uint16_t)sqlite3_column_int(stmt, 5);
 				break;
 			case DB_BLACKLIST:
 				black = (TWTL_DB_BLACKLIST*)data;
-				// sqlite3_column_int64(stmt, 0); is idx, nothing meaningless
-				// black[i].time = sqlite3_column_int64(stmt, 1);
-				StringCchCopyW(black[i].image_path, DB_MAX_FILE_PATH, (const WCHAR*)sqlite3_column_text16(stmt, 2));
+				StringCchCopyW(black[i].image_path, DB_MAX_FILE_PATH, (const WCHAR*)sqlite3_column_text16(stmt, 0));
 				break;
 			default:
 				break; // Do nothing
@@ -582,17 +558,6 @@ TWTL_DATABASE_API BOOL __stdcall DB_Delete(sqlite3 *db, DB_TABLE_TYPE type, WCHA
 		ret = sqlite3_finalize(stmt);
 		return FALSE;
 	}
-
-	/*
-	ret = sqlite3_reset(stmt);
-	if (ret != SQLITE_OK)
-	{
-#ifdef _DEBUG
-		fprintf(stderr, "[DB_Delete] sqlite3_reset() failed: %s\n", sqlite3_errmsg(db));
-#endif
-		return FALSE;
-	}
-	*/
 
 	// Finalize Query
 	ret = sqlite3_finalize(stmt);

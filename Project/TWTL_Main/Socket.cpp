@@ -124,6 +124,17 @@ DWORD __stdcall SOCK_MainPortProc()
 			fprintf(stderr, "Bytes received: %d\n", iResult);
 			// iResult == recieved packet size
 
+			// For debug
+#ifdef _DEBUG
+			FILE* fp = NULL;
+			fopen_s(&fp, "json_log.txt", "a");
+			fprintf(fp, "[E <- U] MainPort Receive\n%s\n\n", recvbuf);
+			fclose(fp);
+#endif
+
+			printf("[E <- U] MainPort Receive\n");
+			BinaryDump((uint8_t*)recvbuf, strlen(recvbuf) + 1);
+
 			if (JSON_Parse(recvbuf, iResult, &req))
 			{ // Error Handling
 				fprintf(stderr, "JSON_Parse() failed\n");
@@ -193,7 +204,7 @@ DWORD SOCK_MainPortResponse(TWTL_PROTO_BUF *req, SOCKET socket)
 	fclose(fp);
 #endif
 	printf("[E -> U] MainPort Send\n");
-	BinaryDump((uint8_t*)sendbuf, sizeof(sendbuf));
+	BinaryDump((uint8_t*)sendbuf, strlen(sendbuf) + 1);
 
 	int iResult = send(socket, sendbuf, strlen(sendbuf) + 1, 0);
 	free(sendbuf);
@@ -324,6 +335,17 @@ DWORD SOCK_TrapPortProc()
 		 if (iResult > 0) {
 			 fprintf(stderr, "Bytes received: %d\n", iResult);
 			 // iResult == recieved packet size
+
+			 // For debug
+#ifdef _DEBUG
+			 FILE* fp = NULL;
+			 fopen_s(&fp, "json_log.txt", "a");
+			 fprintf(fp, "[E <- U] TrapPort Receive\n%s\n\n", recvbuf);
+			 fclose(fp);
+#endif
+
+			 printf("[E <- U] TrapPort Receive\n");
+			 BinaryDump((uint8_t*)recvbuf, strlen(recvbuf) + 1);
 
 			 if (JSON_Parse(recvbuf, iResult, &buf))
 			 { // Error Handling

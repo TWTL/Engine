@@ -64,7 +64,7 @@ int main()
 	g_runJsonTrapThread = TRUE;
 	wprintf_s(L"Json Threads running\n\n");
 
-
+	BOOL first = TRUE;
 
 	while (TRUE) {
 		SnapCurrentStatus(
@@ -118,10 +118,21 @@ int main()
 			&trapQueue);
 		lock = 0;
 
-		Sleep(4000);
+		Sleep(3000);
+		if (first)
+		{
+			g_dbLock = TRUE;
+			DB_Insert(g_db, DB_REG_HKCU_RUN, sqliteReg1, structSize[1]);
+			DB_Insert(g_db, DB_REG_HKLM_RUN, sqliteReg2, structSize[2]);
+			DB_Insert(g_db, DB_REG_HKCU_RUNONCE, sqliteReg3, structSize[3]);
+			DB_Insert(g_db, DB_REG_HKLM_RUNONCE, sqliteReg4, structSize[4]);
+			DB_Insert(g_db, DB_SERVICE, sqliteSvc, structSize[5]);
+			g_dbLock = FALSE;
+			first = FALSE;
+		}
 
 		lock = 1;
-		Sleep(1000);
+		Sleep(3000);
 		free(sqlitePrc);
 		free(sqliteReg1);
 		free(sqliteReg2);

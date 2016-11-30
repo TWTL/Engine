@@ -140,7 +140,6 @@ TWTL_SNAPSHOT_API BOOL __stdcall SnapCurrentStatus(
 									_tprintf_s(L"Nope :( ... Maybe system file. ");
 								}
 								else {
-									sqlitePrc[i].time = time(0);
 									wcscpy_s(sqlitePrc[i].process_path, MAX_PATH, imageName);
 									wcscpy_s(sqlitePrc[i].process_name, DB_MAX_PROC_NAME, currentProcessInfo.proc32.szExeFile);
 									sqlitePrc[i].pid = currentProcessInfo.proc32.th32ProcessID;
@@ -699,7 +698,6 @@ BOOL __stdcall WriteRegToTxt(
 					&ftLastWriteTime);
 				if (retCode == ERROR_SUCCESS)
 				{
-					sqliteSvc[i].time = time(0);
 					wcscpy_s(sqliteSvc[i].key, REGNAME_MAX, achKey);
 
 #ifdef _DEBUG
@@ -835,7 +833,6 @@ BOOL __stdcall WriteRegToTxt(
 						if (mode == 0) {
 							TCHAR buffer[MAX_PATH] = { 0, };
 							TCHAR buffer2[MAX_PATH] = { 0, };
-							sqliteReg[i].time = time(0);
 							wcscpy_s(buffer, MAX_PATH, pReg->keyValue);
 							PathRemoveArgs(buffer);
 							ExpandEnvironmentStrings(buffer, buffer2, MAX_PATH);
@@ -897,7 +894,6 @@ BOOL __stdcall RegDelnodeRecurse(HKEY hKeyRoot, LPTSTR lpSubKey)
 
 	// First, see if we can delete the key without having
 	// to recurse.
-
 	lResult = RegDeleteKey(hKeyRoot, lpSubKey);
 
 	if (lResult == ERROR_SUCCESS)

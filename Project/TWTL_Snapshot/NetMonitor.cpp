@@ -111,8 +111,8 @@ BOOL __stdcall ParseNetstat(
 				break;
 			}
 #endif
-			sqliteNet1[i].time = time(0);
 			IpAddr.S_un.S_addr = (u_long)pTcpTable->table[i].dwLocalAddr;
+			sqliteNet1[i].is_dangerous = 0;
 			sqliteNet1[i].src_ipv4 = IpAddr.S_un.S_addr;
 			sqliteNet1[i].src_port = ntohs((u_short)pTcpTable->table[i].dwLocalPort);
 			strcpy_s(szLocalAddr, sizeof(szLocalAddr), inet_ntoa(IpAddr));
@@ -192,8 +192,8 @@ BOOL __stdcall ParseNetstat(
 			if (mode == 2) {
 				break;
 			}
-			sqliteNet2[i].time = time(0);
 			IpAddr.S_un.S_addr = (u_long)pUdpTable->table[i].dwLocalAddr;
+			sqliteNet2[i].is_dangerous = 0;
 			sqliteNet2[i].src_ipv4 = IpAddr.S_un.S_addr;
 			sqliteNet2[i].src_port = ntohs((u_short)pUdpTable->table[i].dwLocalPort);
 			strcpy_s(szLocalAddr, sizeof(szLocalAddr), inet_ntoa(IpAddr));
