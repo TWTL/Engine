@@ -10,6 +10,14 @@
 char* __stdcall GetDomainName(uint32_t ip);
 BOOL __stdcall isBlacklist(TWTL_DB_NETWORK* sqliteNet1, char szRemoteAddr[], CONST DWORD32 index, JSON_EnqTrapQueue_t trapProc, TWTL_TRAP_QUEUE* queue, sqlite3* db);
 
+/*
+	( in ) JSON_EnqTrapQueue_t trapProc
+		Reserve a trap to be sent to GUI
+	( in ) TWTL_TRAP_QUEUE* queue
+		A queue to hold trap data
+	( in ) sqlite3* db :
+		Database context, must be opened by DB_Connect()
+*/
 BOOL __stdcall ParseNetstat(
 	TWTL_DB_NETWORK* sqliteNet1, 
 	TWTL_DB_NETWORK* sqliteNet2,
@@ -261,6 +269,14 @@ char* __stdcall GetDomainName(uint32_t ip) {
 	}
 }
 
+/*
+	( in ) JSON_EnqTrapQueue_t trapProc
+		Reserve a trap to be sent to GUI
+	( in ) TWTL_TRAP_QUEUE* queue
+		A queue to hold trap data
+	( in ) sqlite3* db :
+		Database context, must be opened by DB_Connect()
+*/
 BOOL __stdcall isBlacklist(TWTL_DB_NETWORK* sqliteNet1, char szRemoteAddr[], CONST DWORD32 index, JSON_EnqTrapQueue_t trapProc, TWTL_TRAP_QUEUE* queue, sqlite3* db) {
 	FILE *f;
 	fopen_s(&f, "Blacklist.dat", "r");
@@ -284,7 +300,7 @@ BOOL __stdcall isBlacklist(TWTL_DB_NETWORK* sqliteNet1, char szRemoteAddr[], CON
 				DB_Select(db, DB_BLACKLIST, NULL, &dbCount, NULL);
 				TWTL_DB_BLACKLIST* dbBlack = (TWTL_DB_BLACKLIST*) calloc(dbCount + 1, sizeof(TWTL_DB_BLACKLIST));
 				DB_Select(db, DB_BLACKLIST, dbBlack, &dbCount, NULL);
-				TerminateCurrentProcess(0, NULL,d dbBlack, dbCount, 1);
+				TerminateCurrentProcess(0, NULL, dbBlack, dbCount, 1);
 				free(dbBlack);
 			}
 		}

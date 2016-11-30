@@ -31,7 +31,13 @@ BOOL __stdcall RegDelnodeRecurse(HKEY hKeyRoot, LPTSTR lpSubKey);
 		( out ) TWTL_DB_REGISTRY* sqliteReg2 : Result of parsing UDPTable
 				Put NULL if you don't want to query
 		( out ) DWORD structSize : get size of reallocated memory.
-		( in )	DWORD32 mode :
+		( in ) JSON_EnqTrapQueue_t trapProc
+				Reserve a trap to be sent to GUI
+		( in ) TWTL_TRAP_QUEUE* queue
+				A queue to hold trap data
+		( in ) sqlite3* db :
+				Database context, must be opened by DB_Connect()
+		( in ) DWORD32 mode :
 			0 -> print
 			1 -> txt export ( deprecated )
 			2 -> get size
@@ -187,7 +193,6 @@ TWTL_SNAPSHOT_API BOOL __stdcall SnapCurrentStatus(
 	
 
 	// Write value of register key value ( Run of current user )
-	//
 	BOOL iResult = TRUE;
 	if (sqliteReg1)
 		iResult &= SetTargetRegistryEntry(storage, pReg, sqliteReg1, NULL, structSize, 1, mode);
@@ -223,8 +228,7 @@ TWTL_SNAPSHOT_API BOOL __stdcall SnapCurrentStatus(
 		( in/out )TCHAR	imagePath : 
 			if mode is 0, it'll be getting fullimagepath of target process.
 			else if mode is 1, it must be NULL.
-		( in )TCHAR	imagePath : 
-			if mode is 1, it must have list of blacklist processes' imagepath.
+		( in ) TWTL_DB_BLACKLIST* blackList : 
 			else if mode is 0, it must be NULL.
 		( in )	DWORD	length : number of row of the imagepath array.
 			if mode is 0, it must be NULL.
