@@ -228,8 +228,9 @@ TWTL_SNAPSHOT_API BOOL __stdcall SnapCurrentStatus(
 		( in )	DWORD	length : number of row of the imagepath array.
 			if mode is 0, it must be NULL.
 		( in )	DWORD	mode
-			0 -> Use PID
+			0 -> Kill With PID and get ImagePath
 			1 -> Auto Kill
+			2 -> Get ImagePath from PID, not Kill
 			else -> Error
 	Return value :
 		0 = Error
@@ -252,6 +253,9 @@ TWTL_SNAPSHOT_API BOOL __stdcall TerminateCurrentProcess(CONST DWORD32 targetPID
 	if (length && mode == 0) {
 		return NULL;
 	}
+	if (length && mode == 2) {
+		return NULL;
+	}
 
 	if ((targetProcess.hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0))
 		== INVALID_HANDLE_VALUE) {
@@ -261,7 +265,7 @@ TWTL_SNAPSHOT_API BOOL __stdcall TerminateCurrentProcess(CONST DWORD32 targetPID
 	if (Process32First(targetProcess.hSnap, &targetProcess.proc32)) {
 		while (Process32Next(targetProcess.hSnap, &targetProcess.proc32)) 
 		{
-			if (mode == 0) {
+			if (mode == 0 || mode == 2) {
 				if (targetProcess.proc32.th32ProcessID == targetPID) {
 					DWORD exitCode = NULL;
 					BOOL bInheritHandle = FALSE;
@@ -279,17 +283,20 @@ TWTL_SNAPSHOT_API BOOL __stdcall TerminateCurrentProcess(CONST DWORD32 targetPID
 						return NULL;
 					}
 
-					_tprintf_s(L"Terminated Process, PID : %s, %d",
-						targetProcess.proc32.szExeFile,
-						targetProcess.proc32.th32ProcessID);
-					if (TerminateProcess(targetProcess.curHandle, 0)) {
-						_tprintf_s(L" -> Success\n");
-						GetExitCodeProcess(targetProcess.curHandle, &exitCode);
-					}
-					else {
-						_tprintf_s(L" -> Failed\n");
-						CloseHandle(targetProcess.curHandle);
-						return NULL;
+					if (mode == 0)
+					{
+						_tprintf_s(L"Terminated Process, PID : %s, %d",
+							targetProcess.proc32.szExeFile,
+							targetProcess.proc32.th32ProcessID);
+						if (TerminateProcess(targetProcess.curHandle, 0)) {
+							_tprintf_s(L" -> Success\n");
+							GetExitCodeProcess(targetProcess.curHandle, &exitCode);
+						}
+						else {
+							_tprintf_s(L" -> Failed\n");
+							CloseHandle(targetProcess.curHandle);
+							return NULL;
+						}
 					}
 					CloseHandle(targetProcess.curHandle);
 					return TRUE;

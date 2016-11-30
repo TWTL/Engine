@@ -17,7 +17,7 @@
 {"app": "TWTL-Engine", "name": "TWTL", "version": "1", "contents": [{"type": "response.object", "path": "/Engine/RequestPort/", "value": 5259}]}
 
 [E <- U] MainPort Receive
-{"app":"TWTL-GUI","name":"TWTL","version":"1","contents":[{"type":"request.set","path":"/Engine/TrapPort/","value":16946}]}
+{"app":"TWTL-GUI","name":"TWTL","version":"1","contents":[{"type":"request.set","path":"/Engine/TrapPort/","value":10623}]}
 
 [E -> U] MainPort Send
 {"app": "TWTL-Engine", "name": "TWTL", "version": "1", "contents": [{"type": "response.status", "path": "/Engine/TrapPort/", "value": 200}]}
@@ -26,7 +26,43 @@
 {"app":"TWTL-GUI","name":"TWTL","version":"1","contents":[{"type":"request.get","path":"/Net/Connections/"}]}
 
 [E -> U] MainPort Send
-{"app": "TWTL-Engine", "name": "TWTL", "version": "1", "contents": [{"type": "response.status", "path": "/Net/Connections/", "value": 200}, {"type": "response.object", "path": "/Net/Connections/", "value": [{"SrcIP": "0.0.0.0", "SrcPort": 135, "DestIP": "0.0.0.0", "DestPort": 0, "PID": 736, "ProcessImagePath": "", "IsDangerous": false, "Alive": true}, {"SrcIP": "0.0.0.0", "SrcPort": 445, "DestIP": "0.0.0.0", "DestPort": 0, "PID": 4, "ProcessImagePath": "", "IsDangerous": false, "Alive": true}, {"SrcIP": "0.0.0.0", "SrcPort": 554, "DestIP": "0.0.0.0", "DestPort": 0, "PID": 1240, "ProcessImagePath": "", "IsDangerous": false, "Alive": true}, {"SrcIP": "0.0.0.0", "SrcPort": 2869, "DestIP": "0.0.0.0", "DestPort": 0, "PID": 4, "ProcessImagePath": "", "IsDangerous": false, "Alive": true}, {"SrcIP": "0.0.0.0", "SrcPort": 5357, "DestIP": "0.0.0.0", "DestPort": 0, "PID": 4, "ProcessImagePath": "", "IsDangerous": false, "Alive": true}, {"SrcIP": "0.0.0.0", "SrcPort": 10243, "DestIP": "0.0.0.0", "DestPort": 0, "PID": 4, "ProcessImagePath": "", "IsDangerous": false, "Alive": true}, {"SrcIP": "0.0.0.0", "SrcPort": 49152, "DestIP": "0.0.0.0", "DestPort": 0, "PID": 412, "ProcessImagePath": "", "IsDangerous": false, "Alive": true}, {"SrcIP": "0.0.0.0", "SrcPort": 49153, "DestIP": "0.0.0.0", "DestPort": 0, "PID": 820, "ProcessImagePath": "", "IsDangerous": false, "Alive": true}, {"SrcIP": "0.0.0.0", "SrcPort": 49154, "DestIP": "0.0.0.0", "DestPort": 0, "PID": 928, "ProcessImagePath": "", "IsDangerous": false, "Alive": true}, {"SrcIP": "0.0.0.0", "SrcPort": 49155, "DestIP": "0.0.0.0", "DestPort": 0, "PID": 492, "ProcessImagePath": "", "IsDangerous": false, "Alive": true}, {"SrcIP": "0.0.0.0", "SrcPort": 49156, "DestIP": "0.0.0.0", "DestPort": 0, "PID": 528, "ProcessImagePath": "", "IsDangerous": false, "Alive": true}, {"SrcIP": "0.0.0.0", "SrcPort": 49157, "DestIP": "0.0.0.0", "DestPort": 0, "PID": 4, "ProcessImagePath": "", "IsDangerous": false, "Alive": true}, {"SrcIP": "0.0.0.0", "SrcPort": 49158, "DestIP": "0.0.0.0", "DestPort": 0, "PID": 4, "ProcessImagePath": "", "IsDangerous": false, "Alive": true}, {"SrcIP": "0.0.0.0", "SrcPort": 49159, "DestIP": "0.0.0.0", "DestPort": 0, "PID": 4, "ProcessImagePath": "", "IsDangerous": false, "Alive": true}, {"SrcIP": "127.0.0.1", "SrcPort": 5259, "DestIP": "127.0.0.1", "DestPort": 49789, "PID": 4692, "ProcessImagePath": "", "IsDangerous": false, "Alive": true}, {"SrcIP": "127.0.0.1", "SrcPort": 16946, "DestIP": "0.0.0.0", "DestPort": 0, "PID": 4424, "ProcessImagePath": "", "IsDangerous": false, "Alive": true}, {"SrcIP": "127.0.0.1", "SrcPort": 16946, "DestIP": "127.0.0.1", "DestPort": 49790, "PID": 4424, "ProcessImagePath": "", "IsDangerous": false, "Alive": true}, {"SrcIP": "127.0.0.1", "SrcPort": 49787, "DestIP": "127.0.0.1", "DestPort": 49788, "PID": 4424, "ProcessImagePath": "", "IsDangerous": false, "Alive": true}, {"SrcIP": "127.0.0.1", "SrcPort": 49788, "DestIP": "127.0.0.1", "DestPort": 49787, "PID": 4424, "ProcessImagePath": "", "IsDangerous": false, "Alive": true}, {"SrcIP": "127.0.0.1", "SrcPort": 49789, "DestIP": "127.0.0.1", "DestPort": 5259, "PID": 4424, "ProcessImagePath": "", "IsDangerous": false, "Alive": true}, {"SrcIP": "127.0.0.1", "SrcPort": 49790, "DestIP": "127.0.0.1", "DestPort": 16946, "PID": 4692, "ProcessImagePath": "", "IsDangerous": false, "Alive": true}, {"SrcIP": "192.168.206.131", "SrcPort": 139, "DestIP": "0.0.0.0", "DestPort": 0, "PID": 4, "ProcessImagePath": "", "IsDangerous": false, "Alive": true}, {"SrcIP": "192.168.206.131", "SrcPort": 49238, "DestIP": "65.52.0.51", "DestPort": 5671, "PID": 532, "ProcessImagePath": "", "IsDangerous": false, "Alive": true}, {"SrcIP": "192.168.206.131", "SrcPort": 49762, "DestIP": "111.221.29.254", "DestPort": 443, "PID": 3764, "ProcessImagePath": "", "IsDangerous": false, "Alive": true}]}]}
+{"app": "TWTL-Engine", "name": "TWTL", "version": "1", "contents": [{"type": "response.status", "path": "/Net/Connections/", "value": 200}, {"type": "response.object", "path": "/Net/Connections/", "value": []}]}
+
+[E -> U] Trap Send
+{"name": "TWTL", "app": "TWTL-Engine", "version": "1", "contents": [{"type": "trap.change", "path": "/Net/Connections/", "Value": 200}]}
+
+[E <- U] TrapPort Receive
+{"app":"TWTL-GUI","name":"TWTL","version":"1","contents":[{"type":"trap-ack.check","path":"/Net/Connections/","ready":true}]}
+
+[E <- U] MainPort Receive
+{"app":"TWTL-GUI","name":"TWTL","version":"1","contents":[{"type":"request.get","path":"/Net/Connections/"}]}
+
+[E -> U] Trap Send
+{"name": "TWTL", "app": "TWTL-Engine", "version": "1", "contents": [{"type": "trap.change", "path": "/Net/Connections/", "Value": 200}]}
+
+[E -> U] Trap Send
+{"name": "TWTL", "app": "TWTL-Engine", "version": "1", "contents": [{"type": "trap.change", "path": "/Net/Connections/", "Value": 200}]}
+
+[E -> U] Trap Send
+{"name": "TWTL", "app": "TWTL-Engine", "version": "1", "contents": [{"type": "trap.change", "path": "/Net/Connections/", "Value": 200}]}
+
+[E -> U] Trap Send
+{"name": "TWTL", "app": "TWTL-Engine", "version": "1", "contents": [{"type": "trap.change", "path": "/Net/Connections/", "Value": 200}]}
+
+[E -> U] MainPort Send
+{"app": "TWTL-Engine", "name": "TWTL", "version": "1", "contents": [{"type": "response.status", "path": "/Net/Connections/", "value": 200}, {"type": "response.object", "path": "/Net/Connections/", "value": [{"SrcIP": "192.168.206.131", "SrcPort": 49838, "DestIP": "220.116.76.14", "DestPort": 443, "PID": 5552, "ProcessImagePath": "C:\\Program Files\\Internet Explorer\\iexplore.exe", "IsDangerous": true, "Alive": true}, {"SrcIP": "192.168.206.131", "SrcPort": 49840, "DestIP": "220.116.76.14", "DestPort": 443, "PID": 5552, "ProcessImagePath": "C:\\Program Files\\Internet Explorer\\iexplore.exe", "IsDangerous": true, "Alive": true}, {"SrcIP": "192.168.206.131", "SrcPort": 49841, "DestIP": "220.116.76.14", "DestPort": 443, "PID": 5552, "ProcessImagePath": "C:\\Program Files\\Internet Explorer\\iexplore.exe", "IsDangerous": true, "Alive": true}, {"SrcIP": "192.168.206.131", "SrcPort": 49842, "DestIP": "220.116.76.14", "DestPort": 443, "PID": 5552, "ProcessImagePath": "C:\\Program Files\\Internet Explorer\\iexplore.exe", "IsDangerous": true, "Alive": true}]}]}
+
+[E -> U] Trap Send
+{"name": "TWTL", "app": "TWTL-Engine", "version": "1", "contents": [{"type": "trap.change", "path": "/Net/Connections/", "Value": 200}]}
+
+[E <- U] TrapPort Receive
+{"app":"TWTL-GUI","name":"TWTL","version":"1","contents":[{"type":"trap-ack.check","path":"/Net/Connections/","ready":true}]}
+
+[E -> U] Trap Send
+{"name": "TWTL", "app": "TWTL-Engine", "version": "1", "contents": [{"type": "trap.change", "path": "/Net/Connections/", "Value": 200}]}
+
+[E <- U] TrapPort Receive
+{"app":"TWTL-GUI","name":"TWTL","version":"1","contents":[{"type":"trap-ack.check","path":"/Net/Connections/","ready":true}]}
 
 [E -> U] Trap Send
 {"name": "TWTL", "app": "TWTL-Engine", "version": "1", "contents": [{"type": "trap.change", "path": "/Net/Connections/", "Value": 200}]}
@@ -46,77 +82,11 @@
 [E -> U] Trap Send
 {"name": "TWTL", "app": "TWTL-Engine", "version": "1", "contents": [{"type": "trap.change", "path": "/Net/Connections/", "Value": 200}]}
 
-[E -> U] Trap Send
-{"name": "TWTL", "app": "TWTL-Engine", "version": "1", "contents": [{"type": "trap.change", "path": "/Net/Connections/", "Value": 200}]}
+[E <- U] TrapPort Receive
+{"app":"TWTL-GUI","name":"TWTL","version":"1","contents":[{"type":"trap-ack.check","path":"/Net/Connections/","ready":true}]}
 
 [E -> U] MainPort Send
-{"app": "TWTL-Engine", "name": "TWTL", "version": "1", "contents": [{"type": "response.status", "path": "/Net/Connections/", "value": 200}, {"type": "response.object", "path": "/Net/Connections/", "value": [{"SrcIP": "0.0.0.0", "SrcPort": 135, "DestIP": "0.0.0.0", "DestPort": 0, "PID": 736, "ProcessImagePath": "", "IsDangerous": false, "Alive": true}, {"SrcIP": "0.0.0.0", "SrcPort": 445, "DestIP": "0.0.0.0", "DestPort": 0, "PID": 4, "ProcessImagePath": "", "IsDangerous": false, "Alive": true}, {"SrcIP": "0.0.0.0", "SrcPort": 554, "DestIP": "0.0.0.0", "DestPort": 0, "PID": 1240, "ProcessImagePath": "", "IsDangerous": false, "Alive": true}, {"SrcIP": "0.0.0.0", "SrcPort": 2869, "DestIP": "0.0.0.0", "DestPort": 0, "PID": 4, "ProcessImagePath": "", "IsDangerous": false, "Alive": true}, {"SrcIP": "0.0.0.0", "SrcPort": 5357, "DestIP": "0.0.0.0", "DestPort": 0, "PID": 4, "ProcessImagePath": "", "IsDangerous": false, "Alive": true}, {"SrcIP": "0.0.0.0", "SrcPort": 10243, "DestIP": "0.0.0.0", "DestPort": 0, "PID": 4, "ProcessImagePath": "", "IsDangerous": false, "Alive": true}, {"SrcIP": "0.0.0.0", "SrcPort": 49152, "DestIP": "0.0.0.0", "DestPort": 0, "PID": 412, "ProcessImagePath": "", "IsDangerous": false, "Alive": true}, {"SrcIP": "0.0.0.0", "SrcPort": 49153, "DestIP": "0.0.0.0", "DestPort": 0, "PID": 820, "ProcessImagePath": "", "IsDangerous": false, "Alive": true}, {"SrcIP": "0.0.0.0", "SrcPort": 49154, "DestIP": "0.0.0.0", "DestPort": 0, "PID": 928, "ProcessImagePath": "", "IsDangerous": false, "Alive": true}, {"SrcIP": "0.0.0.0", "SrcPort": 49155, "DestIP": "0.0.0.0", "DestPort": 0, "PID": 492, "ProcessImagePath": "", "IsDangerous": false, "Alive": true}, {"SrcIP": "0.0.0.0", "SrcPort": 49156, "DestIP": "0.0.0.0", "DestPort": 0, "PID": 528, "ProcessImagePath": "", "IsDangerous": false, "Alive": true}, {"SrcIP": "0.0.0.0", "SrcPort": 49157, "DestIP": "0.0.0.0", "DestPort": 0, "PID": 4, "ProcessImagePath": "", "IsDangerous": false, "Alive": true}, {"SrcIP": "0.0.0.0", "SrcPort": 49158, "DestIP": "0.0.0.0", "DestPort": 0, "PID": 4, "ProcessImagePath": "", "IsDangerous": false, "Alive": true}, {"SrcIP": "0.0.0.0", "SrcPort": 49159, "DestIP": "0.0.0.0", "DestPort": 0, "PID": 4, "ProcessImagePath": "", "IsDangerous": false, "Alive": true}, {"SrcIP": "127.0.0.1", "SrcPort": 5259, "DestIP": "127.0.0.1", "DestPort": 49789, "PID": 4692, "ProcessImagePath": "", "IsDangerous": false, "Alive": true}, {"SrcIP": "127.0.0.1", "SrcPort": 16946, "DestIP": "0.0.0.0", "DestPort": 0, "PID": 4424, "ProcessImagePath": "", "IsDangerous": false, "Alive": true}, {"SrcIP": "127.0.0.1", "SrcPort": 16946, "DestIP": "127.0.0.1", "DestPort": 49790, "PID": 4424, "ProcessImagePath": "", "IsDangerous": false, "Alive": true}, {"SrcIP": "127.0.0.1", "SrcPort": 49787, "DestIP": "127.0.0.1", "DestPort": 49788, "PID": 4424, "ProcessImagePath": "", "IsDangerous": false, "Alive": true}, {"SrcIP": "127.0.0.1", "SrcPort": 49788, "DestIP": "127.0.0.1", "DestPort": 49787, "PID": 4424, "ProcessImagePath": "", "IsDangerous": false, "Alive": true}, {"SrcIP": "127.0.0.1", "SrcPort": 49789, "DestIP": "127.0.0.1", "DestPort": 5259, "PID": 4424, "ProcessImagePath": "", "IsDangerous": false, "Alive": true}, {"SrcIP": "127.0.0.1", "SrcPort": 49790, "DestIP": "127.0.0.1", "DestPort": 16946, "PID": 4692, "ProcessImagePath": "", "IsDangerous": false, "Alive": true}, {"SrcIP": "192.168.206.131", "SrcPort": 139, "DestIP": "0.0.0.0", "DestPort": 0, "PID": 4, "ProcessImagePath": "", "IsDangerous": false, "Alive": true}, {"SrcIP": "192.168.206.131", "SrcPort": 49238, "DestIP": "65.52.0.51", "DestPort": 5671, "PID": 532, "ProcessImagePath": "", "IsDangerous": false, "Alive": true}, {"SrcIP": "192.168.206.131", "SrcPort": 49762, "DestIP": "111.221.29.254", "DestPort": 443, "PID": 3764, "ProcessImagePath": "", "IsDangerous": false, "Alive": true}, {"SrcIP": "192.168.206.131", "SrcPort": 49791, "DestIP": "216.58.221.10", "DestPort": 443, "PID": 5552, "ProcessImagePath": "", "IsDangerous": false, "Alive": true}, {"SrcIP": "192.168.206.131", "SrcPort": 49792, "DestIP": "58.123.220.40", "DestPort": 443, "PID": 5552, "ProcessImagePath": "", "IsDangerous": false, "Alive": true}, {"SrcIP": "192.168.206.131", "SrcPort": 49793, "DestIP": "220.116.76.14", "DestPort": 443, "PID": 5552, "ProcessImagePath": "", "IsDangerous": true, "Alive": true}, {"SrcIP": "192.168.206.131", "SrcPort": 49794, "DestIP": "220.116.76.14", "DestPort": 443, "PID": 5552, "ProcessImagePath": "", "IsDangerous": true, "Alive": true}, {"SrcIP": "192.168.206.131", "SrcPort": 49795, "DestIP": "58.123.220.40", "DestPort": 443, "PID": 5552, "ProcessImagePath": "", "IsDangerous": false, "Alive": true}, {"SrcIP": "192.168.206.131", "SrcPort": 49796, "DestIP": "220.116.76.14", "DestPort": 443, "PID": 5552, "ProcessImagePath": "", "IsDangerous": true, "Alive": true}, {"SrcIP": "192.168.206.131", "SrcPort": 49797, "DestIP": "220.116.76.14", "DestPort": 443, "PID": 5552, "ProcessImagePath": "", "IsDangerous": true, "Alive": true}, {"SrcIP": "192.168.206.131", "SrcPort": 49798, "DestIP": "220.116.76.14", "DestPort": 443, "PID": 5552, "ProcessImagePath": "", "IsDangerous": true, "Alive": true}, {"SrcIP": "192.168.206.131", "SrcPort": 49799, "DestIP": "58.123.220.40", "DestPort": 443, "PID": 5552, "ProcessImagePath": "", "IsDangerous": false, "Alive": true}, {"SrcIP": "192.168.206.131", "SrcPort": 49800, "DestIP": "220.116.76.14", "DestPort": 443, "PID": 5552, "ProcessImagePath": "", "IsDangerous": true, "Alive": true}, {"SrcIP": "192.168.206.131", "SrcPort": 49801, "DestIP": "58.123.220.40", "DestPort": 443, "PID": 5552, "ProcessImagePath": "", "IsDangerous": false, "Alive": true}, {"SrcIP": "192.168.206.131", "SrcPort": 49802, "DestIP": "58.123.220.40", "DestPort": 443, "PID": 5552, "ProcessImagePath": "", "IsDangerous": false, "Alive": true}, {"SrcIP": "192.168.206.131", "SrcPort": 49803, "DestIP": "58.123.220.40", "DestPort": 443, "PID": 5552, "ProcessImagePath": "", "IsDangerous": false, "Alive": true}, {"SrcIP": "192.168.206.131", "SrcPort": 49804, "DestIP": "58.229.92.119", "DestPort": 443, "PID": 5552, "ProcessImagePath": "", "IsDangerous": false, "Alive": true}]}]}
-
-[E -> U] Trap Send
-{"name": "TWTL", "app": "TWTL-Engine", "version": "1", "contents": [{"type": "trap.change", "path": "/Net/Connections/", "Value": 200}]}
-
-[E <- U] TrapPort Receive
-{"app":"TWTL-GUI","name":"TWTL","version":"1","contents":[{"type":"trap-ack.check","path":"/Net/Connections/","ready":true}]}
-
-[E -> U] Trap Send
-{"name": "TWTL", "app": "TWTL-Engine", "version": "1", "contents": [{"type": "trap.change", "path": "/Net/Connections/", "Value": 200}]}
-
-[E <- U] TrapPort Receive
-{"app":"TWTL-GUI","name":"TWTL","version":"1","contents":[{"type":"trap-ack.check","path":"/Net/Connections/","ready":true}]}
-
-[E -> U] Trap Send
-{"name": "TWTL", "app": "TWTL-Engine", "version": "1", "contents": [{"type": "trap.change", "path": "/Net/Connections/", "Value": 200}]}
-
-[E <- U] TrapPort Receive
-{"app":"TWTL-GUI","name":"TWTL","version":"1","contents":[{"type":"trap-ack.check","path":"/Net/Connections/","ready":true}]}
-
-[E -> U] Trap Send
-{"name": "TWTL", "app": "TWTL-Engine", "version": "1", "contents": [{"type": "trap.change", "path": "/Net/Connections/", "Value": 200}]}
-
-[E <- U] TrapPort Receive
-{"app":"TWTL-GUI","name":"TWTL","version":"1","contents":[{"type":"trap-ack.check","path":"/Net/Connections/","ready":true}]}
-
-[E -> U] Trap Send
-{"name": "TWTL", "app": "TWTL-Engine", "version": "1", "contents": [{"type": "trap.change", "path": "/Net/Connections/", "Value": 200}]}
-
-[E <- U] TrapPort Receive
-{"app":"TWTL-GUI","name":"TWTL","version":"1","contents":[{"type":"trap-ack.check","path":"/Net/Connections/","ready":true}]}
-
-[E -> U] Trap Send
-{"name": "TWTL", "app": "TWTL-Engine", "version": "1", "contents": [{"type": "trap.change", "path": "/Net/Connections/", "Value": 200}]}
-
-[E <- U] TrapPort Receive
-{"app":"TWTL-GUI","name":"TWTL","version":"1","contents":[{"type":"trap-ack.check","path":"/Net/Connections/","ready":true}]}
-
-[E -> U] Trap Send
-{"name": "TWTL", "app": "TWTL-Engine", "version": "1", "contents": [{"type": "trap.change", "path": "/Net/Connections/", "Value": 200}]}
-
-[E <- U] TrapPort Receive
-{"app":"TWTL-GUI","name":"TWTL","version":"1","contents":[{"type":"trap-ack.check","path":"/Net/Connections/","ready":true}]}
-
-[E -> U] Trap Send
-{"name": "TWTL", "app": "TWTL-Engine", "version": "1", "contents": [{"type": "trap.change", "path": "/Net/Connections/", "Value": 200}]}
-
-[E <- U] TrapPort Receive
-{"app":"TWTL-GUI","name":"TWTL","version":"1","contents":[{"type":"trap-ack.check","path":"/Net/Connections/","ready":true}]}
-
-[E -> U] Trap Send
-{"name": "TWTL", "app": "TWTL-Engine", "version": "1", "contents": [{"type": "trap.change", "path": "/Net/Connections/", "Value": 200}]}
-
-[E <- U] TrapPort Receive
-{"app":"TWTL-GUI","name":"TWTL","version":"1","contents":[{"type":"trap-ack.check","path":"/Net/Connections/","ready":true}]}
-
-[E -> U] Trap Send
-{"name": "TWTL", "app": "TWTL-Engine", "version": "1", "contents": [{"type": "trap.change", "path": "/Net/Connections/", "Value": 200}]}
-
-[E <- U] TrapPort Receive
-{"app":"TWTL-GUI","name":"TWTL","version":"1","contents":[{"type":"trap-ack.check","path":"/Net/Connections/","ready":true}]}
-
-[E -> U] Trap Send
-{"name": "TWTL", "app": "TWTL-Engine", "version": "1", "contents": [{"type": "trap.change", "path": "/Net/Connections/", "Value": 200}]}
-
-[E <- U] TrapPort Receive
-{"app":"TWTL-GUI","name":"TWTL","version":"1","contents":[{"type":"trap-ack.check","path":"/Net/Connections/","ready":true}]}
+{"app": "TWTL-Engine", "name": "TWTL", "version": "1", "contents": [{"type": "response.status", "path": "/Net/Connections/", "value": 200}, {"type": "response.object", "path": "/Net/Connections/", "value": [{"SrcIP": "192.168.206.131", "SrcPort": 49838, "DestIP": "220.116.76.14", "DestPort": 443, "PID": 5552, "ProcessImagePath": "C:\\Program Files\\Internet Explorer\\iexplore.exe", "IsDangerous": true, "Alive": true}, {"SrcIP": "192.168.206.131", "SrcPort": 49840, "DestIP": "220.116.76.14", "DestPort": 443, "PID": 5552, "ProcessImagePath": "C:\\Program Files\\Internet Explorer\\iexplore.exe", "IsDangerous": true, "Alive": true}, {"SrcIP": "192.168.206.131", "SrcPort": 49841, "DestIP": "220.116.76.14", "DestPort": 443, "PID": 5552, "ProcessImagePath": "C:\\Program Files\\Internet Explorer\\iexplore.exe", "IsDangerous": true, "Alive": true}, {"SrcIP": "192.168.206.131", "SrcPort": 49842, "DestIP": "220.116.76.14", "DestPort": 443, "PID": 5552, "ProcessImagePath": "C:\\Program Files\\Internet Explorer\\iexplore.exe", "IsDangerous": true, "Alive": true}]}]}
 
 [E -> U] Trap Send
 {"name": "TWTL", "app": "TWTL-Engine", "version": "1", "contents": [{"type": "trap.change", "path": "/Net/Connections/", "Value": 200}]}
@@ -125,8 +95,23 @@
 {"app":"TWTL-GUI","name":"TWTL","version":"1","contents":[{"type":"trap-ack.check","path":"/Net/Connections/","ready":true}]}
 
 [E <- U] MainPort Receive
-{"app":"TWTL-GUI","name":"TWTL","version":"1","contents":[{"type":"request.beta","path":"/Perf/ResolveImagePath/","value":{"ImagePath":""}}]}
+{"app":"TWTL-GUI","name":"TWTL","version":"1","contents":[{"type":"request.beta","path":"/Perf/ResolveImagePath/","value":{"ImagePath":"C:\\Program Files\\Internet Explorer\\iexplore.exe"}}]}
 
 [E -> U] MainPort Send
 {"app": "TWTL-Engine", "name": "TWTL", "version": "1", "contents": [{"type": "response.status", "path": "/Perf/ResolveImagePath/", "value": 200}, {"type": "response.object", "path": "/Perf/ResolveImagePath/", "value": 200}]}
+
+[E -> U] Trap Send
+{"name": "TWTL", "app": "TWTL-Engine", "version": "1", "contents": [{"type": "trap.change", "path": "/Net/Connections/", "Value": 200}]}
+
+[E <- U] TrapPort Receive
+{"app":"TWTL-GUI","name":"TWTL","version":"1","contents":[{"type":"trap-ack.check","path":"/Net/Connections/","ready":true}]}
+
+[E -> U] Trap Send
+{"name": "TWTL", "app": "TWTL-Engine", "version": "1", "contents": [{"type": "trap.change", "path": "/Net/Connections/", "Value": 200}]}
+
+[E -> U] Trap Send
+{"name": "TWTL", "app": "TWTL-Engine", "version": "1", "contents": [{"type": "trap.change", "path": "/Net/Connections/", "Value": 200}]}
+
+[E -> U] Trap Send
+{"name": "TWTL", "app": "TWTL-Engine", "version": "1", "contents": [{"type": "trap.change", "path": "/Net/Connections/", "Value": 200}]}
 

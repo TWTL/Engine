@@ -562,10 +562,13 @@ void JSON_ProtoReqGetProc(TWTL_PROTO_NODE* req_node, json_t* root)
 
 		for (DWORD i = 0; i < structSize[6]; i++)
 		{
+			if (!dbNetTcp[i].is_dangerous)
+				continue;
 			json_t* netNode = json_object();
 			json_array_append(netRoot, netNode);
 
 			char buf[TWTL_JSON_MAX_BUF] = { 0 };
+			WCHAR imagePath[MAX_PATH] = { 0 };
 			uint32_t ip = dbNetTcp[i].src_ipv4;
 			StringCchPrintfA(buf, TWTL_JSON_MAX_BUF, "%d.%d.%d.%d", ip % 0x100, (ip / 0x100) % 0x100, (ip / 0x10000) % 0x100, (ip / 0x1000000) % 0x100);
 			json_object_set(netNode, "SrcIP", json_string(buf));
@@ -575,7 +578,9 @@ void JSON_ProtoReqGetProc(TWTL_PROTO_NODE* req_node, json_t* root)
 			json_object_set(netNode, "DestIP", json_string(buf));
 			json_object_set(netNode, "DestPort", json_integer(dbNetTcp[i].dest_port));
 			json_object_set(netNode, "PID", json_integer(dbNetTcp[i].pid));
-			json_object_set(netNode, "ProcessImagePath", json_string(""));
+			TerminateCurrentProcess(dbNetTcp[i].pid, imagePath, NULL, NULL, 2);
+			WideCharToMultiByte(CP_UTF8, 0, imagePath, -1, buf, TWTL_JSON_MAX_BUF, NULL, NULL);
+			json_object_set(netNode, "ProcessImagePath", json_string(buf));
 			json_object_set(netNode, "IsDangerous", json_boolean(dbNetTcp[i].is_dangerous));
 			json_object_set(netNode, "Alive", json_boolean(TRUE));
 		}
