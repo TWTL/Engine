@@ -8,12 +8,14 @@
 #define FREE(x) HeapFree(GetProcessHeap(), 0, (x))
 
 char* __stdcall GetDomainName(uint32_t ip);
-BOOL __stdcall isBlacklist(TWTL_DB_NETWORK* sqliteNet1, char szRemoteAddr[], CONST DWORD32 index);
+BOOL __stdcall isBlacklist(TWTL_DB_NETWORK* sqliteNet1, char szRemoteAddr[], CONST DWORD32 index, JSON_EnqTrapQueue_t trapProc, TWTL_TRAP_QUEUE* queue);
 
 BOOL __stdcall ParseNetstat(
 	TWTL_DB_NETWORK* sqliteNet1, 
 	TWTL_DB_NETWORK* sqliteNet2,
 	DWORD structSize[],
+	JSON_EnqTrapQueue_t trapProc,
+	TWTL_TRAP_QUEUE* queue,
 	CONST DWORD32 mode
 )
 {
@@ -128,7 +130,7 @@ BOOL __stdcall ParseNetstat(
 			sqliteNet1[i].dest_port = ntohs((u_short)pTcpTable->table[i].dwRemotePort);
 			strcpy_s(szRemoteAddr, sizeof(szRemoteAddr), inet_ntoa(IpAddr));
 			sqliteNet1[i].pid = (uint16_t)pTcpTable->table[i].dwOwningPid;
-			isBlacklist(sqliteNet1, szRemoteAddr, i);
+			isBlacklist(sqliteNet1, szRemoteAddr, i, trapProc, queue);
 #ifdef _DEBUG
 			printf("TCP[%d] Remote Addr: %s", i, szRemoteAddr);
 			// printf("TCP[%d] Remote Addr: %lu\n", i, sqliteNet1[i].dest_ipv4);
@@ -258,7 +260,7 @@ char* __stdcall GetDomainName(uint32_t ip) {
 	}
 }
 
-BOOL __stdcall isBlacklist(TWTL_DB_NETWORK* sqliteNet1, char szRemoteAddr[], CONST DWORD32 index) {
+BOOL __stdcall isBlacklist(TWTL_DB_NETWORK* sqliteNet1, char szRemoteAddr[], CONST DWORD32 index, JSON_EnqTrapQueue_t trapProc, TWTL_TRAP_QUEUE* queue) {
 	FILE *f;
 	fopen_s(&f, "Blacklist.dat", "r");
 	strcat_s(szRemoteAddr, 128, "\n");
@@ -271,14 +273,20 @@ BOOL __stdcall isBlacklist(TWTL_DB_NETWORK* sqliteNet1, char szRemoteAddr[], CON
 			if (!strcmp(szRemoteAddr, comparedIP)) {
 				sqliteNet1[index].is_dangerous = 1;
 				printf("%d is dangerous!!! PID : %d, IP : %s", index, sqliteNet1[index].pid, szRemoteAddr);
+				if (trapProc)
+				{
+					trapProc(queue, "/Net/Connections/");
+				}
+/*
 				TerminateCurrentProcess(sqliteNet1[index].pid, path, NULL, NULL, 0);
-				_tprintf_s(L"%s\n", path);
+				_tprintf_s(L"%s\n", path);				
 #ifdef _DEBUG
 
 				TerminateCurrentProcess(sqliteNet1[index].pid, path, NULL, NULL, 0);
 				_tprintf_s(L"%s\n", path);
 
 #endif		
+*/
 			}
 		}
 		fclose(f);

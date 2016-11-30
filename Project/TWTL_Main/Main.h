@@ -16,6 +16,20 @@
 #define REGNAME_MAX	 255
 #define REGVALUE_MAX 16383
 
+#ifndef TWTL_TRAP_H
+#define TWTL_TRAP_H
+#define TRAP_PATH_MAX 1024
+typedef struct twtl_trap_queue_node {
+	char path[TRAP_PATH_MAX];
+	struct twtl_trap_queue_node* next;
+} TWTL_TRAP_QUEUE_NODE;
+typedef struct twtl_trap_queue {
+	int count;
+	struct twtl_trap_queue_node* node;
+} TWTL_TRAP_QUEUE;
+typedef BOOL(*JSON_EnqTrapQueue_t)(TWTL_TRAP_QUEUE* queue, char* inPath);
+#endif
+
 __declspec(dllimport)
 BOOL
 __stdcall
@@ -29,7 +43,9 @@ SnapCurrentStatus(
 	TWTL_DB_NETWORK*  sqliteNet1,
 	TWTL_DB_NETWORK*  sqliteNet2,
 	DWORD structSize[],
-	CONST DWORD32 mode
+	CONST DWORD32 mode,
+	JSON_EnqTrapQueue_t trapProc,
+	TWTL_TRAP_QUEUE* queue
 );
 
 __declspec(dllimport)

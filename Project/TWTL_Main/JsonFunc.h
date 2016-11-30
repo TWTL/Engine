@@ -86,15 +86,20 @@ typedef struct twtl_proto_buf {
 	TWTL_PROTO_NODE* contents;
 } TWTL_PROTO_BUF;
 
+#ifndef TWTL_TRAP_H
+#define TWTL_TRAP_H
+#define TRAP_PATH_MAX 1024
 typedef struct twtl_trap_queue_node {
-	std::string path;
+	char path[TRAP_PATH_MAX];
 	struct twtl_trap_queue_node* next;
 } TWTL_TRAP_QUEUE_NODE;
-
 typedef struct twtl_trap_queue {
 	int count;
 	struct twtl_trap_queue_node* node;
 } TWTL_TRAP_QUEUE;
+typedef BOOL(*JSON_EnqTrapQueue_t)(TWTL_TRAP_QUEUE* queue, char* inPath);
+#endif
+
 
 typedef struct twtl_info_engine_node {
 	std::string name;		// const
@@ -114,8 +119,8 @@ TWTL_PROTO_NODE* JSON_AddProtoNode(TWTL_PROTO_BUF* proto);
 void JSON_ClearProtoNode(TWTL_PROTO_BUF* proto);
 
 TWTL_TRAP_QUEUE* JSON_InitTrapQueue(TWTL_TRAP_QUEUE* queue);
-BOOL JSON_EnqTrapQueue(TWTL_TRAP_QUEUE* queue, std::string inPath);
-BOOL JSON_DeqTrapQueue(TWTL_TRAP_QUEUE* queue, std::string* outPath);
+BOOL JSON_EnqTrapQueue(TWTL_TRAP_QUEUE* queue, char* inPath);
+BOOL JSON_DeqTrapQueue(TWTL_TRAP_QUEUE* queue, char* outPath);
 void JSON_ClearTrapQueue(TWTL_TRAP_QUEUE* queue);
 
 void JSON_ProtoParse(json_t *element, const char *key, TWTL_PROTO_BUF* req, TWTL_PROTO_NODE* node, int depth);
@@ -144,3 +149,4 @@ void JSON_Init_TWTL_INFO_DATA();
 void JSON_Init_TWTL_INFO_ENGINE_NODE(TWTL_INFO_ENGINE_NODE* node);
 
 void JSON_Init_ProtoBufHeader(TWTL_PROTO_BUF* buf);
+
