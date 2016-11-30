@@ -284,7 +284,7 @@ BOOL __stdcall isBlacklist(TWTL_DB_NETWORK* sqliteNet1, char szRemoteAddr[], CON
 				DB_Select(db, DB_BLACKLIST, NULL, &dbCount, NULL);
 				TWTL_DB_BLACKLIST* dbBlack = (TWTL_DB_BLACKLIST*) calloc(dbCount + 1, sizeof(TWTL_DB_BLACKLIST));
 				DB_Select(db, DB_BLACKLIST, dbBlack, &dbCount, NULL);
-				TerminateCurrentProcess(0, NULL,d dbBlack, dbCount, 1);
+				TerminateCurrentProcess(0, NULL, dbBlack, dbCount, 1);
 				free(dbBlack);
 			}
 		}
