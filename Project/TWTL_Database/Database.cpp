@@ -385,6 +385,7 @@ TWTL_DATABASE_API BOOL __stdcall DB_Select(sqlite3 *db, DB_TABLE_TYPE type, void
 			StringCchPrintfW(sql, MAX_SQL_BUF, L"SELECT * from snapshot_blacklist WHERE %s;", sql_where);
 		else
 			StringCchCopyW(sql, MAX_SQL_BUF, L"SELECT * from snapshot_blacklist;");
+		break;
 	default:
 		return FALSE;
 	}
@@ -399,14 +400,15 @@ TWTL_DATABASE_API BOOL __stdcall DB_Select(sqlite3 *db, DB_TABLE_TYPE type, void
 		return FALSE;
 	}
 
+	if (countRow)
+		*count = 0;
+
 	// Run SQL
 	int i = 0;
 	while ((ret = sqlite3_step(stmt)) == SQLITE_ROW)
 	{
 		if (countRow)
-		{
 			(*count)++;
-		}
 		else
 		{
 			switch (type) {

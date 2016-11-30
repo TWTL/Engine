@@ -28,5 +28,6 @@ ParseNetstat(
 	DWORD structSize[],
 	JSON_EnqTrapQueue_t trapProc,
 	TWTL_TRAP_QUEUE* queue,
+	sqlite3* db,
 	CONST DWORD32 mode
 );

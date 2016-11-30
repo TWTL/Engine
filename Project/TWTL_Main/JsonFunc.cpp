@@ -582,13 +582,13 @@ void JSON_ProtoReqGetProc(TWTL_PROTO_NODE* req_node, json_t* root)
 		TWTL_DB_NETWORK* dbNetTcp = (TWTL_DB_NETWORK*)calloc(1, sizeof(TWTL_DB_NETWORK));
 		TWTL_DB_NETWORK* dbNetUdp = (TWTL_DB_NETWORK*)calloc(1, sizeof(TWTL_DB_NETWORK));
 		DWORD structSize[8] = { 0 };
-		if (!SnapCurrentStatus(NULL, NULL, NULL, NULL, NULL, NULL, dbNetTcp, dbNetUdp, structSize, 2, NULL, NULL))
+		if (!SnapCurrentStatus(NULL, NULL, NULL, NULL, NULL, NULL, dbNetTcp, dbNetUdp, structSize, NULL, NULL, g_db, 2))
 		{ // Snapshot Failure
 			failure = TRUE;
 		}
 		dbNetTcp = (TWTL_DB_NETWORK*)realloc(dbNetTcp, (structSize[6] + 1) * sizeof(TWTL_DB_NETWORK));
 		dbNetUdp = (TWTL_DB_NETWORK*)realloc(dbNetUdp, (structSize[7] + 1) * sizeof(TWTL_DB_NETWORK));
-		if (!SnapCurrentStatus(NULL, NULL, NULL, NULL, NULL, NULL, dbNetTcp, dbNetUdp, NULL, 0, NULL, NULL))
+		if (!SnapCurrentStatus(NULL, NULL, NULL, NULL, NULL, NULL, dbNetTcp, dbNetUdp, NULL, NULL, NULL, g_db, 0))
 		{ // Snapshot Failure
 			failure = TRUE;
 		}
@@ -601,8 +601,8 @@ void JSON_ProtoReqGetProc(TWTL_PROTO_NODE* req_node, json_t* root)
 
 		for (DWORD i = 0; i < structSize[6]; i++)
 		{
-			if (!dbNetTcp[i].is_dangerous)
-				continue;
+			// if (!dbNetTcp[i].is_dangerous)
+			// 	continue;
 
 			json_t* netNode = json_object();
 			json_array_append(netRoot, netNode);
@@ -811,7 +811,7 @@ void JSON_DiffProc_RegShort(TWTL_PROTO_NODE* req_node, json_t* root, TWTL_REG_SH
 		break;
 	}
 	DWORD structSize[8] = { 0 };
-	if (!SnapCurrentStatus(NULL, nowHkcuRun, nowHklmRun, nowHkcuRunOnce, nowHklmRunOnce, nowServices, NULL, NULL, structSize, 2, NULL, NULL))
+	if (!SnapCurrentStatus(NULL, nowHkcuRun, nowHklmRun, nowHkcuRunOnce, nowHklmRunOnce, nowServices, NULL, NULL, structSize, NULL, NULL, g_db, 2))
 	{ // Snapshot Failure
 		failure = TRUE;
 	}
@@ -839,7 +839,7 @@ void JSON_DiffProc_RegShort(TWTL_PROTO_NODE* req_node, json_t* root, TWTL_REG_SH
 		memset(nowServices, 0x00, sizeof(TWTL_DB_SERVICE)*(structSize[5] + 1));
 		break;
 	}
-	if (!SnapCurrentStatus(NULL, nowHkcuRun, nowHklmRun, nowHkcuRunOnce, nowHklmRunOnce, nowServices, NULL, NULL, NULL, 0, NULL, NULL))
+	if (!SnapCurrentStatus(NULL, nowHkcuRun, nowHklmRun, nowHkcuRunOnce, nowHklmRunOnce, nowServices, NULL, NULL, NULL, NULL, NULL, g_db, 0))
 	{ // Snapshot Failure
 		failure = TRUE;
 	}
@@ -1164,7 +1164,6 @@ void JSON_ProtoReqPutProc(TWTL_PROTO_NODE* req_node, json_t* root)
 		if (DB_Insert(g_db, DB_BLACKLIST, &black, 1))
 		{ // Success
 			TerminateCurrentProcess(0, NULL, &black, 1, 1);
-			// TerminateCurrentProcess(NULL, black.image_path, NULL, NULL, 3);
 
 			json_t* contentStatus = json_object(); // [ { } , { } , { }, ] // {}
 			json_array_append(contentsArray, contentStatus);

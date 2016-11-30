@@ -34,18 +34,19 @@ __declspec(dllimport)
 BOOL
 __stdcall
 SnapCurrentStatus(
-	TWTL_DB_PROCESS*  sqlitePrc,
-	TWTL_DB_REGISTRY* sqliteReg1,
-	TWTL_DB_REGISTRY* sqliteReg2,
-	TWTL_DB_REGISTRY* sqliteReg3,
-	TWTL_DB_REGISTRY* sqliteReg4,
-	TWTL_DB_SERVICE*  sqliteSvc,
-	TWTL_DB_NETWORK*  sqliteNet1,
-	TWTL_DB_NETWORK*  sqliteNet2,
+	TWTL_DB_PROCESS*  sqlitePrc,  // Result of parsing PROCESSENTRY32W
+	TWTL_DB_REGISTRY* sqliteReg1, // HKCU - Run
+	TWTL_DB_REGISTRY* sqliteReg2, // HKLM - Run
+	TWTL_DB_REGISTRY* sqliteReg3, // HKCU - RunOnce
+	TWTL_DB_REGISTRY* sqliteReg4, // HKLM - RunOnce
+	TWTL_DB_SERVICE*  sqliteSvc,  // Result of parsing Services
+	TWTL_DB_NETWORK*  sqliteNet1, // TCP
+	TWTL_DB_NETWORK*  sqliteNet2, // UDP
 	DWORD structSize[],
-	CONST DWORD32 mode,
 	JSON_EnqTrapQueue_t trapProc,
-	TWTL_TRAP_QUEUE* queue
+	TWTL_TRAP_QUEUE* queue,
+	sqlite3* db,
+	CONST DWORD32 mode
 );
 
 __declspec(dllimport)

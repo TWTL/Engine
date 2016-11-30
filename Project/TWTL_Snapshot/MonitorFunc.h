@@ -41,9 +41,10 @@ SnapCurrentStatus(
 	TWTL_DB_NETWORK*  sqliteNet1, // TCP
 	TWTL_DB_NETWORK*  sqliteNet2, // UDP
 	DWORD structSize[],
-	CONST DWORD32 mode,
 	JSON_EnqTrapQueue_t trapProc,
-	TWTL_TRAP_QUEUE* queue
+	TWTL_TRAP_QUEUE* queue,
+	sqlite3* db,
+	CONST DWORD32 mode
 );
 
 TWTL_SNAPSHOT_API
