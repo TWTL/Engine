@@ -148,9 +148,6 @@ DWORD __stdcall SOCK_MainPortProc()
 				// Clear ProtoBuf
 				JSON_ClearProtoNode(&req);
 			}
-
-			if (!g_runJsonMainThread)
-				break;
 		}
 		else if (iResult == 0) {
 			fprintf(stderr, "[MainPort] Connection closed\n");
@@ -314,7 +311,7 @@ DWORD SOCK_TrapPortProc()
 	 TWTL_PROTO_BUF buf;
 	 memset(&buf, 0, sizeof(TWTL_PROTO_BUF));
 
-	 while (trapPort != 0)
+	 while (trapPort != 0 && g_runJsonTrapThread)
 	 {
 		 char path[TRAP_PATH_MAX] = { 0 };
 

@@ -2,6 +2,7 @@
 //
 
 #include "stdafx.h"
+#include <conio.h>
 
 #include "JsonThread.h"
 #include "JsonFunc.h"
@@ -118,7 +119,6 @@ int main()
 			&trapQueue);
 		lock = 0;
 
-		Sleep(3000);
 		if (first)
 		{
 			g_dbLock = TRUE;
@@ -132,7 +132,6 @@ int main()
 		}
 
 		lock = 1;
-		Sleep(3000);
 		free(sqlitePrc);
 		free(sqliteReg1);
 		free(sqliteReg2);
@@ -141,19 +140,26 @@ int main()
 		free(sqliteSvc);
 		free(sqliteNet1);
 		free(sqliteNet2);
+
+		if (_kbhit())
+		{
+			int input = _getch();
+			if (input == 'q' || input == 'Q')
+				break;
+		}
+		Sleep(5000);
 	}
 	
 	wprintf_s(L"\nTerminating Json Threads...\n");
 	g_runJsonMainThread = FALSE;
 	g_runJsonTrapThread = FALSE;
-	WaitForMultipleObjects(2, hJsonThread, TRUE, INFINITE);
+	WaitForMultipleObjects(2, hJsonThread, TRUE, 5000);
 	CloseHandle(hJsonThread[0]);
 	CloseHandle(hJsonThread[1]);
 
 	DB_Close(g_db);
 
 	wprintf_s(L"\nBye!\n");
-	DelayWait(20000);
 	
 	return 0;
 }

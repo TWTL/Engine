@@ -52,7 +52,7 @@ __stdcall
 TerminateCurrentProcess(
 	CONST DWORD32 targetPID,
 	TCHAR imagePath[],
-	TCHAR(*blackList)[MAX_PATH],
+	TWTL_DB_BLACKLIST* blackList,
 	CONST DWORD length,
 	CONST DWORD mode
 );

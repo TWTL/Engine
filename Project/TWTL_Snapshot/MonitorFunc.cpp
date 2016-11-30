@@ -217,7 +217,7 @@ TWTL_SNAPSHOT_API BOOL __stdcall SnapCurrentStatus(
 	Description : terminate process found by PID or Matching Blacklist
 
 	Parameter :
-		( in )	DWORD32 targetPID : target terminated process' ID
+		( in )	CONST DWORD32 targetPID : target terminated process' ID
 			if mode is 1, it must be NULL.
 		( in/out )TCHAR	imagePath : 
 			if mode is 0, it'll be getting fullimagepath of target process.
@@ -231,16 +231,19 @@ TWTL_SNAPSHOT_API BOOL __stdcall SnapCurrentStatus(
 			0 -> Kill With PID and get ImagePath
 			1 -> Auto Kill
 			2 -> Get ImagePath from PID, not Kill
+			3 -> Kill With ImagePath
 			else -> Error
 	Return value :
 		0 = Error
 		1 = Success
 
 	Usage :
-	ex 1) Kill With PID and get ImagePath : TerminateCurrentProcess(PID, ImagePath, NULL, NULL, 0);
-	ex 2) Auto Kill with blacklist : TerminateCurrentProcess(NULL, NULL, blacklist, number of row of blacklist array, 1 );
+	ex 0) Kill With PID and get ImagePath : TerminateCurrentProcess(PID, ImagePath, NULL, NULL, 0);
+	ex 1) Auto Kill with blacklist : TerminateCurrentProcess(NULL, NULL, blacklist, number of row of blacklist array, 1 );
+	ex 2) Get ImagePath only : TerminateCurrentProcess(PID, ImagePath, NULL, NULL, 2);
+	ex 3) Kill With ImagePath : TerminateCurrentProcess(NULL, ImagePath, NULL, NULL, 3);
 */
-TWTL_SNAPSHOT_API BOOL __stdcall TerminateCurrentProcess(CONST DWORD32 targetPID, TCHAR imagePath[], TCHAR(*blackList)[MAX_PATH], CONST DWORD length, CONST DWORD mode) {
+TWTL_SNAPSHOT_API BOOL __stdcall TerminateCurrentProcess(CONST DWORD32 targetPID, TCHAR imagePath[], TWTL_DB_BLACKLIST* blackList, CONST DWORD length, CONST DWORD mode) {
 	LPWSTR imageName = new WCHAR[MAX_PATH];
 	DWORD imageNameSize = MAX_PATH;
 
@@ -250,10 +253,7 @@ TWTL_SNAPSHOT_API BOOL __stdcall TerminateCurrentProcess(CONST DWORD32 targetPID
 	if (targetPID && mode == 1) {
 		return NULL;
 	}
-	if (length && mode == 0) {
-		return NULL;
-	}
-	if (length && mode == 2) {
+	if (length && (mode == 0 || mode == 2 || mode == 3)) {
 		return NULL;
 	}
 
@@ -302,6 +302,44 @@ TWTL_SNAPSHOT_API BOOL __stdcall TerminateCurrentProcess(CONST DWORD32 targetPID
 					return TRUE;
 				}
 			}
+			else if (mode == 3) {
+				WCHAR getImagePath[MAX_PATH];
+				imageNameSize = MAX_PATH;
+				DWORD exitCode = NULL;
+				BOOL bInheritHandle = FALSE;
+				DWORD result = 0;
+
+				targetProcess.curHandle = OpenProcess(PROCESS_TERMINATE | PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, bInheritHandle, targetPID);
+				if (targetProcess.curHandle == NULL) {
+					return NULL;
+				}
+				result = QueryFullProcessImageName(targetProcess.curHandle, 0, getImagePath, &imageNameSize);
+				imageNameSize = MAX_PATH;
+
+				if (result == 0) {
+					CloseHandle(targetProcess.curHandle);
+					return NULL;
+				}
+
+				if (StrCmpIW(imagePath, getImagePath) == 0)
+				{ // Found it
+					_tprintf_s(L"Terminated Process, PID : %s, %d",
+						targetProcess.proc32.szExeFile,
+						targetProcess.proc32.th32ProcessID);
+					if (TerminateProcess(targetProcess.curHandle, 0)) {
+						_tprintf_s(L" -> Success\n");
+						GetExitCodeProcess(targetProcess.curHandle, &exitCode);
+						CloseHandle(targetProcess.curHandle);
+						return TRUE;
+					}
+					else {
+						_tprintf_s(L" -> Failed\n");
+						CloseHandle(targetProcess.curHandle);
+						return NULL;
+					}
+				}
+				CloseHandle(targetProcess.curHandle);
+			}
 			else if (mode == 1) {
 				if (targetProcess.proc32.th32ProcessID < 100) {
 
@@ -323,7 +361,7 @@ TWTL_SNAPSHOT_API BOOL __stdcall TerminateCurrentProcess(CONST DWORD32 targetPID
 					}
 					else {
 						for (DWORD i = 0; i < length; i++) {
-							result = wcscmp(imageName, blackList[i]);
+							result = wcscmp(imageName, blackList[i].image_path);
 							if (result == 0) {
 								_tprintf_s(L"Terminated Process, PID : %s, %d",
 									targetProcess.proc32.szExeFile,

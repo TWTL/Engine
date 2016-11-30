@@ -58,7 +58,6 @@ enum twtl_proto_node_value
 };
 
 // "value":{"value":[{"Name":".NET CLR Data","Value":null}],"accept":[false],"reject":[true]}}]
-// "value":{"ImagePath":""}
 // Delete : [{"type":"request.beta", "path" : "/Perf/ResolveImagePath/", "value" : {"ImagePath":"C:\\Program Files\\Internet Explorer\\iexplore.exe"}}]}
 typedef struct twtL_proto_patch_node {
 	std::string value_Name;

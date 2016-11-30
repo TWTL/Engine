@@ -564,6 +564,7 @@ void JSON_ProtoReqGetProc(TWTL_PROTO_NODE* req_node, json_t* root)
 		{
 			if (!dbNetTcp[i].is_dangerous)
 				continue;
+
 			json_t* netNode = json_object();
 			json_array_append(netRoot, netNode);
 
@@ -1065,35 +1066,62 @@ void JSON_ProtoReqBetaProc(TWTL_PROTO_NODE* req_node, json_t* root)
 
 	if (req_node->path.compare("/Perf/ResolveImagePath/") == 0)
 	{
-		if (1) // Success
-		{
+		json_t* contentStatus = json_object(); // [ { } , { } , { }, ] // {}
+		json_array_append(contentsArray, contentStatus);
+		json_object_set(contentStatus, "type", json_string(PROTO_STR_RES_STATUS));
+		json_object_set(contentStatus, "path", json_string(req_node->path.c_str()));
+		json_object_set(contentStatus, "value", json_integer(PROTO_STATUS_SUCCESS));
+
+		json_t* contentNode = json_object(); // [ { } , { } , { }, ] // {}
+		json_array_append(contentsArray, contentNode);
+		json_object_set(contentNode, "type", json_string(PROTO_STR_RES_OBJECT));
+		json_object_set(contentNode, "path", json_string(req_node->path.c_str()));
+		json_t* contentValue = json_object();
+		json_object_set(contentNode, "value", contentValue);
+		json_object_set(contentValue, "ImagePath", json_string(req_node->value_string.c_str()));
+	}
+	else if (req_node->path.compare("/Perf/RegisterAutoKill/") == 0)
+	{
+		TWTL_DB_BLACKLIST black;
+		memset(&black, 0, sizeof(TWTL_DB_BLACKLIST));
+		StringCchPrintfW(black.image_path, DB_MAX_FILE_PATH, L"%S", req_node->value_string.c_str());
+		if (DB_Insert(g_db, DB_BLACKLIST, &black, 1))
+		{ // Success
+			TerminateCurrentProcess(0, NULL, &black, 1, 1);
+
 			json_t* contentStatus = json_object(); // [ { } , { } , { }, ] // {}
 			json_array_append(contentsArray, contentStatus);
 			json_object_set(contentStatus, "type", json_string(PROTO_STR_RES_STATUS));
 			json_object_set(contentStatus, "path", json_string(req_node->path.c_str()));
 			json_object_set(contentStatus, "value", json_integer(PROTO_STATUS_SUCCESS));
-
-			json_t* contentNode = json_object(); // [ { } , { } , { }, ] // {}
-			json_array_append(contentsArray, contentNode);
-			json_object_set(contentNode, "type", json_string(PROTO_STR_RES_OBJECT));
-			json_object_set(contentNode, "path", json_string(req_node->path.c_str()));
-			req_node->value_string;
-
-			json_object_set(contentNode, "value", json_integer(PROTO_STATUS_SUCCESS));
 		}
-		else // Error
-		{ // Internal Server Error
-			json_t* contentNode = json_object(); // [ { } , { } , { }, ] // {}
-			json_array_append(contentsArray, contentNode);
-
-			json_object_set(contentNode, "type", json_string(PROTO_STR_RES_STATUS));
-			json_object_set(contentNode, "path", json_string(req_node->path.c_str()));
-			json_object_set(contentNode, "value", json_integer(PROTO_STATUS_SERVER_ERROR));
+		else
+		{ // Failure
+			json_t* contentStatus = json_object(); // [ { } , { } , { }, ] // {}
+			json_array_append(contentsArray, contentStatus);
+			json_object_set(contentStatus, "type", json_string(PROTO_STR_RES_STATUS));
+			json_object_set(contentStatus, "path", json_string(req_node->path.c_str()));
+			json_object_set(contentStatus, "value", json_integer(PROTO_STATUS_SERVER_ERROR));
 		}
 	}
-	else if (req_node->path.compare("/Perf/RegisterAutoKill/") == 0)
+	else if (req_node->path.compare("/Perf/RemoveExecImage/") == 0)
 	{
-		JSON_PatchProc_RegShort(req_node, root, REG_SHORT_HKLM_RUN);
+		if (DeleteFileA(req_node->path.c_str()))
+		{ // Success
+			json_t* contentStatus = json_object(); // [ { } , { } , { }, ] // {}
+			json_array_append(contentsArray, contentStatus);
+			json_object_set(contentStatus, "type", json_string(PROTO_STR_RES_STATUS));
+			json_object_set(contentStatus, "path", json_string(req_node->path.c_str()));
+			json_object_set(contentStatus, "value", json_integer(PROTO_STATUS_SUCCESS));
+		}
+		else
+		{ // Error
+			json_t* contentStatus = json_object(); // [ { } , { } , { }, ] // {}
+			json_array_append(contentsArray, contentStatus);
+			json_object_set(contentStatus, "type", json_string(PROTO_STR_RES_STATUS));
+			json_object_set(contentStatus, "path", json_string(req_node->path.c_str()));
+			json_object_set(contentStatus, "value", json_integer(PROTO_STATUS_SERVER_ERROR));
+		}		
 	}
 }
 

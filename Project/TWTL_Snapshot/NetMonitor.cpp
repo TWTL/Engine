@@ -230,8 +230,8 @@ char* __stdcall GetDomainName(uint32_t ip) {
 	DWORD dwRetval;
 
 	struct sockaddr_in saGNI;
-	char hostname[NI_MAXHOST];
-	char servInfo[NI_MAXSERV];
+	char hostname[NI_MAXHOST] = { 0 };
+	char servInfo[NI_MAXSERV] = { 0 };
 	u_short port = 27015;
 
 	// Initialize Winsock
