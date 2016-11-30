@@ -100,52 +100,19 @@ BOOL JSON_EnqTrapQueue(TWTL_TRAP_QUEUE* queue, char* inPath)
 {
 	DWORD dwWaitResult = WaitForSingleObject(g_hMutex, INFINITE);
 
-	// LRU round queue to prohibit duplicate trap
-#define RECENT_MAX 16
-#define RECENT_TIMEOUT 60
-	static TWTL_TRAP_QUEUE_NODE recentList[RECENT_MAX] = { 0 };
-	static time_t recentTime[RECENT_MAX] = { 0 };
-	static int recentCount = 0;
-	static int recentCursor = 0;
-	
+
 	TWTL_TRAP_QUEUE_NODE** node = NULL;
 	BOOL duplicate = FALSE;
 	switch (dwWaitResult)
 	{
 		// The thread got ownership of the mutex
 	case WAIT_OBJECT_0:
-		for (int i = 0; i < RECENT_MAX; i++)
+		node = &(queue->node);
+		while (*node != NULL)
 		{
-			// Do not push same inPath if this is enqueued 60sec ago
-			if (StrCmpIA(recentList[i].path, inPath) == 0 && (time(0) - RECENT_TIMEOUT) < recentTime[i])
-			{
+			if (strcmp(inPath, (*node)->path) == 0)
 				duplicate = TRUE;
-				break;
-			}
-		}
-
-		if (duplicate || g_runJsonTrapThread == FALSE)
-		{
-			return FALSE;
-		}
-		else
-		{
-			StringCchCopyA(recentList[recentCursor].path, TRAP_MAX_PATH, inPath);
-			recentTime[recentCursor] = time(0);
-			if (recentCount < 8)
-				recentCount++;
-			if (recentCursor < 8)
-				recentCursor++;
-			else if (recentCursor == 8)
-				recentCursor = 0;
-
-			node = &(queue->node);
-			while (*node != NULL)
-			{
-				if (strcmp(inPath, (*node)->path) == 0)
-					duplicate = TRUE;
-				node = &((*node)->next);
-			}
+			node = &((*node)->next);
 		}
 
 		if (duplicate == FALSE)
