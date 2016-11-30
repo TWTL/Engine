@@ -49,9 +49,10 @@ TWTL_SNAPSHOT_API BOOL __stdcall SnapCurrentStatus(
 	TWTL_DB_NETWORK*  sqliteNet1,
 	TWTL_DB_NETWORK*  sqliteNet2,
 	DWORD structSize[],
-	CONST DWORD32 mode,
 	JSON_EnqTrapQueue_t trapProc,
-	TWTL_TRAP_QUEUE* queue)
+	TWTL_TRAP_QUEUE* queue,
+	sqlite3* db,
+	CONST DWORD32 mode)
 {
 	FILE* storage = NULL;
 
@@ -140,7 +141,6 @@ TWTL_SNAPSHOT_API BOOL __stdcall SnapCurrentStatus(
 									_tprintf_s(L"Nope :( ... Maybe system file. ");
 								}
 								else {
-									sqlitePrc[i].time = time(0);
 									wcscpy_s(sqlitePrc[i].process_path, MAX_PATH, imageName);
 									wcscpy_s(sqlitePrc[i].process_name, DB_MAX_PROC_NAME, currentProcessInfo.proc32.szExeFile);
 									sqlitePrc[i].pid = currentProcessInfo.proc32.th32ProcessID;
@@ -209,7 +209,7 @@ TWTL_SNAPSHOT_API BOOL __stdcall SnapCurrentStatus(
 	}
 
 	if (sqliteNet1 && sqliteNet2)
-		ParseNetstat(sqliteNet1, sqliteNet2, structSize, trapProc, queue, mode);
+		ParseNetstat(sqliteNet1, sqliteNet2, structSize, trapProc, queue, db, mode);
 
 	return TRUE;
 }
@@ -218,7 +218,7 @@ TWTL_SNAPSHOT_API BOOL __stdcall SnapCurrentStatus(
 	Description : terminate process found by PID or Matching Blacklist
 
 	Parameter :
-		( in )	DWORD32 targetPID : target terminated process' ID
+		( in )	CONST DWORD32 targetPID : target terminated process' ID
 			if mode is 1, it must be NULL.
 		( in/out )TCHAR	imagePath : 
 			if mode is 0, it'll be getting fullimagepath of target process.
@@ -229,18 +229,22 @@ TWTL_SNAPSHOT_API BOOL __stdcall SnapCurrentStatus(
 		( in )	DWORD	length : number of row of the imagepath array.
 			if mode is 0, it must be NULL.
 		( in )	DWORD	mode
-			0 -> Use PID
+			0 -> Kill With PID and get ImagePath
 			1 -> Auto Kill
+			2 -> Get ImagePath from PID, not Kill
+			3 -> Kill With ImagePath
 			else -> Error
 	Return value :
 		0 = Error
 		1 = Success
 
 	Usage :
-	ex 1) Kill With PID and get ImagePath : TerminateCurrentProcess(PID, ImagePath, NULL, NULL, 0);
-	ex 2) Auto Kill with blacklist : TerminateCurrentProcess(NULL, NULL, blacklist, number of row of blacklist array, 1 );
+	ex 0) Kill With PID and get ImagePath : TerminateCurrentProcess(PID, ImagePath, NULL, NULL, 0);
+	ex 1) Auto Kill with blacklist : TerminateCurrentProcess(NULL, NULL, blacklist, number of row of blacklist array, 1 );
+	ex 2) Get ImagePath only : TerminateCurrentProcess(PID, ImagePath, NULL, NULL, 2);
+	ex 3) Kill With ImagePath : TerminateCurrentProcess(NULL, ImagePath, NULL, NULL, 3);
 */
-TWTL_SNAPSHOT_API BOOL __stdcall TerminateCurrentProcess(CONST DWORD32 targetPID, TCHAR imagePath[], TCHAR(*blackList)[MAX_PATH], CONST DWORD length, CONST DWORD mode) {
+TWTL_SNAPSHOT_API BOOL __stdcall TerminateCurrentProcess(CONST DWORD32 targetPID, TCHAR imagePath[], TWTL_DB_BLACKLIST* blackList, CONST DWORD length, CONST DWORD mode) {
 	LPWSTR imageName = new WCHAR[MAX_PATH];
 	DWORD imageNameSize = MAX_PATH;
 
@@ -250,7 +254,7 @@ TWTL_SNAPSHOT_API BOOL __stdcall TerminateCurrentProcess(CONST DWORD32 targetPID
 	if (targetPID && mode == 1) {
 		return NULL;
 	}
-	if (length && mode == 0) {
+	if (length && (mode == 0 || mode == 2 || mode == 3)) {
 		return NULL;
 	}
 
@@ -262,7 +266,7 @@ TWTL_SNAPSHOT_API BOOL __stdcall TerminateCurrentProcess(CONST DWORD32 targetPID
 	if (Process32First(targetProcess.hSnap, &targetProcess.proc32)) {
 		while (Process32Next(targetProcess.hSnap, &targetProcess.proc32)) 
 		{
-			if (mode == 0) {
+			if (mode == 0 || mode == 2) {
 				if (targetProcess.proc32.th32ProcessID == targetPID) {
 					DWORD exitCode = NULL;
 					BOOL bInheritHandle = FALSE;
@@ -280,27 +284,64 @@ TWTL_SNAPSHOT_API BOOL __stdcall TerminateCurrentProcess(CONST DWORD32 targetPID
 						return NULL;
 					}
 
+					if (mode == 0)
+					{
+						_tprintf_s(L"Terminated Process, PID : %s, %d",
+							targetProcess.proc32.szExeFile,
+							targetProcess.proc32.th32ProcessID);
+						if (TerminateProcess(targetProcess.curHandle, 0)) {
+							_tprintf_s(L" -> Success\n");
+							GetExitCodeProcess(targetProcess.curHandle, &exitCode);
+						}
+						else {
+							_tprintf_s(L" -> Failed\n");
+							CloseHandle(targetProcess.curHandle);
+							return NULL;
+						}
+					}
+					CloseHandle(targetProcess.curHandle);
+					return TRUE;
+				}
+			}
+			else if (mode == 3) {
+				WCHAR getImagePath[MAX_PATH];
+				imageNameSize = MAX_PATH;
+				DWORD exitCode = NULL;
+				BOOL bInheritHandle = FALSE;
+				DWORD result = 0;
+
+				targetProcess.curHandle = OpenProcess(PROCESS_TERMINATE | PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, bInheritHandle, targetPID);
+				if (targetProcess.curHandle == NULL) {
+					return NULL;
+				}
+				result = QueryFullProcessImageName(targetProcess.curHandle, 0, getImagePath, &imageNameSize);
+				imageNameSize = MAX_PATH;
+
+				if (result == 0) {
+					CloseHandle(targetProcess.curHandle);
+					return NULL;
+				}
+
+				if (StrCmpIW(imagePath, getImagePath) == 0)
+				{ // Found it, iterate more to kill all process match imagePath
 					_tprintf_s(L"Terminated Process, PID : %s, %d",
 						targetProcess.proc32.szExeFile,
 						targetProcess.proc32.th32ProcessID);
 					if (TerminateProcess(targetProcess.curHandle, 0)) {
 						_tprintf_s(L" -> Success\n");
 						GetExitCodeProcess(targetProcess.curHandle, &exitCode);
+						CloseHandle(targetProcess.curHandle);
 					}
 					else {
 						_tprintf_s(L" -> Failed\n");
 						CloseHandle(targetProcess.curHandle);
 						return NULL;
 					}
-					CloseHandle(targetProcess.curHandle);
-					return TRUE;
 				}
+				CloseHandle(targetProcess.curHandle);
 			}
 			else if (mode == 1) {
-				if (targetProcess.proc32.th32ProcessID < 100) {
-
-				}
-				else {
+				if (100 <= targetProcess.proc32.th32ProcessID) {
 					DWORD exitCode = NULL;
 					BOOL bInheritHandle = FALSE;
 					DWORD result = 0;
@@ -317,7 +358,7 @@ TWTL_SNAPSHOT_API BOOL __stdcall TerminateCurrentProcess(CONST DWORD32 targetPID
 					}
 					else {
 						for (DWORD i = 0; i < length; i++) {
-							result = wcscmp(imageName, blackList[i]);
+							result = StrCmpIW(imageName, blackList[i].image_path);
 							if (result == 0) {
 								_tprintf_s(L"Terminated Process, PID : %s, %d",
 									targetProcess.proc32.szExeFile,
@@ -699,7 +740,6 @@ BOOL __stdcall WriteRegToTxt(
 					&ftLastWriteTime);
 				if (retCode == ERROR_SUCCESS)
 				{
-					sqliteSvc[i].time = time(0);
 					wcscpy_s(sqliteSvc[i].key, REGNAME_MAX, achKey);
 
 #ifdef _DEBUG
@@ -835,7 +875,6 @@ BOOL __stdcall WriteRegToTxt(
 						if (mode == 0) {
 							TCHAR buffer[MAX_PATH] = { 0, };
 							TCHAR buffer2[MAX_PATH] = { 0, };
-							sqliteReg[i].time = time(0);
 							wcscpy_s(buffer, MAX_PATH, pReg->keyValue);
 							PathRemoveArgs(buffer);
 							ExpandEnvironmentStrings(buffer, buffer2, MAX_PATH);
@@ -897,7 +936,6 @@ BOOL __stdcall RegDelnodeRecurse(HKEY hKeyRoot, LPTSTR lpSubKey)
 
 	// First, see if we can delete the key without having
 	// to recurse.
-
 	lResult = RegDeleteKey(hKeyRoot, lpSubKey);
 
 	if (lResult == ERROR_SUCCESS)

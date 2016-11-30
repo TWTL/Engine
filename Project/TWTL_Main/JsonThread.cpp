@@ -27,6 +27,8 @@ unsigned int WINAPI JsonMainThreadProc(LPVOID lpParam)
 		trapPort = 0;
 	}
 
+	printf("Json MainPortThread Terminated\n");
+
 	return 0;
 }
 
@@ -41,8 +43,13 @@ unsigned int WINAPI JsonTrapThreadProc(LPVOID lpParam)
 		
 		while (trapPort == 0)
 		{
+			if (g_runJsonTrapThread == FALSE)
+				break;
 			DelayWait(1000);
 		}
+
+		if (g_runJsonTrapThread == FALSE)
+			break;
 
 		StringCchPrintfA(trapPortBuf, TWTL_JSON_MAX_BUF, "%d", trapPort);
 		SOCK_TrapPortInit("127.0.0.1", trapPortBuf);
@@ -52,6 +59,8 @@ unsigned int WINAPI JsonTrapThreadProc(LPVOID lpParam)
 
 		JSON_ClearTrapQueue(&trapQueue);
 	}
+
+	printf("Json TrapPortThread Terminated\n");
 
 	return 0;
 }

@@ -16,9 +16,9 @@
 
 #ifndef TWTL_TRAP_H
 #define TWTL_TRAP_H
-#define TRAP_PATH_MAX 1024
+#define TRAP_MAX_PATH 1024
 typedef struct twtl_trap_queue_node {
-	char path[TRAP_PATH_MAX];
+	char path[TRAP_MAX_PATH];
 	struct twtl_trap_queue_node* next;
 } TWTL_TRAP_QUEUE_NODE;
 typedef struct twtl_trap_queue {
@@ -41,9 +41,10 @@ SnapCurrentStatus(
 	TWTL_DB_NETWORK*  sqliteNet1, // TCP
 	TWTL_DB_NETWORK*  sqliteNet2, // UDP
 	DWORD structSize[],
-	CONST DWORD32 mode,
 	JSON_EnqTrapQueue_t trapProc,
-	TWTL_TRAP_QUEUE* queue
+	TWTL_TRAP_QUEUE* queue,
+	sqlite3* db,
+	CONST DWORD32 mode
 );
 
 TWTL_SNAPSHOT_API
@@ -52,7 +53,7 @@ __stdcall
 TerminateCurrentProcess(
 	CONST DWORD32 targetPID,
 	TCHAR imagePath[],
-	TCHAR(*blackList)[MAX_PATH],
+	TWTL_DB_BLACKLIST* blackList,
 	CONST DWORD length,
 	CONST DWORD mode
 );

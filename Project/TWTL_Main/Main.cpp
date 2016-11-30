@@ -2,6 +2,7 @@
 //
 
 #include "stdafx.h"
+#include <conio.h>
 
 #include "JsonThread.h"
 #include "JsonFunc.h"
@@ -64,7 +65,7 @@ int main()
 	g_runJsonTrapThread = TRUE;
 	wprintf_s(L"Json Threads running\n\n");
 
-
+	BOOL first = TRUE;
 
 	while (TRUE) {
 		SnapCurrentStatus(
@@ -77,9 +78,10 @@ int main()
 			sqliteNet1,
 			sqliteNet2,
 			structSize,
-			2,
 			JSON_EnqTrapQueue,
-			&trapQueue
+			&trapQueue,
+			g_db,
+			2
 		);
 
 		if (initSizeCheck == 0) {
@@ -113,15 +115,25 @@ int main()
 			sqliteNet1,
 			sqliteNet2,
 			NULL,
-			0,
 			JSON_EnqTrapQueue,
-			&trapQueue);
+			&trapQueue,
+			g_db,
+			0);
 		lock = 0;
 
-		Sleep(4000);
+		if (first)
+		{
+			g_dbLock = TRUE;
+			DB_Insert(g_db, DB_REG_HKCU_RUN, sqliteReg1, structSize[1]);
+			DB_Insert(g_db, DB_REG_HKLM_RUN, sqliteReg2, structSize[2]);
+			DB_Insert(g_db, DB_REG_HKCU_RUNONCE, sqliteReg3, structSize[3]);
+			DB_Insert(g_db, DB_REG_HKLM_RUNONCE, sqliteReg4, structSize[4]);
+			DB_Insert(g_db, DB_SERVICE, sqliteSvc, structSize[5]);
+			g_dbLock = FALSE;
+			first = FALSE;
+		}
 
 		lock = 1;
-		Sleep(1000);
 		free(sqlitePrc);
 		free(sqliteReg1);
 		free(sqliteReg2);
@@ -130,19 +142,26 @@ int main()
 		free(sqliteSvc);
 		free(sqliteNet1);
 		free(sqliteNet2);
+
+		if (_kbhit())
+		{
+			int input = _getch();
+			if (input == 'q' || input == 'Q')
+				break;
+		}
+		Sleep(5000);
 	}
 	
 	wprintf_s(L"\nTerminating Json Threads...\n");
 	g_runJsonMainThread = FALSE;
 	g_runJsonTrapThread = FALSE;
-	WaitForMultipleObjects(2, hJsonThread, TRUE, INFINITE);
+	WaitForMultipleObjects(2, hJsonThread, TRUE, 5000);
 	CloseHandle(hJsonThread[0]);
 	CloseHandle(hJsonThread[1]);
 
 	DB_Close(g_db);
 
 	wprintf_s(L"\nBye!\n");
-	DelayWait(20000);
 	
 	return 0;
 }

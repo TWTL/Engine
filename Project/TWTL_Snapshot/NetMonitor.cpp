@@ -8,7 +8,7 @@
 #define FREE(x) HeapFree(GetProcessHeap(), 0, (x))
 
 char* __stdcall GetDomainName(uint32_t ip);
-BOOL __stdcall isBlacklist(TWTL_DB_NETWORK* sqliteNet1, char szRemoteAddr[], CONST DWORD32 index, JSON_EnqTrapQueue_t trapProc, TWTL_TRAP_QUEUE* queue);
+BOOL __stdcall isBlacklist(TWTL_DB_NETWORK* sqliteNet1, char szRemoteAddr[], CONST DWORD32 index, JSON_EnqTrapQueue_t trapProc, TWTL_TRAP_QUEUE* queue, sqlite3* db);
 
 BOOL __stdcall ParseNetstat(
 	TWTL_DB_NETWORK* sqliteNet1, 
@@ -16,6 +16,7 @@ BOOL __stdcall ParseNetstat(
 	DWORD structSize[],
 	JSON_EnqTrapQueue_t trapProc,
 	TWTL_TRAP_QUEUE* queue,
+	sqlite3* db,
 	CONST DWORD32 mode
 )
 {
@@ -111,8 +112,8 @@ BOOL __stdcall ParseNetstat(
 				break;
 			}
 #endif
-			sqliteNet1[i].time = time(0);
 			IpAddr.S_un.S_addr = (u_long)pTcpTable->table[i].dwLocalAddr;
+			sqliteNet1[i].is_dangerous = 0;
 			sqliteNet1[i].src_ipv4 = IpAddr.S_un.S_addr;
 			sqliteNet1[i].src_port = ntohs((u_short)pTcpTable->table[i].dwLocalPort);
 			strcpy_s(szLocalAddr, sizeof(szLocalAddr), inet_ntoa(IpAddr));
@@ -130,7 +131,7 @@ BOOL __stdcall ParseNetstat(
 			sqliteNet1[i].dest_port = ntohs((u_short)pTcpTable->table[i].dwRemotePort);
 			strcpy_s(szRemoteAddr, sizeof(szRemoteAddr), inet_ntoa(IpAddr));
 			sqliteNet1[i].pid = (uint16_t)pTcpTable->table[i].dwOwningPid;
-			isBlacklist(sqliteNet1, szRemoteAddr, i, trapProc, queue);
+			isBlacklist(sqliteNet1, szRemoteAddr, i, trapProc, queue, db);
 #ifdef _DEBUG
 			printf("TCP[%d] Remote Addr: %s", i, szRemoteAddr);
 			// printf("TCP[%d] Remote Addr: %lu\n", i, sqliteNet1[i].dest_ipv4);
@@ -192,8 +193,8 @@ BOOL __stdcall ParseNetstat(
 			if (mode == 2) {
 				break;
 			}
-			sqliteNet2[i].time = time(0);
 			IpAddr.S_un.S_addr = (u_long)pUdpTable->table[i].dwLocalAddr;
+			sqliteNet2[i].is_dangerous = 0;
 			sqliteNet2[i].src_ipv4 = IpAddr.S_un.S_addr;
 			sqliteNet2[i].src_port = ntohs((u_short)pUdpTable->table[i].dwLocalPort);
 			strcpy_s(szLocalAddr, sizeof(szLocalAddr), inet_ntoa(IpAddr));
@@ -230,8 +231,8 @@ char* __stdcall GetDomainName(uint32_t ip) {
 	DWORD dwRetval;
 
 	struct sockaddr_in saGNI;
-	char hostname[NI_MAXHOST];
-	char servInfo[NI_MAXSERV];
+	static char hostname[NI_MAXHOST] = { 0 };
+	char servInfo[NI_MAXSERV] = { 0 };
 	u_short port = 27015;
 
 	// Initialize Winsock
@@ -260,7 +261,7 @@ char* __stdcall GetDomainName(uint32_t ip) {
 	}
 }
 
-BOOL __stdcall isBlacklist(TWTL_DB_NETWORK* sqliteNet1, char szRemoteAddr[], CONST DWORD32 index, JSON_EnqTrapQueue_t trapProc, TWTL_TRAP_QUEUE* queue) {
+BOOL __stdcall isBlacklist(TWTL_DB_NETWORK* sqliteNet1, char szRemoteAddr[], CONST DWORD32 index, JSON_EnqTrapQueue_t trapProc, TWTL_TRAP_QUEUE* queue, sqlite3* db) {
 	FILE *f;
 	fopen_s(&f, "Blacklist.dat", "r");
 	strcat_s(szRemoteAddr, 128, "\n");
@@ -277,16 +278,13 @@ BOOL __stdcall isBlacklist(TWTL_DB_NETWORK* sqliteNet1, char szRemoteAddr[], CON
 				{
 					trapProc(queue, "/Net/Connections/");
 				}
-/*
-				TerminateCurrentProcess(sqliteNet1[index].pid, path, NULL, NULL, 0);
-				_tprintf_s(L"%s\n", path);				
-#ifdef _DEBUG
 
-				TerminateCurrentProcess(sqliteNet1[index].pid, path, NULL, NULL, 0);
-				_tprintf_s(L"%s\n", path);
-
-#endif		
-*/
+				
+				int dbCount = 0;
+				DB_Select(db, DB_BLACKLIST, NULL, &dbCount, NULL);
+				TWTL_DB_BLACKLIST* dbBlack = (TWTL_DB_BLACKLIST*) calloc(dbCount + 1, sizeof(TWTL_DB_BLACKLIST));
+				DB_Select(db, DB_BLACKLIST, dbBlack, &dbCount, NULL);
+				TerminateCurrentProcess(0, NULL, dbBlack, dbCount, 1);
 			}
 		}
 		fclose(f);

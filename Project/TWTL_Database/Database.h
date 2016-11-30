@@ -15,7 +15,6 @@ enum DB_TABLE_TYPE
 // -1 means NULL!
 typedef struct twtl_db_process
 {
-	int64_t time; // Unix Epoch
 	int32_t pid; // Process ID
 	int32_t ppid; // Process Parent ID
 	WCHAR process_name[DB_MAX_PROC_NAME]; // Ex) explorer.exe
@@ -29,7 +28,6 @@ typedef struct twtl_db_process
 // https://msdn.microsoft.com/ko-kr/library/windows/desktop/ms724872(v=vs.85).aspx
 typedef struct twtl_db_registry
 {
-	int64_t time; // Unix Epoch
 	WCHAR path[DB_MAX_REG_PATH]; // Ex) HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run
 	WCHAR value[DB_MAX_REG_VALUE]; // Ex) "C:\\Program Files\\AhnLab\\V3Lite30\\V3Lite.exe" /tray
 	int32_t type; // Ex) REG_SZ
@@ -38,7 +36,6 @@ typedef struct twtl_db_registry
 
 typedef struct twtl_service
 {
-	int64_t time; // Unix Epoch
 	WCHAR key[DB_MAX_REG_PATH]; // Ex) HomeGroup
 	WCHAR image_path[DB_MAX_REG_PATH]; 
 } TWTL_DB_SERVICE;
@@ -46,7 +43,6 @@ typedef struct twtl_service
 // Use 0 to show this value is invalid
 typedef struct twtl_db_network
 {
-	int64_t time; // Unix Epoch
 	uint32_t src_ipv4; // Src IPv4
 	uint32_t dest_ipv4; // Dest IPv4
 	uint16_t src_port; // Src Port
@@ -58,7 +54,6 @@ typedef struct twtl_db_network
 #define DB_MAX_FILE_PATH 260
 typedef struct twtl_db_blacklist
 {
-	int64_t time;
 	WCHAR image_path[DB_MAX_FILE_PATH];
 } TWTL_DB_BLACKLIST;
 

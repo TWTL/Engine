@@ -33,7 +33,7 @@ enum twtl_proto_type
 #define PROTO_STR_RES_STATUS	"response.status"
 #define PROTO_STR_RES_OBJECT	"response.object"
 #define PROTO_STR_TRAP_CHANGE	"trap.change"
-#define PROTO_STR_ACK_CHECK		"trak-ack.check"
+#define PROTO_STR_ACK_CHECK		"trap-ack.check"
 
 enum twtl_status_code
 {
@@ -58,6 +58,7 @@ enum twtl_proto_node_value
 };
 
 // "value":{"value":[{"Name":".NET CLR Data","Value":null}],"accept":[false],"reject":[true]}}]
+// Delete : [{"type":"request.beta", "path" : "/Perf/ResolveImagePath/", "value" : {"ImagePath":"C:\\Program Files\\Internet Explorer\\iexplore.exe"}}]}
 typedef struct twtL_proto_patch_node {
 	std::string value_Name;
 	std::string value_Value;
@@ -88,9 +89,9 @@ typedef struct twtl_proto_buf {
 
 #ifndef TWTL_TRAP_H
 #define TWTL_TRAP_H
-#define TRAP_PATH_MAX 1024
+#define TRAP_MAX_PATH 1024
 typedef struct twtl_trap_queue_node {
-	char path[TRAP_PATH_MAX];
+	char path[TRAP_MAX_PATH];
 	struct twtl_trap_queue_node* next;
 } TWTL_TRAP_QUEUE_NODE;
 typedef struct twtl_trap_queue {
@@ -130,6 +131,8 @@ void JSON_ProtoReqGetProc(TWTL_PROTO_NODE* req_node, json_t* root);
 void JSON_ProtoReqSetProc(TWTL_PROTO_NODE* req_node, json_t* root);
 void JSON_ProtoReqDiffProc(TWTL_PROTO_NODE* req_node, json_t* root);
 void JSON_ProtoReqPatchProc(TWTL_PROTO_NODE* req_node, json_t* root);
+void JSON_ProtoReqBetaProc(TWTL_PROTO_NODE* req_node, json_t* root);
+void JSON_ProtoReqPutProc(TWTL_PROTO_NODE* req_node, json_t* root);
 
 typedef enum twtl_reg_short_type
 {
