@@ -11,7 +11,8 @@
 */
 #define MAX_CHARS 4096
 
-
+extern BOOL g_runJsonMainThread;
+extern BOOL g_runJsonTrapThread;
 static HANDLE g_hMutex;
 extern TWTL_INFO_DATA g_twtlInfo;
 extern TWTL_TRAP_QUEUE trapQueue;
@@ -98,6 +99,14 @@ TWTL_TRAP_QUEUE* JSON_InitTrapQueue(TWTL_TRAP_QUEUE* queue)
 BOOL JSON_EnqTrapQueue(TWTL_TRAP_QUEUE* queue, char* inPath)
 {
 	DWORD dwWaitResult = WaitForSingleObject(g_hMutex, INFINITE);
+
+	// LRU round queue to prohibit duplicate trap
+#define RECENT_MAX 16
+#define RECENT_TIMEOUT 60
+	static TWTL_TRAP_QUEUE_NODE recentList[RECENT_MAX] = { 0 };
+	static time_t recentTime[RECENT_MAX] = { 0 };
+	static int recentCount = 0;
+	static int recentCursor = 0;
 	
 	TWTL_TRAP_QUEUE_NODE** node = NULL;
 	BOOL duplicate = FALSE;
@@ -105,19 +114,44 @@ BOOL JSON_EnqTrapQueue(TWTL_TRAP_QUEUE* queue, char* inPath)
 	{
 		// The thread got ownership of the mutex
 	case WAIT_OBJECT_0:
-		// TODO: Write to the database
-		node = &(queue->node);
-		while (*node != NULL)
+		for (int i = 0; i < RECENT_MAX; i++)
 		{
-			if (strcmp(inPath, (*node)->path) == 0)
+			// Do not push same inPath if this is enqueued 60sec ago
+			if (StrCmpIA(recentList[i].path, inPath) == 0 && (time(0) - RECENT_TIMEOUT) < recentTime[i])
+			{
 				duplicate = TRUE;
-			node = &((*node)->next);
+				break;
+			}
+		}
+
+		if (duplicate || g_runJsonTrapThread == FALSE)
+		{
+			return FALSE;
+		}
+		else
+		{
+			StringCchCopyA(recentList[recentCursor].path, TRAP_MAX_PATH, inPath);
+			recentTime[recentCursor] = time(0);
+			if (recentCount < 8)
+				recentCount++;
+			if (recentCursor < 8)
+				recentCursor++;
+			else if (recentCursor == 8)
+				recentCursor = 0;
+
+			node = &(queue->node);
+			while (*node != NULL)
+			{
+				if (strcmp(inPath, (*node)->path) == 0)
+					duplicate = TRUE;
+				node = &((*node)->next);
+			}
 		}
 
 		if (duplicate == FALSE)
 		{
 			(*node) = (TWTL_TRAP_QUEUE_NODE*)calloc(1, sizeof(TWTL_TRAP_QUEUE_NODE));
-			StringCchCopyA((*node)->path, TRAP_PATH_MAX, inPath);
+			StringCchCopyA((*node)->path, TRAP_MAX_PATH, inPath);
 			(*node)->next = NULL;
 			queue->count++;
 		}
@@ -151,7 +185,7 @@ BOOL JSON_DeqTrapQueue(TWTL_TRAP_QUEUE* queue, char* outPath)
 			if (0 < queue->count)
 			{
 				TWTL_TRAP_QUEUE_NODE* next = queue->node->next;
-				StringCchCopyA(outPath, TRAP_PATH_MAX, queue->node->path);
+				StringCchCopyA(outPath, TRAP_MAX_PATH, queue->node->path);
 				free(queue->node);
 				queue->node = next;
 				queue->count--;
@@ -371,6 +405,10 @@ void JSON_ProtoParse(json_t *element, const char *key, TWTL_PROTO_BUF* req, TWTL
 			{
 				node->value_string = json_string_value(element);
 			}
+			else if (StrCmpA(key, "ProcessImagePath") == 0)
+			{
+				node->value_string = json_string_value(element);
+			}
 			break;
 		case JSON_INTEGER:
 			break;
@@ -430,6 +468,7 @@ char* JSON_ProtoMakeResponse(TWTL_PROTO_BUF* req)
 			JSON_ProtoReqSetProc(req_node, root);
 			break;
 		case PROTO_REQ_PUT:
+			JSON_ProtoReqPutProc(req_node, root);
 			break;
 		case PROTO_REQ_DELETE:
 			break;
@@ -638,6 +677,38 @@ void JSON_ProtoReqSetProc(TWTL_PROTO_NODE* req_node, json_t* root)
 		if (g_twtlInfo.engine.trapPort == 0) {} // Connection Teardown
 
 		trapPort = g_twtlInfo.engine.trapPort;
+	}
+	else if (req_node->path.compare("/Perf/RemoveExecImage/") == 0)
+	{
+		BOOL failure = TRUE;
+		TWTL_DB_BLACKLIST black;
+		memset(&black, 0, sizeof(TWTL_DB_BLACKLIST));
+		StringCchPrintfW(black.image_path, DB_MAX_FILE_PATH, L"%S", req_node->value_string.c_str());
+		if (DB_Insert(g_db, DB_BLACKLIST, &black, 1))
+		{ // Success
+			TerminateCurrentProcess(0, NULL, &black, 1, 1);
+			if (DeleteFileA(req_node->path.c_str()))
+			{ // Success
+				failure = FALSE;
+			}
+		}
+
+		if (failure == FALSE)
+		{ // Success
+			json_t* contentStatus = json_object(); // [ { } , { } , { }, ] // {}
+			json_array_append(contentsArray, contentStatus);
+			json_object_set(contentStatus, "type", json_string(PROTO_STR_RES_STATUS));
+			json_object_set(contentStatus, "path", json_string(req_node->path.c_str()));
+			json_object_set(contentStatus, "value", json_integer(PROTO_STATUS_SUCCESS));
+		}
+		else
+		{ // Error
+			json_t* contentStatus = json_object(); // [ { } , { } , { }, ] // {}
+			json_array_append(contentsArray, contentStatus);
+			json_object_set(contentStatus, "type", json_string(PROTO_STR_RES_STATUS));
+			json_object_set(contentStatus, "path", json_string(req_node->path.c_str()));
+			json_object_set(contentStatus, "value", json_integer(PROTO_STATUS_SERVER_ERROR));
+		}
 	}
 }
 
@@ -1076,18 +1147,24 @@ void JSON_ProtoReqBetaProc(TWTL_PROTO_NODE* req_node, json_t* root)
 		json_array_append(contentsArray, contentNode);
 		json_object_set(contentNode, "type", json_string(PROTO_STR_RES_OBJECT));
 		json_object_set(contentNode, "path", json_string(req_node->path.c_str()));
-		json_t* contentValue = json_object();
-		json_object_set(contentNode, "value", contentValue);
-		json_object_set(contentValue, "ImagePath", json_string(req_node->value_string.c_str()));
+		json_object_set(contentNode, "value", json_string(req_node->value_string.c_str()));
 	}
-	else if (req_node->path.compare("/Perf/RegisterAutoKill/") == 0)
+}
+
+void JSON_ProtoReqPutProc(TWTL_PROTO_NODE* req_node, json_t* root)
+{
+	json_t* contentsArray = json_array(); // "contents": [  ]  // []
+	json_object_set(root, "contents", contentsArray);
+
+	if (req_node->path.compare("/Perf/RegisterAutoKill/") == 0)
 	{
 		TWTL_DB_BLACKLIST black;
 		memset(&black, 0, sizeof(TWTL_DB_BLACKLIST));
-		StringCchPrintfW(black.image_path, DB_MAX_FILE_PATH, L"%S", req_node->value_string.c_str());
+		MultiByteToWideChar(CP_UTF8, 0, req_node->value_string.c_str(), -1, black.image_path, DB_MAX_FILE_PATH);
 		if (DB_Insert(g_db, DB_BLACKLIST, &black, 1))
 		{ // Success
 			TerminateCurrentProcess(0, NULL, &black, 1, 1);
+			// TerminateCurrentProcess(NULL, black.image_path, NULL, NULL, 3);
 
 			json_t* contentStatus = json_object(); // [ { } , { } , { }, ] // {}
 			json_array_append(contentsArray, contentStatus);
@@ -1104,27 +1181,7 @@ void JSON_ProtoReqBetaProc(TWTL_PROTO_NODE* req_node, json_t* root)
 			json_object_set(contentStatus, "value", json_integer(PROTO_STATUS_SERVER_ERROR));
 		}
 	}
-	else if (req_node->path.compare("/Perf/RemoveExecImage/") == 0)
-	{
-		if (DeleteFileA(req_node->path.c_str()))
-		{ // Success
-			json_t* contentStatus = json_object(); // [ { } , { } , { }, ] // {}
-			json_array_append(contentsArray, contentStatus);
-			json_object_set(contentStatus, "type", json_string(PROTO_STR_RES_STATUS));
-			json_object_set(contentStatus, "path", json_string(req_node->path.c_str()));
-			json_object_set(contentStatus, "value", json_integer(PROTO_STATUS_SUCCESS));
-		}
-		else
-		{ // Error
-			json_t* contentStatus = json_object(); // [ { } , { } , { }, ] // {}
-			json_array_append(contentsArray, contentStatus);
-			json_object_set(contentStatus, "type", json_string(PROTO_STR_RES_STATUS));
-			json_object_set(contentStatus, "path", json_string(req_node->path.c_str()));
-			json_object_set(contentStatus, "value", json_integer(PROTO_STATUS_SERVER_ERROR));
-		}		
-	}
 }
-
 
 BOOL JSON_SendTrap(SOCKET sock, std::string path)
 {

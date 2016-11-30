@@ -313,7 +313,7 @@ DWORD SOCK_TrapPortProc()
 
 	 while (trapPort != 0 && g_runJsonTrapThread)
 	 {
-		 char path[TRAP_PATH_MAX] = { 0 };
+		 char path[TRAP_MAX_PATH] = { 0 };
 
 		 if (JSON_DeqTrapQueue(&trapQueue, path))
 		 { // Queue is empty

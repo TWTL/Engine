@@ -8,9 +8,9 @@
 
 #ifndef TWTL_TRAP_H
 #define TWTL_TRAP_H
-#define TRAP_PATH_MAX 1024
+#define TRAP_MAX_PATH 1024
 typedef struct twtl_trap_queue_node {
-	char path[TRAP_PATH_MAX];
+	char path[TRAP_MAX_PATH];
 	struct twtl_trap_queue_node* next;
 } TWTL_TRAP_QUEUE_NODE;
 typedef struct twtl_trap_queue {

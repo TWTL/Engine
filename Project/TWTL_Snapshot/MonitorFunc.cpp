@@ -322,7 +322,7 @@ TWTL_SNAPSHOT_API BOOL __stdcall TerminateCurrentProcess(CONST DWORD32 targetPID
 				}
 
 				if (StrCmpIW(imagePath, getImagePath) == 0)
-				{ // Found it
+				{ // Found it, iterate more to kill all process match imagePath
 					_tprintf_s(L"Terminated Process, PID : %s, %d",
 						targetProcess.proc32.szExeFile,
 						targetProcess.proc32.th32ProcessID);
@@ -330,7 +330,6 @@ TWTL_SNAPSHOT_API BOOL __stdcall TerminateCurrentProcess(CONST DWORD32 targetPID
 						_tprintf_s(L" -> Success\n");
 						GetExitCodeProcess(targetProcess.curHandle, &exitCode);
 						CloseHandle(targetProcess.curHandle);
-						return TRUE;
 					}
 					else {
 						_tprintf_s(L" -> Failed\n");
@@ -341,10 +340,7 @@ TWTL_SNAPSHOT_API BOOL __stdcall TerminateCurrentProcess(CONST DWORD32 targetPID
 				CloseHandle(targetProcess.curHandle);
 			}
 			else if (mode == 1) {
-				if (targetProcess.proc32.th32ProcessID < 100) {
-
-				}
-				else {
+				if (100 <= targetProcess.proc32.th32ProcessID) {
 					DWORD exitCode = NULL;
 					BOOL bInheritHandle = FALSE;
 					DWORD result = 0;
@@ -361,7 +357,7 @@ TWTL_SNAPSHOT_API BOOL __stdcall TerminateCurrentProcess(CONST DWORD32 targetPID
 					}
 					else {
 						for (DWORD i = 0; i < length; i++) {
-							result = wcscmp(imageName, blackList[i].image_path);
+							result = StrCmpIW(imageName, blackList[i].image_path);
 							if (result == 0) {
 								_tprintf_s(L"Terminated Process, PID : %s, %d",
 									targetProcess.proc32.szExeFile,

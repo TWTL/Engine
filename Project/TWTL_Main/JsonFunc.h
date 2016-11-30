@@ -89,9 +89,9 @@ typedef struct twtl_proto_buf {
 
 #ifndef TWTL_TRAP_H
 #define TWTL_TRAP_H
-#define TRAP_PATH_MAX 1024
+#define TRAP_MAX_PATH 1024
 typedef struct twtl_trap_queue_node {
-	char path[TRAP_PATH_MAX];
+	char path[TRAP_MAX_PATH];
 	struct twtl_trap_queue_node* next;
 } TWTL_TRAP_QUEUE_NODE;
 typedef struct twtl_trap_queue {
@@ -132,6 +132,7 @@ void JSON_ProtoReqSetProc(TWTL_PROTO_NODE* req_node, json_t* root);
 void JSON_ProtoReqDiffProc(TWTL_PROTO_NODE* req_node, json_t* root);
 void JSON_ProtoReqPatchProc(TWTL_PROTO_NODE* req_node, json_t* root);
 void JSON_ProtoReqBetaProc(TWTL_PROTO_NODE* req_node, json_t* root);
+void JSON_ProtoReqPutProc(TWTL_PROTO_NODE* req_node, json_t* root);
 
 typedef enum twtl_reg_short_type
 {

@@ -1,0 +1,51 @@
+[E <- U] MainPort Receive
+{"app":"TWTL-GUI","name":"TWTL","version":"1","contents":[{"type":"request.get","path":"/Engine/Name/"}]}
+
+[E -> U] MainPort Send
+{"app": "TWTL-Engine", "name": "TWTL", "version": "1", "contents": [{"type": "response.object", "path": "/Engine/Name/", "value": "TWTL"}]}
+
+[E <- U] MainPort Receive
+{"app":"TWTL-GUI","name":"TWTL","version":"1","contents":[{"type":"request.get","path":"/Engine/Version/"}]}
+
+[E -> U] MainPort Send
+{"app": "TWTL-Engine", "name": "TWTL", "version": "1", "contents": [{"type": "response.object", "path": "/Engine/Version/", "value": "1"}]}
+
+[E <- U] MainPort Receive
+{"app":"TWTL-GUI","name":"TWTL","version":"1","contents":[{"type":"request.get","path":"/Engine/RequestPort/"}]}
+
+[E -> U] MainPort Send
+{"app": "TWTL-Engine", "name": "TWTL", "version": "1", "contents": [{"type": "response.object", "path": "/Engine/RequestPort/", "value": 5259}]}
+
+[E <- U] MainPort Receive
+{"app":"TWTL-GUI","name":"TWTL","version":"1","contents":[{"type":"request.set","path":"/Engine/TrapPort/","value":13884}]}
+
+[E -> U] MainPort Send
+{"app": "TWTL-Engine", "name": "TWTL", "version": "1", "contents": [{"type": "response.status", "path": "/Engine/TrapPort/", "value": 200}]}
+
+[E <- U] MainPort Receive
+{"app":"TWTL-GUI","name":"TWTL","version":"1","contents":[{"type":"request.get","path":"/Net/Connections/"}]}
+
+[E -> U] Trap Send
+{"name": "TWTL", "app": "TWTL-Engine", "version": "1", "contents": [{"type": "trap.change", "path": "/Net/Connections/", "Value": 200}]}
+
+[E -> U] MainPort Send
+{"app": "TWTL-Engine", "name": "TWTL", "version": "1", "contents": [{"type": "response.status", "path": "/Net/Connections/", "value": 200}, {"type": "response.object", "path": "/Net/Connections/", "value": [{"SrcIP": "192.168.206.131", "SrcPort": 51150, "DestIP": "220.116.76.14", "DestPort": 443, "PID": 4008, "ProcessImagePath": "C:\\Program Files\\Internet Explorer\\iexplore.exe", "IsDangerous": true, "Alive": true}, {"SrcIP": "192.168.206.131", "SrcPort": 51151, "DestIP": "220.116.76.14", "DestPort": 443, "PID": 4008, "ProcessImagePath": "C:\\Program Files\\Internet Explorer\\iexplore.exe", "IsDangerous": true, "Alive": true}, {"SrcIP": "192.168.206.131", "SrcPort": 51160, "DestIP": "220.116.76.14", "DestPort": 443, "PID": 4008, "ProcessImagePath": "C:\\Program Files\\Internet Explorer\\iexplore.exe", "IsDangerous": true, "Alive": true}]}]}
+
+[E <- U] MainPort Receive
+{"app":"TWTL-GUI","name":"TWTL","version":"1","contents":[{"type":"request.beta","path":"/Perf/ResolveImagePath/","value":{"ImagePath":"C:\\Program Files\\Internet Explorer\\iexplore.exe"}}]}
+
+[E -> U] MainPort Send
+{"app": "TWTL-Engine", "name": "TWTL", "version": "1", "contents": [{"type": "response.status", "path": "/Perf/ResolveImagePath/", "value": 200}, {"type": "response.object", "path": "/Perf/ResolveImagePath/", "value": "C:\\Program Files\\Internet Explorer\\iexplore.exe"}]}
+
+[E <- U] MainPort Receive
+{"app":"TWTL-GUI","name":"TWTL","version":"1","contents":[{"type":"request.put","path":"/Perf/RegisterAutoKill/","value":{"ProcessImagePath":"C:\\Program Files\\Internet Explorer\\iexplore.exe"}}]}
+
+[E -> U] MainPort Send
+{"app": "TWTL-Engine", "name": "TWTL", "version": "1", "contents": [{"type": "response.status", "path": "/Perf/RegisterAutoKill/", "value": 200}]}
+
+[E <- U] MainPort Receive
+{"app":"TWTL-GUI","name":"TWTL","version":"1","contents":[{"type":"request.get","path":"/Net/Connections/"}]}
+
+[E -> U] MainPort Send
+{"app": "TWTL-Engine", "name": "TWTL", "version": "1", "contents": [{"type": "response.status", "path": "/Net/Connections/", "value": 200}, {"type": "response.object", "path": "/Net/Connections/", "value": []}]}
+
