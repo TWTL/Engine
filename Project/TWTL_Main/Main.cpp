@@ -7,6 +7,8 @@
 #include "JsonThread.h"
 #include "JsonFunc.h"
 
+void DiffReg(TWTL_DB_REGISTRY* nowHkcuRun, TWTL_DB_REGISTRY* nowHklmRun, TWTL_DB_REGISTRY* nowHkcuRunOnce, TWTL_DB_REGISTRY* nowHklmRunOnce, TWTL_DB_SERVICE* nowServices, DWORD nowSize[]);
+
 TWTL_INFO_DATA g_twtlInfo;
 BOOL g_runJsonMainThread = FALSE;
 BOOL g_runJsonTrapThread = FALSE;
@@ -133,6 +135,8 @@ int main()
 			first = FALSE;
 		}
 
+		DiffReg(sqliteReg1, sqliteReg2, sqliteReg3, sqliteReg4, sqliteSvc, structSize);
+
 		lock = 1;
 		free(sqlitePrc);
 		free(sqliteReg1);
@@ -164,6 +168,134 @@ int main()
 	wprintf_s(L"\nBye!\n");
 	
 	return 0;
+}
+
+void DiffReg(TWTL_DB_REGISTRY* nowHkcuRun, TWTL_DB_REGISTRY* nowHklmRun, TWTL_DB_REGISTRY* nowHkcuRunOnce, TWTL_DB_REGISTRY* nowHklmRunOnce, TWTL_DB_SERVICE* nowServices, DWORD nowSize[])
+{
+	// Get database's row count
+	int countLastHkcuRun = 0;
+	int countLastHklmRun = 0;
+	int countLastHkcuRunOnce = 0;
+	int countLastHklmRunOnce = 0;
+	int countLastServices = 0;
+
+	TWTL_DB_REGISTRY* lastHkcuRun = NULL;
+	TWTL_DB_REGISTRY* lastHklmRun = NULL;
+	TWTL_DB_REGISTRY* lastHkcuRunOnce = NULL;
+	TWTL_DB_REGISTRY* lastHklmRunOnce = NULL;
+	TWTL_DB_SERVICE* lastServices = NULL;
+
+
+	DB_Select(g_db, DB_REG_HKCU_RUN, NULL, &countLastHkcuRun, NULL);
+	lastHkcuRun = (TWTL_DB_REGISTRY*)calloc(countLastHkcuRun + 1, sizeof(TWTL_DB_REGISTRY));
+	DB_Select(g_db, DB_REG_HKCU_RUN, lastHkcuRun, &countLastHkcuRun, NULL);
+	
+	DB_Select(g_db, DB_REG_HKLM_RUN, NULL, &countLastHklmRun, NULL);
+	lastHklmRun = (TWTL_DB_REGISTRY*)calloc(countLastHklmRun + 1, sizeof(TWTL_DB_REGISTRY));
+	DB_Select(g_db, DB_REG_HKLM_RUN, lastHklmRun, &countLastHklmRun, NULL);
+	
+	DB_Select(g_db, DB_REG_HKCU_RUNONCE, NULL, &countLastHkcuRunOnce, NULL);
+	lastHkcuRunOnce = (TWTL_DB_REGISTRY*)calloc(countLastHkcuRunOnce + 1, sizeof(TWTL_DB_REGISTRY));
+	DB_Select(g_db, DB_REG_HKCU_RUNONCE, lastHkcuRunOnce, &countLastHkcuRunOnce, NULL);
+
+	DB_Select(g_db, DB_REG_HKLM_RUNONCE, NULL, &countLastHklmRunOnce, NULL);
+	lastHklmRunOnce = (TWTL_DB_REGISTRY*)calloc(countLastHklmRunOnce + 1, sizeof(TWTL_DB_REGISTRY));
+	DB_Select(g_db, DB_REG_HKLM_RUNONCE, lastHklmRunOnce, &countLastHklmRunOnce, NULL);
+	
+	DB_Select(g_db, DB_SERVICE, NULL, &countLastServices, NULL);
+	lastServices = (TWTL_DB_SERVICE*)calloc(countLastServices + 1, sizeof(TWTL_DB_SERVICE));
+	DB_Select(g_db, DB_SERVICE, lastServices, &countLastServices, NULL);
+
+	// Services
+	// Find new entries
+	BOOL sent = FALSE;
+	for (DWORD idx_n = 0; idx_n < nowSize[5]; idx_n++)
+	{
+		BOOL found = FALSE;
+		for (int idx_l = 0; idx_l < countLastServices; idx_l++)
+		{
+			if (StrCmpW(nowServices[idx_n].key, lastServices[idx_l].key) == 0)
+			{
+				found = TRUE;
+				break;
+			}
+		}
+
+		if (found == FALSE)
+		{ // Newly created!
+			sent = TRUE;
+		}
+	}
+
+	if (sent == FALSE)
+	{
+		for (int i = 0; i < 4; i++)
+		{
+			int countLast = 0;
+			DWORD countNow = 0;
+			TWTL_DB_REGISTRY* dbLastReg = NULL;
+			TWTL_DB_REGISTRY* dbNowReg = NULL;
+			switch (i)
+			{
+			case 0:
+				countLast = countLastHkcuRun;
+				countNow = nowSize[1];
+				dbLastReg = lastHkcuRun;
+				dbNowReg = nowHkcuRun;
+				break;
+			case 2:
+				countLast = countLastHkcuRunOnce;
+				countNow = nowSize[3];
+				dbLastReg = lastHkcuRunOnce;
+				dbNowReg = nowHkcuRunOnce;
+				break;
+			case 1:
+				countLast = countLastHklmRun;
+				countNow = nowSize[2];
+				dbLastReg = lastHklmRun;
+				dbNowReg = nowHklmRun;
+				break;
+			case 3:
+				countLast = countLastHklmRunOnce;
+				countNow = nowSize[4];
+				dbLastReg = lastHklmRunOnce;
+				dbNowReg = nowHklmRunOnce;
+				break;
+			}
+
+			// Find new entries
+			for (DWORD idx_n = 0; idx_n < countNow; idx_n++)
+			{
+				BOOL found = FALSE;
+				for (int idx_l = 0; idx_l < countLast; idx_l++)
+				{
+					if (StrCmpW(dbNowReg[idx_n].value, dbLastReg[idx_l].value) == 0)
+					{
+						found = TRUE;
+						break;
+					}
+				}
+
+				if (found == FALSE)
+				{ // Newly created!
+					sent = TRUE;
+				}
+			}
+
+			if (sent)
+				break;
+		}
+	}
+
+	if (sent)
+		JSON_EnqTrapQueue(&trapQueue, "/Reg/Short/");
+
+	// Finalize
+	free(lastHkcuRun);
+	free(lastHklmRun);
+	free(lastHkcuRunOnce);
+	free(lastHklmRunOnce);
+	free(lastServices);
 }
 
 // Linux-Style Hex Dump, written by Joveler

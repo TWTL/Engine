@@ -95,7 +95,6 @@ BOOL JSON_EnqTrapQueue(TWTL_TRAP_QUEUE* queue, char* inPath)
 {
 	DWORD dwWaitResult = WaitForSingleObject(g_hMutex, INFINITE);
 
-
 	TWTL_TRAP_QUEUE_NODE** node = NULL;
 	BOOL duplicate = FALSE;
 	switch (dwWaitResult)

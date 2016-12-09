@@ -60,7 +60,6 @@ unsigned int WINAPI JsonTrapThreadProc(LPVOID lpParam)
 		JSON_ClearTrapQueue(&trapQueue);
 	}
 
-	JSON_ClearTrapQueue(&trapQueue);
 	printf("Json TrapPortThread Terminated\n");
 
 	return 0;
